@@ -1,9 +1,14 @@
 # go-safeweb
 
-DISCLAIMER: This is not an officially supported Google product.
+**DISCLAIMER**: This is not an officially supported Google product.
 
 `go-safeweb` is a collection of libraries for writing secure-by-default HTTP
 servers in Go.
+
+## Contributing
+
+This project is in an early stage. We are currently **not accepting** any
+contributions. 
 
 ## Source Code Headers
 
