@@ -7,7 +7,7 @@ servers in Go.
 
 ## Contributing
 
-This project is in an early stage. We are currently **not accepting** any
+This project is in an early stage. We are temporarily **not accepting** any
 contributions. 
 
 ## Source Code Headers
