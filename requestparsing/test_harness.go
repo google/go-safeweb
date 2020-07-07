@@ -24,61 +24,55 @@ import (
 	"sync"
 )
 
-type fakeHandler struct {
-	// callback is an anonymous function that verifies properties of the HTTP
-	// request and response provided in the test cases.
+// AssertHandler is used to assert properties about the http.Request that it receives in using a callback function.
+type AssertHandler struct {
 	callback func(*http.Request)
 }
 
-func (h *fakeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h *AssertHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.callback(r)
 	io.WriteString(w, "Hello world!")
 }
 
 type fakeListener struct {
 	closeOnce      sync.Once
-	connChannel    chan net.Conn
+	channel        chan net.Conn
 	serverEndpoint io.Closer
 	clientEndpoint net.Conn
 }
 
-// newFakeListener creates an instance of fakeListener. This will pass requests
-// to the HTTP server as part of the testing harness.
+// newFakeListener creates an instance of fakeListener. This will pass requests to the HTTP server as part of the testing harness.
 func newFakeListener() *fakeListener {
 	s2c, c2s := net.Pipe()
 	c := make(chan net.Conn, 1)
 	c <- s2c
 	return &fakeListener{
-		connChannel:    c,
+		channel:        c,
 		serverEndpoint: s2c,
 		clientEndpoint: c2s,
 	}
 }
 
-// Accept passes a network connection to the HTTP server to
-// enable bidirectional communication with the client. It will return an error
-// if Accept is called after the listener was closed
+// Accept passes a network connection to the HTTP server to enable bidirectional communication with the client.
+// It will return an error if Accept is called after the listener was closed.
 func (l *fakeListener) Accept() (net.Conn, error) {
-	ch, ok := <-l.connChannel
+	ch, ok := <-l.channel
 	if !ok {
 		return nil, errors.New("Listener closed")
 	}
 	return ch, nil
 }
 
-// Close will close the two network connections and the listener
-func (l *fakeListener) Close() (err error) {
+// Close will close the two network connections and the listener.
+func (l *fakeListener) Close() error {
 	l.closeOnce.Do(func() {
-		err = l.serverEndpoint.Close()
-		if err != nil {
-			return
-		}
-		err = l.clientEndpoint.Close()
-		if err != nil {
-			return
-		}
-		close(l.connChannel)
+		close(l.channel)
 	})
+	err := l.serverEndpoint.Close()
+	err2 := l.clientEndpoint.Close()
+	if err2 != nil {
+		return err2
+	}
 	return err
 }
 
@@ -87,49 +81,46 @@ func (l *fakeListener) Addr() net.Addr {
 	return l.clientEndpoint.LocalAddr()
 }
 
-// SendRequest writes a request to the client endpoint connection. This will
-// be passed to the server through the listener. The function blocks until the
-// server has finished reading the message.
-func (l *fakeListener) SendRequest(request []byte) error {
-	wrote, err := l.clientEndpoint.Write(request)
-	if requestLen := len(request); wrote != requestLen {
+// SendRequest writes a request to the client endpoint connection. This will be passed to the server through the listener.
+// The function blocks until the server has finished reading the message.
+func (l *fakeListener) sendRequest(request []byte) error {
+	n, err := l.clientEndpoint.Write(request)
+	if n != len(request) {
 		return errors.New("client connection failed to write the entire request")
 	}
 	return err
 }
 
-// readResponse reads the response from the clientEndpoint connection, sent by
-// the listening server. It will block until the server has sent a response
-// or has timed out.
-func (l *fakeListener) readResponse() ([]byte, error) {
-	// TODO(maramihali@, grenfeldt@): refactor this
-	bytes := make([]byte, 4096)
-	n, err := l.clientEndpoint.Read(bytes)
-	if n == 4096 {
-		return nil, errors.New("response larger than 4096 bytes")
-	}
-	return bytes[:n], err
+// readResponse reads the response from the clientEndpoint connection, sent by the listening server.
+// It will block until the server has sent a response.
+func (l *fakeListener) readResponse(bytes []byte) (int, error) {
+	return l.clientEndpoint.Read(bytes)
 }
 
-// makeRequest instantiates a new http.Server, sends the request provided as
-// argument and returns the response
-func makeRequest(ctx context.Context, req []byte, callbackFun func(*http.Request)) ([]byte, error) {
+// MakeRequest instantiates a new http.Server, sends the request provided as argument and returns the response.
+// 'callback' will be called in the http.Handler with the http.Request that the handler receives.
+// The size of the response is hardcoded as 4096 bytes. If the response received is larger, an error will be returned.
+func MakeRequest(ctx context.Context, req []byte, callback func(*http.Request)) ([]byte, error) {
 	listener := newFakeListener()
 	defer listener.Close()
 
-	handler := &fakeHandler{callback: callbackFun}
+	handler := &AssertHandler{callback: callback}
 	server := &http.Server{Handler: handler}
 	go server.Serve(listener)
 	defer server.Close()
 
-	if err := listener.SendRequest(req); err != nil {
+	if err := listener.sendRequest(req); err != nil {
 		return nil, err
 	}
 
-	resp, err := listener.readResponse()
+	resp := make([]byte, 4096)
+	n, err := listener.readResponse(resp)
+	if n == 4096 {
+		return nil, errors.New("response larger than or equal to 4096 bytes")
+	}
 	if err != nil {
 		return nil, err
 	}
 
-	return resp, server.Shutdown(ctx)
+	return resp[:n], server.Shutdown(ctx)
 }
