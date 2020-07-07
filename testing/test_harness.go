@@ -42,8 +42,8 @@ type FakeListener struct {
 	clientEndpoint net.Conn
 }
 
-// newFakeListener creates an instance of fakeListener. This will pass requests to the HTTP server as part of the testing harness.
-func newFakeListener() *FakeListener {
+// NewFakeListener creates an instance of fakeListener. This will pass requests to the HTTP server as part of the testing harness.
+func NewFakeListener() *FakeListener {
 	s2c, c2s := net.Pipe()
 	c := make(chan net.Conn, 1)
 	c <- s2c
@@ -106,7 +106,7 @@ func (l *FakeListener) readResponse(bytes []byte) (int, error) {
 // 'callback' will be called in the http.Handler with the http.Request that the handler receives.
 // The size of the response is limited to 4096 bytes. If the response received is larger, an error will be returned.
 func MakeRequest(ctx context.Context, req []byte, callback func(*http.Request)) ([]byte, error) {
-	listener := newFakeListener()
+	listener := NewFakeListener()
 	defer listener.Close()
 
 	handler := &AssertHandler{callback: callback}
