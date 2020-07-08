@@ -104,7 +104,7 @@ func TestHeaderParsing(t *testing.T) {
 				}
 			})
 			if err != nil {
-				t.Errorf("MakeRequest() got: %v want: nil", err)
+				t.Errorf("MakeRequest() got err: %v", err)
 			}
 
 			if !bytes.HasPrefix(resp, []byte(statusOK)) {
@@ -185,7 +185,7 @@ func TestStatusCode(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			resp, err := requesttesting.MakeRequest(context.Background(), tt.request, nil)
 			if err != nil {
-				t.Errorf("MakeRequest() got: %v want: nil", err)
+				t.Errorf("MakeRequest() got err: %v", err)
 			}
 
 			if !bytes.HasPrefix(resp, []byte(tt.want)) {
