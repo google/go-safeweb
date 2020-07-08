@@ -5,4 +5,6 @@ const (
 	statusTooManyHostHeaders = "HTTP/1.1 400 Bad Request: too many Host headers\r\n"
 	statusNotImplemented     = "HTTP/1.1 501 Not Implemented\r\n"
 	statusBadRequest         = "HTTP/1.1 400 Bad Request\r\n"
+	statusInvalidHeaderName  = "HTTP/1.1 400 Bad Request: invalid header name\r\n"
+	statusInvalidHeaderValue = "HTTP/1.1 400 Bad Request: invalid header value\r\n"
 )
