@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"../../testing/requesttesting"
+	"github.com/google/go-safeweb/testing/requesttesting"
 )
 
 var headerTests = []struct {

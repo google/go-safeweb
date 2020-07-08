@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"testing"
 
-	"../../testing/requesttesting"
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-safeweb/testing/requesttesting"
 )
 
 type userAgentWant struct {
