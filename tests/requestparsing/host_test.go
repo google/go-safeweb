@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"testing"
 
-	"../../testing/requesttesting"
+	"github.com/google/go-safeweb/testing/requesttesting"
 )
 
 var hostTests = []struct {

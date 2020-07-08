@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"testing"
 
-	"../../testing/requesttesting"
+	"github.com/google/go-safeweb/testing/requesttesting"
 
 	"github.com/google/go-cmp/cmp"
 )
