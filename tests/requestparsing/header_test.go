@@ -11,9 +11,6 @@ import (
 	"github.com/google/go-safeweb/testing/requesttesting"
 )
 
-// All tests use verbatim newline characters in their requests
-// instead of using multiline strings to ensure that \r and \n
-// end up in exactly the right places.
 func TestHeaderParsing(t *testing.T) {
 	var headerTests = []struct {
 		name    string
