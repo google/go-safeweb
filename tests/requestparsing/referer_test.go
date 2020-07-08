@@ -59,7 +59,7 @@ func TestReferer(t *testing.T) {
 				}
 			})
 			if err != nil {
-				t.Errorf("MakeRequest() got err: %v", err)
+				t.Fatalf("MakeRequest() got err: %v", err)
 			}
 
 			if !bytes.HasPrefix(resp, []byte(statusOK)) {
