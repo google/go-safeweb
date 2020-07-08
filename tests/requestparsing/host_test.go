@@ -73,7 +73,7 @@ func TestHostHeader(t *testing.T) {
 				}
 			})
 			if err != nil {
-				t.Errorf("MakeRequest() got: %v want: nil", err)
+				t.Errorf("MakeRequest() got err: %v", err)
 			}
 
 			if !bytes.HasPrefix(resp, []byte(statusOK)) {
@@ -92,7 +92,7 @@ func TestHostHeaderMultiple(t *testing.T) {
 
 	resp, err := requesttesting.MakeRequest(context.Background(), request, nil)
 	if err != nil {
-		t.Errorf("MakeRequest() got: %v want: nil", err)
+		t.Errorf("MakeRequest() got err: %v", err)
 	}
 
 	if !bytes.HasPrefix(resp, []byte(statusTooManyHostHeaders)) {
