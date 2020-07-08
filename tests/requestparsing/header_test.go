@@ -85,6 +85,14 @@ var headerTests = []struct {
 			"\r\n"),
 		want: http.Header{"Aaaa": []string{"aaaa aaa aaa aaa"}},
 	},
+	{
+		name: "UnicodeValue",
+		request: []byte("GET / HTTP/1.1\r\n" +
+			"Host: localhost:8080\r\n" +
+			"A: \xf0\x9f\xa5\xb3\r\n" +
+			"\r\n"),
+		want: http.Header{"A": []string{"\xf0\x9f\xa5\xb3"}},
+	},
 }
 
 func TestHeaderParsing(t *testing.T) {
@@ -137,6 +145,38 @@ var statusCodeTests = []struct {
 			" : a\r\n" +
 			"\r\n"),
 		want: statusBadRequest,
+	},
+	{
+		name: "UnicodeHeaderName",
+		request: []byte("GET / HTTP/1.1\r\n" +
+			"Host: localhost:8080\r\n" +
+			"\xf0\x9f\xa5\xb3: a\r\n" +
+			"\r\n"),
+		want: statusInvalidHeaderName,
+	},
+	{
+		name: "SpecialCharactersHeaderName",
+		request: []byte("GET / HTTP/1.1\r\n" +
+			"Host: localhost:8080\r\n" +
+			"&%*(#@%()): a\r\n" +
+			"\r\n"),
+		want: statusInvalidHeaderName,
+	},
+	{
+		name: "NullByteInHeaderName",
+		request: []byte("GET / HTTP/1.1\r\n" +
+			"Host: localhost:8080\r\n" +
+			"A\x00A: a\r\n" +
+			"\r\n"),
+		want: statusInvalidHeaderName,
+	},
+	{
+		name: "NullByteInHeaderValue",
+		request: []byte("GET / HTTP/1.1\r\n" +
+			"Host: localhost:8080\r\n" +
+			"AA: a\x00a\r\n" +
+			"\r\n"),
+		want: statusInvalidHeaderValue,
 	},
 }
 
