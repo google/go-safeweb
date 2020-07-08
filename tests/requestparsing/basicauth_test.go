@@ -100,8 +100,16 @@ func TestBasicAuth(t *testing.T) {
 				}
 
 				username, password, ok := r.BasicAuth()
-				if ok != tt.want.ok || username != tt.want.username || password != tt.want.password {
-					t.Errorf("username, password, ok := r.BasicAuth() got: %q, %q, %v want: %q, %q, %v", username, password, ok, tt.want.username, tt.want.password, tt.want.ok)
+				if ok != tt.want.ok {
+					t.Errorf("_, _, ok := r.BasicAuth() got: %v want: %v", ok, tt.want.ok)
+				}
+
+				if username != tt.want.username {
+					t.Errorf("username, _, _ := r.BasicAuth() got: %q want: %q", username, tt.want.username)
+				}
+
+				if password != tt.want.password {
+					t.Errorf("_, password, _ := r.BasicAuth() got: %q want: %q", password, tt.want.password)
 				}
 			})
 			if err != nil {
