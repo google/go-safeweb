@@ -27,9 +27,11 @@ var basicAuthTests = []struct {
 		name: "Basic",
 		request: []byte("GET / HTTP/1.1\r\n" +
 			"Host: localhost:8080\r\n" +
+			// Base64 encoding of "Pelle:Password".
 			"Authorization: Basic UGVsbGU6UGFzc3dvcmQ=\r\n" +
 			"\r\n"),
 		want: basicAuthWant{
+			// Same Base64 as above.
 			headers:  map[string][]string{"Authorization": []string{"Basic UGVsbGU6UGFzc3dvcmQ="}},
 			ok:       true,
 			username: "Pelle",
@@ -40,9 +42,11 @@ var basicAuthTests = []struct {
 		name: "NoTrailingEquals",
 		request: []byte("GET / HTTP/1.1\r\n" +
 			"Host: localhost:8080\r\n" +
+			// Base64 encoding of "Pelle:Password" without trailing equals.
 			"Authorization: Basic UGVsbGU6UGFzc3dvcmQ\r\n" +
 			"\r\n"),
 		want: basicAuthWant{
+			// Same Base64 as above.
 			headers:  map[string][]string{"Authorization": []string{"Basic UGVsbGU6UGFzc3dvcmQ"}},
 			ok:       false,
 			username: "",
@@ -53,9 +57,11 @@ var basicAuthTests = []struct {
 		name: "DoubleColon",
 		request: []byte("GET / HTTP/1.1\r\n" +
 			"Host: localhost:8080\r\n" +
+			// Base64 encoding of "Pelle:Password:Password".
 			"Authorization: Basic UGVsbGU6UGFzc3dvcmQ6UGFzc3dvcmQ=\r\n" +
 			"\r\n"),
 		want: basicAuthWant{
+			// Same Base64 as above.
 			headers:  map[string][]string{"Authorization": []string{"Basic UGVsbGU6UGFzc3dvcmQ6UGFzc3dvcmQ="}},
 			ok:       true,
 			username: "Pelle",
@@ -66,9 +72,11 @@ var basicAuthTests = []struct {
 		name: "NotBasic",
 		request: []byte("GET / HTTP/1.1\r\n" +
 			"Host: localhost:8080\r\n" +
+			// Base64 encoding of "Pelle:Password:Password".
 			"Authorization: xasic UGVsbGU6UGFzc3dvcmQ6UGFzc3dvcmQ=\r\n" +
 			"\r\n"),
 		want: basicAuthWant{
+			// Same Base64 as above.
 			headers:  map[string][]string{"Authorization": []string{"xasic UGVsbGU6UGFzc3dvcmQ6UGFzc3dvcmQ="}},
 			ok:       false,
 			username: "",
@@ -79,10 +87,13 @@ var basicAuthTests = []struct {
 		name: "Ordering",
 		request: []byte("GET / HTTP/1.1\r\n" +
 			"Host: localhost:8080\r\n" +
+			// Base64 encoding of "AAA:aaa".
 			"Authorization: basic QUFBOmFhYQ==\r\n" +
+			// Base64 encoding of "BBB:bbb".
 			"Authorization: basic QkJCOmJiYg==\r\n" +
 			"\r\n"),
 		want: basicAuthWant{
+			// Base64 encoding of "AAA:aaa" and then of "BBB:bbb" in that order.
 			headers:  map[string][]string{"Authorization": []string{"basic QUFBOmFhYQ==", "basic QkJCOmJiYg=="}},
 			ok:       true,
 			username: "AAA",
