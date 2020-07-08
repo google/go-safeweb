@@ -33,6 +33,7 @@ func TestContentLength(t *testing.T) {
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			t.Errorf("ioutil.ReadAll(r.Body) got err: %v", err)
+			return
 		}
 
 		if got := string(body); got != "ABCDE" {
@@ -40,7 +41,7 @@ func TestContentLength(t *testing.T) {
 		}
 	})
 	if err != nil {
-		t.Errorf("MakeRequest() got err: %v", err)
+		t.Fatalf("MakeRequest() got err: %v", err)
 	}
 
 	if !bytes.HasPrefix(resp, []byte(statusOK)) {
@@ -62,7 +63,7 @@ func TestMultipleContentLength(t *testing.T) {
 
 	resp, err := requesttesting.MakeRequest(context.Background(), request, nil)
 	if err != nil {
-		t.Errorf("MakeRequest() got err: %v", err)
+		t.Fatalf("MakeRequest() got err: %v", err)
 	}
 
 	if !bytes.HasPrefix(resp, []byte(statusBadRequest)) {
@@ -90,6 +91,7 @@ func TestContentButNoContentLength(t *testing.T) {
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			t.Errorf("ioutil.ReadAll(r.Body) got err: %v", err)
+			return
 		}
 
 		if got := string(body); got != "" {
@@ -97,7 +99,7 @@ func TestContentButNoContentLength(t *testing.T) {
 		}
 	})
 	if err != nil {
-		t.Errorf("MakeRequest() got err: %v", err)
+		t.Fatalf("MakeRequest() got err: %v", err)
 	}
 
 	if !bytes.HasPrefix(resp, []byte(statusOK)) {
@@ -131,6 +133,7 @@ func TestTransferEncodingChunked(t *testing.T) {
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			t.Errorf("ioutil.ReadAll(r.Body) got err: %v", err)
+			return
 		}
 
 		if got := string(body); got != "ABCDE" {
@@ -138,7 +141,7 @@ func TestTransferEncodingChunked(t *testing.T) {
 		}
 	})
 	if err != nil {
-		t.Errorf("MakeRequest() got err: %v", err)
+		t.Fatalf("MakeRequest() got err: %v", err)
 	}
 
 	if !bytes.HasPrefix(resp, []byte(statusOK)) {
@@ -174,6 +177,7 @@ func TestContentLengthAndTransferEncoding(t *testing.T) {
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			t.Errorf("ioutil.ReadAll(r.Body) got err: %v", err)
+			return
 		}
 
 		if got := string(body); got != "ABCDE" {
@@ -181,7 +185,7 @@ func TestContentLengthAndTransferEncoding(t *testing.T) {
 		}
 	})
 	if err != nil {
-		t.Errorf("MakeRequest() got err: %v", err)
+		t.Fatalf("MakeRequest() got err: %v", err)
 	}
 
 	if !bytes.HasPrefix(resp, []byte(statusOK)) {
@@ -218,6 +222,7 @@ func TestMultipleTransferEncodingChunkedFirst(t *testing.T) {
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			t.Errorf("ioutil.ReadAll(r.Body) got err: %v", err)
+			return
 		}
 
 		if got := string(body); got != "ABCDE" {
@@ -225,7 +230,7 @@ func TestMultipleTransferEncodingChunkedFirst(t *testing.T) {
 		}
 	})
 	if err != nil {
-		t.Errorf("MakeRequest() got err: %v", err)
+		t.Fatalf("MakeRequest() got err: %v", err)
 	}
 
 	if !bytes.HasPrefix(resp, []byte(statusOK)) {
@@ -248,7 +253,7 @@ func TestMultipleTransferEncodingChunkedSecond(t *testing.T) {
 
 	resp, err := requesttesting.MakeRequest(context.Background(), request, nil)
 	if err != nil {
-		t.Errorf("MakeRequest() got err: %v", err)
+		t.Fatalf("MakeRequest() got err: %v", err)
 	}
 
 	if !bytes.HasPrefix(resp, []byte(statusNotImplemented)) {
@@ -285,6 +290,7 @@ func TestTransferEncodingIdentity(t *testing.T) {
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			t.Errorf("ioutil.ReadAll(r.Body) got err: %v", err)
+			return
 		}
 
 		if got := string(body); got != "5\r\nABCDE\r\n0" {
@@ -292,7 +298,7 @@ func TestTransferEncodingIdentity(t *testing.T) {
 		}
 	})
 	if err != nil {
-		t.Errorf("MakeRequest() got err: %v", err)
+		t.Fatalf("MakeRequest() got err: %v", err)
 	}
 
 	if !bytes.HasPrefix(resp, []byte(statusOK)) {
@@ -329,6 +335,7 @@ func TestTransferEncodingListIdentityFirst(t *testing.T) {
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			t.Errorf("ioutil.ReadAll(r.Body) got err: %v", err)
+			return
 		}
 
 		if got := string(body); got != "5\r\nABCDE\r\n0" {
@@ -336,7 +343,7 @@ func TestTransferEncodingListIdentityFirst(t *testing.T) {
 		}
 	})
 	if err != nil {
-		t.Errorf("MakeRequest() got err: %v", err)
+		t.Fatalf("MakeRequest() got err: %v", err)
 	}
 
 	if !bytes.HasPrefix(resp, []byte(statusOK)) {
@@ -358,7 +365,7 @@ func TestTransferEncodingListChunkedFirst(t *testing.T) {
 
 	resp, err := requesttesting.MakeRequest(context.Background(), request, nil)
 	if err != nil {
-		t.Errorf("MakeRequest() got err: %v", err)
+		t.Fatalf("MakeRequest() got err: %v", err)
 	}
 
 	if !bytes.HasPrefix(resp, []byte(statusNotImplemented)) {
@@ -395,6 +402,7 @@ func TestTransferEncodingListChunkedIdentity(t *testing.T) {
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			t.Errorf("ioutil.ReadAll(r.Body) got err: %v", err)
+			return
 		}
 
 		if got := string(body); got != "ABCDE" {
@@ -402,7 +410,7 @@ func TestTransferEncodingListChunkedIdentity(t *testing.T) {
 		}
 	})
 	if err != nil {
-		t.Errorf("MakeRequest() got err: %v", err)
+		t.Fatalf("MakeRequest() got err: %v", err)
 	}
 
 	if !bytes.HasPrefix(resp, []byte(statusOK)) {
@@ -441,6 +449,6 @@ func TestTransferEncodingChunkSizeLength(t *testing.T) {
 		}
 	})
 	if err != nil {
-		t.Errorf("MakeRequest() got err: %v", err)
+		t.Fatalf("MakeRequest() got err: %v", err)
 	}
 }
