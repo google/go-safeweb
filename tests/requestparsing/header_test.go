@@ -57,6 +57,34 @@ var headerTests = []struct {
 			"\r\n"),
 		want: map[string][]string{"A": []string{"X", "Y", "Z", "W"}},
 	},
+	{
+		name: "MultiLineHeaderSpace",
+		request: []byte("GET / HTTP/1.1\r\n" +
+			"Host: localhost:8080\r\n" +
+			"AAAA: aaaa aaa\r\n" +
+			" aaa aaa\r\n" +
+			"\r\n"),
+		want: http.Header{"Aaaa": []string{"aaaa aaa aaa aaa"}},
+	},
+	{
+		name: "MultiLineHeaderTab",
+		request: []byte("GET / HTTP/1.1\r\n" +
+			"Host: localhost:8080\r\n" +
+			"AAAA: aaaa aaa\r\n" +
+			"\taaa aaa\r\n" +
+			"\r\n"),
+		want: http.Header{"Aaaa": []string{"aaaa aaa aaa aaa"}},
+	},
+	{
+		name: "MultiLineHeaderManyLines",
+		request: []byte("GET / HTTP/1.1\r\n" +
+			"Host: localhost:8080\r\n" +
+			"AAAA: aaaa aaa\r\n" +
+			" aaa\r\n" +
+			" aaa\r\n" +
+			"\r\n"),
+		want: http.Header{"Aaaa": []string{"aaaa aaa aaa aaa"}},
+	},
 }
 
 func TestHeaderParsing(t *testing.T) {
@@ -74,6 +102,55 @@ func TestHeaderParsing(t *testing.T) {
 			if !bytes.HasPrefix(resp, []byte(statusOK)) {
 				got := string(resp[:bytes.IndexByte(resp, '\n')+1])
 				t.Errorf("status code got: %q want: %q", got, statusOK)
+			}
+		})
+	}
+}
+
+var statusCodeTests = []struct {
+	name    string
+	request []byte
+	want    string
+}{
+	{
+		name: "MultilineContinuationOnFirstLine",
+		request: []byte("GET / HTTP/1.1\r\n" +
+			" A: a\r\n" +
+			"Host: localhost:8080\r\n" +
+			"\r\n"),
+		want: statusBadRequest,
+	},
+	{
+		name: "MultilineHeaderName",
+		request: []byte("GET / HTTP/1.1\r\n" +
+			"Host: localhost:8080\r\n" +
+			"AA\r\n" +
+			" AA: aaaa\r\n" +
+			"\r\n"),
+		want: statusBadRequest,
+	},
+	{
+		name: "MultilineHeaderBeforeColon",
+		request: []byte("GET / HTTP/1.1\r\n" +
+			"Host: localhost:8080\r\n" +
+			"A\r\n" +
+			" : a\r\n" +
+			"\r\n"),
+		want: statusBadRequest,
+	},
+}
+
+func TestStatusCode(t *testing.T) {
+	for _, tt := range statusCodeTests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp, err := requesttesting.MakeRequest(context.Background(), tt.request, nil)
+			if err != nil {
+				t.Errorf("MakeRequest() got: %v want: nil", err)
+			}
+
+			if !bytes.HasPrefix(resp, []byte(tt.want)) {
+				got := string(resp[:bytes.IndexByte(resp, '\n')+1])
+				t.Errorf("status code got: %q want: %q", got, tt.want)
 			}
 		})
 	}
