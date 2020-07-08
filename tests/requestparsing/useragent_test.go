@@ -10,42 +10,42 @@ import (
 	"github.com/google/go-safeweb/testing/requesttesting"
 )
 
-type userAgentWant struct {
-	headers   map[string][]string
-	useragent string
-}
-
-var userAgentTests = []struct {
-	name    string
-	request []byte
-	want    userAgentWant
-}{
-	{
-		name: "Basic",
-		request: []byte("GET / HTTP/1.1\r\n" +
-			"Host: localhost:8080\r\n" +
-			"User-Agent: BlahBlah\r\n" +
-			"\r\n"),
-		want: userAgentWant{
-			headers:   map[string][]string{"User-Agent": []string{"BlahBlah"}},
-			useragent: "BlahBlah",
-		},
-	},
-	{
-		name: "Ordering",
-		request: []byte("GET / HTTP/1.1\r\n" +
-			"Host: localhost:8080\r\n" +
-			"User-Agent: BlahBlah\r\n" +
-			"User-Agent: FooFoo\r\n" +
-			"\r\n"),
-		want: userAgentWant{
-			headers:   map[string][]string{"User-Agent": []string{"BlahBlah", "FooFoo"}},
-			useragent: "BlahBlah",
-		},
-	},
-}
-
 func TestUserAgent(t *testing.T) {
+	type userAgentWant struct {
+		headers   map[string][]string
+		useragent string
+	}
+
+	var userAgentTests = []struct {
+		name    string
+		request []byte
+		want    userAgentWant
+	}{
+		{
+			name: "Basic",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"User-Agent: BlahBlah\r\n" +
+				"\r\n"),
+			want: userAgentWant{
+				headers:   map[string][]string{"User-Agent": []string{"BlahBlah"}},
+				useragent: "BlahBlah",
+			},
+		},
+		{
+			name: "Ordering",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"User-Agent: BlahBlah\r\n" +
+				"User-Agent: FooFoo\r\n" +
+				"\r\n"),
+			want: userAgentWant{
+				headers:   map[string][]string{"User-Agent": []string{"BlahBlah", "FooFoo"}},
+				useragent: "BlahBlah",
+			},
+		},
+	}
+
 	for _, tt := range userAgentTests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp, err := requesttesting.MakeRequest(context.Background(), tt.request, func(r *http.Request) {
