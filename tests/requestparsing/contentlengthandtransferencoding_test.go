@@ -12,410 +12,303 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestContentLength(t *testing.T) {
-	request := []byte("GET / HTTP/1.1\r\n" +
-		"Host: localhost:8080\r\n" +
-		"Content-Length: 5\r\n" +
-		"\r\n" +
-		"ABCDE\r\n" +
-		"\r\n")
-
-	resp, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
-		want := map[string][]string{"Content-Length": []string{"5"}}
-		if diff := cmp.Diff(want, map[string][]string(r.Header)); diff != "" {
-			t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
-		}
-
-		if r.ContentLength != 5 {
-			t.Errorf("r.ContentLength got: %v want: 5", r.ContentLength)
-		}
-
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			t.Errorf("ioutil.ReadAll(r.Body) got err: %v", err)
-			return
-		}
-
-		if got := string(body); got != "ABCDE" {
-			t.Errorf(`r.Body got: %q want: "ABCDE"`, got)
-		}
-	})
-	if err != nil {
-		t.Fatalf("MakeRequest() got err: %v", err)
+func TestContentLengthTransferEncoding(t *testing.T) {
+	type testWant struct {
+		headers          map[string][]string
+		contentLength    int64
+		transferEncoding []string
+		body             string
 	}
 
-	if !bytes.HasPrefix(resp, []byte(statusOK)) {
-		got := string(resp[:bytes.IndexByte(resp, '\n')+1])
-		t.Errorf("status code got: %q want: %q", got, statusOK)
-	}
-}
-
-func TestMultipleContentLength(t *testing.T) {
-	request := []byte("GET / HTTP/1.1\r\n" +
-		"Host: localhost:8080\r\n" +
-		"Content-Length: 5\r\n" +
-		"Content-Length: 14\r\n" +
-		"\r\n" +
-		"ABCDE\r\n" +
-		"\r\n" +
-		"ABCDE\r\n" +
-		"\r\n")
-
-	resp, err := requesttesting.MakeRequest(context.Background(), request, nil)
-	if err != nil {
-		t.Fatalf("MakeRequest() got err: %v", err)
-	}
-
-	if !bytes.HasPrefix(resp, []byte(statusBadRequest)) {
-		got := string(resp[:bytes.IndexByte(resp, '\n')+1])
-		t.Errorf("status code got: %q want: %q", got, statusBadRequest)
-	}
-}
-
-func TestContentButNoContentLength(t *testing.T) {
-	request := []byte("GET / HTTP/1.1\r\n" +
-		"Host: localhost:8080\r\n" +
-		"\r\n" +
-		"ABCDE\r\n" +
-		"\r\n")
-
-	resp, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
-		if diff := cmp.Diff(map[string][]string{}, map[string][]string(r.Header)); diff != "" {
-			t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
-		}
-
-		if r.ContentLength != 0 {
-			t.Errorf("r.ContentLength got: %v want: 0", r.ContentLength)
-		}
-
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			t.Errorf("ioutil.ReadAll(r.Body) got err: %v", err)
-			return
-		}
-
-		if got := string(body); got != "" {
-			t.Errorf(`r.Body got: %q want: ""`, got)
-		}
-	})
-	if err != nil {
-		t.Fatalf("MakeRequest() got err: %v", err)
-	}
-
-	if !bytes.HasPrefix(resp, []byte(statusOK)) {
-		got := string(resp[:bytes.IndexByte(resp, '\n')+1])
-		t.Errorf("status code got: %q want: %q", got, statusOK)
-	}
-}
-
-func TestTransferEncodingChunked(t *testing.T) {
-	request := []byte("GET / HTTP/1.1\r\n" +
-		"Host: localhost:8080\r\n" +
-		"Transfer-Encoding: chunked\r\n" +
-		"\r\n" +
-		"5\r\n" +
-		"ABCDE\r\n" +
-		"0\r\n\r\n")
-
-	resp, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
-		if diff := cmp.Diff(map[string][]string{}, map[string][]string(r.Header)); diff != "" {
-			t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
-		}
-
-		if diff := cmp.Diff([]string{"chunked"}, r.TransferEncoding); diff != "" {
-			t.Errorf("r.TransferEncoding mismatch (-want +got):\n%s", diff)
-		}
-
-		if r.ContentLength != -1 {
-			t.Errorf("r.ContentLength got: %v want: -1", r.ContentLength)
-		}
-
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			t.Errorf("ioutil.ReadAll(r.Body) got err: %v", err)
-			return
-		}
-
-		if got := string(body); got != "ABCDE" {
-			t.Errorf(`r.Body got: %q want: "ABCDE"`, got)
-		}
-	})
-	if err != nil {
-		t.Fatalf("MakeRequest() got err: %v", err)
-	}
-
-	if !bytes.HasPrefix(resp, []byte(statusOK)) {
-		got := string(resp[:bytes.IndexByte(resp, '\n')+1])
-		t.Errorf("status code got: %q want: %q", got, statusOK)
-	}
-}
-
-func TestContentLengthAndTransferEncoding(t *testing.T) {
-	request := []byte("GET / HTTP/1.1\r\n" +
-		"Host: localhost:8080\r\n" +
-		"Content-Length: 11\r\n" +
-		"Transfer-Encoding: chunked\r\n" +
-		"\r\n" +
-		"5\r\n" +
-		"ABCDE\r\n" +
-		"0\r\n" +
-		"\r\n")
-
-	resp, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
-		if diff := cmp.Diff(map[string][]string{}, map[string][]string(r.Header)); diff != "" {
-			t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
-		}
-
-		if diff := cmp.Diff([]string{"chunked"}, r.TransferEncoding); diff != "" {
-			t.Errorf("r.TransferEncoding mismatch (-want +got):\n%s", diff)
-		}
-
-		if r.ContentLength != -1 {
-			t.Errorf("r.ContentLength got: %v want: -1", r.ContentLength)
-		}
-
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			t.Errorf("ioutil.ReadAll(r.Body) got err: %v", err)
-			return
-		}
-
-		if got := string(body); got != "ABCDE" {
-			t.Errorf(`r.Body got: %q want: "ABCDE"`, got)
-		}
-	})
-	if err != nil {
-		t.Fatalf("MakeRequest() got err: %v", err)
-	}
-
-	if !bytes.HasPrefix(resp, []byte(statusOK)) {
-		got := string(resp[:bytes.IndexByte(resp, '\n')+1])
-		t.Errorf("status code got: %q want: %q", got, statusOK)
-	}
-}
-
-func TestMultipleTransferEncodingChunkedFirst(t *testing.T) {
-	request := []byte("GET / HTTP/1.1\r\n" +
-		"Host: localhost:8080\r\n" +
-		"Content-Length: 11\r\n" +
-		"Transfer-Encoding: chunked\r\n" +
-		"Transfer-Encoding: asdf\r\n" +
-		"\r\n" +
-		"5\r\n" +
-		"ABCDE\r\n" +
-		"0\r\n" +
-		"\r\n")
-
-	resp, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
-		if diff := cmp.Diff(map[string][]string{}, map[string][]string(r.Header)); diff != "" {
-			t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
-		}
-
-		if diff := cmp.Diff([]string{"chunked"}, r.TransferEncoding); diff != "" {
-			t.Errorf("r.TransferEncoding mismatch (-want +got):\n%s", diff)
-		}
-
-		if r.ContentLength != -1 {
-			t.Errorf("r.ContentLength got: %v want: -1", r.ContentLength)
-		}
-
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			t.Errorf("ioutil.ReadAll(r.Body) got err: %v", err)
-			return
-		}
-
-		if got := string(body); got != "ABCDE" {
-			t.Errorf(`r.Body got: %q want: "ABCDE"`, got)
-		}
-	})
-	if err != nil {
-		t.Fatalf("MakeRequest() got err: %v", err)
+	var tests = []struct {
+		name    string
+		request []byte
+		want    testWant
+	}{
+		{
+			name: "ContentLength",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"Content-Length: 5\r\n" +
+				"\r\n" +
+				"ABCDE\r\n" +
+				"\r\n"),
+			want: testWant{
+				headers:          map[string][]string{"Content-Length": []string{"5"}},
+				contentLength:    5,
+				transferEncoding: nil,
+				body:             "ABCDE",
+			},
+		},
+		{
+			name: "ContentButNoContentLength",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"\r\n" +
+				"ABCDE\r\n" +
+				"\r\n"),
+			want: testWant{
+				headers:          map[string][]string{},
+				contentLength:    0,
+				transferEncoding: nil,
+				body:             "",
+			},
+		},
+		{
+			name: "TransferEncodingChunked",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"Transfer-Encoding: chunked\r\n" +
+				"\r\n" +
+				"5\r\n" +
+				"ABCDE\r\n" +
+				"0\r\n\r\n"),
+			want: testWant{
+				headers:          map[string][]string{},
+				contentLength:    -1,
+				transferEncoding: []string{"chunked"},
+				body:             "ABCDE",
+			},
+		},
+		{
+			name: "ContentLengthAndTransferEncoding",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"Content-Length: 11\r\n" +
+				"Transfer-Encoding: chunked\r\n" +
+				"\r\n" +
+				"5\r\n" +
+				"ABCDE\r\n" +
+				"0\r\n" +
+				"\r\n"),
+			want: testWant{
+				headers:          map[string][]string{},
+				contentLength:    -1,
+				transferEncoding: []string{"chunked"},
+				body:             "ABCDE",
+			},
+		},
+		{
+			name: "MultipleTransferEncodingChunkedFirst",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"Content-Length: 11\r\n" +
+				"Transfer-Encoding: chunked\r\n" +
+				"Transfer-Encoding: asdf\r\n" +
+				"\r\n" +
+				"5\r\n" +
+				"ABCDE\r\n" +
+				"0\r\n" +
+				"\r\n"),
+			want: testWant{
+				headers:          map[string][]string{},
+				contentLength:    -1,
+				transferEncoding: []string{"chunked"},
+				body:             "ABCDE",
+			},
+		},
+		{
+			name: "TransferEncodingIdentity",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"Content-Length: 11\r\n" +
+				"Transfer-Encoding: identity\r\n" +
+				"\r\n" +
+				"5\r\n" +
+				"ABCDE\r\n" +
+				"0\r\n" +
+				"\r\n"),
+			want: testWant{
+				headers:          map[string][]string{"Content-Length": []string{"11"}},
+				contentLength:    11,
+				transferEncoding: nil,
+				body:             "5\r\nABCDE\r\n0",
+			},
+		},
+		{
+			name: "TransferEncodingListIdentityFirst",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"Content-Length: 11\r\n" +
+				"Transfer-Encoding: identity, xyz, asdf\r\n" +
+				"\r\n" +
+				"5\r\n" +
+				"ABCDE\r\n" +
+				"0\r\n" +
+				"\r\n"),
+			want: testWant{
+				headers:          map[string][]string{"Content-Length": []string{"11"}},
+				contentLength:    11,
+				transferEncoding: nil,
+				body:             "5\r\nABCDE\r\n0",
+			},
+		},
+		{
+			name: "TransferEncodingListChunkedIdentity",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"Content-Length: 11\r\n" +
+				"Transfer-Encoding: chunked, identity\r\n" +
+				"\r\n" +
+				"5\r\n" +
+				"ABCDE\r\n" +
+				"0\r\n" +
+				"\r\n"),
+			want: testWant{
+				headers:          map[string][]string{},
+				contentLength:    -1,
+				transferEncoding: []string{"chunked"},
+				body:             "ABCDE",
+			},
+		},
+		{
+			name: "TransferEncodingCasingOrdering1",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"Transfer-Encoding: chunked\r\n" +
+				"transfer-Encoding: identity\r\n" +
+				"\r\n" +
+				"5\r\n" +
+				"ABCDE\r\n" +
+				"0\r\n" +
+				"\r\n"),
+			want: testWant{
+				headers:          map[string][]string{},
+				contentLength:    -1,
+				transferEncoding: []string{"chunked"},
+				body:             "ABCDE",
+			},
+		},
+		{
+			name: "TransferEncodingCasingOrdering2",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"transfer-Encoding: chunked\r\n" +
+				"Transfer-Encoding: identity\r\n" +
+				"\r\n" +
+				"5\r\n" +
+				"ABCDE\r\n" +
+				"0\r\n" +
+				"\r\n"),
+			want: testWant{
+				headers:          map[string][]string{},
+				contentLength:    -1,
+				transferEncoding: []string{"chunked"},
+				body:             "ABCDE",
+			},
+		},
 	}
 
-	if !bytes.HasPrefix(resp, []byte(statusOK)) {
-		got := string(resp[:bytes.IndexByte(resp, '\n')+1])
-		t.Errorf("status code got: %q want: %q", got, statusOK)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp, err := requesttesting.MakeRequest(context.Background(), tt.request, func(r *http.Request) {
+				if diff := cmp.Diff(tt.want.headers, map[string][]string(r.Header)); diff != "" {
+					t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
+				}
+
+				if diff := cmp.Diff(tt.want.transferEncoding, r.TransferEncoding); diff != "" {
+					t.Errorf("r.TransferEncoding mismatch (-want +got):\n%s", diff)
+				}
+
+				if r.ContentLength != tt.want.contentLength {
+					t.Errorf("r.ContentLength got: %v want: %v", r.ContentLength, tt.want.contentLength)
+				}
+
+				body, err := ioutil.ReadAll(r.Body)
+				if err != nil {
+					t.Errorf("ioutil.ReadAll(r.Body) got err: %v", err)
+					return
+				}
+
+				if got := string(body); got != tt.want.body {
+					t.Errorf("r.Body got: %q want: %q", got, tt.want.body)
+				}
+			})
+			if err != nil {
+				t.Fatalf("MakeRequest() got err: %v", err)
+			}
+
+			if !bytes.HasPrefix(resp, []byte(statusOK)) {
+				got := string(resp[:bytes.IndexByte(resp, '\n')+1])
+				t.Errorf("status code got: %q want: %q", got, statusOK)
+			}
+		})
 	}
 }
 
-func TestMultipleTransferEncodingChunkedSecond(t *testing.T) {
-	request := []byte("GET / HTTP/1.1\r\n" +
-		"Host: localhost:8080\r\n" +
-		"Content-Length: 11\r\n" +
-		"Transfer-Encoding: asdf\r\n" +
-		"Transfer-Encoding: chunked\r\n" +
-		"\r\n" +
-		"5\r\n" +
-		"ABCDE\r\n" +
-		"0\r\n" +
-		"\r\n")
-
-	resp, err := requesttesting.MakeRequest(context.Background(), request, nil)
-	if err != nil {
-		t.Fatalf("MakeRequest() got err: %v", err)
+func TestContentLengthTransferEncodingStatusMessages(t *testing.T) {
+	var tests = []struct {
+		name    string
+		request []byte
+		want    string
+	}{
+		{
+			name: "MultipleContentLength",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"Content-Length: 5\r\n" +
+				"Content-Length: 14\r\n" +
+				"\r\n" +
+				"ABCDE\r\n" +
+				"\r\n" +
+				"ABCDE\r\n" +
+				"\r\n"),
+			want: statusBadRequest,
+		},
+		{
+			name: "MultipleTransferEncodingChunkedSecond",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"Content-Length: 11\r\n" +
+				"Transfer-Encoding: asdf\r\n" +
+				"Transfer-Encoding: chunked\r\n" +
+				"\r\n" +
+				"5\r\n" +
+				"ABCDE\r\n" +
+				"0\r\n" +
+				"\r\n"),
+			want: statusNotImplemented,
+		},
+		{
+			name: "TransferEncodingListChunkedFirst",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"Content-Length: 11\r\n" +
+				"Transfer-Encoding: chunked, xyz, asdf\r\n" +
+				"\r\n" +
+				"5\r\n" +
+				"ABCDE\r\n" +
+				"0\r\n" +
+				"\r\n"),
+			want: statusNotImplemented,
+		},
+		{
+			name: "TransferEncodingListChunkedChunked",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"Content-Length: 11\r\n" +
+				"Transfer-Encoding: chunked, chunked\r\n" +
+				"\r\n" +
+				"5\r\n" +
+				"ABCDE\r\n" +
+				"0\r\n" +
+				"\r\n"),
+			want: statusBadRequest,
+		},
 	}
 
-	if !bytes.HasPrefix(resp, []byte(statusNotImplemented)) {
-		got := string(resp[:bytes.IndexByte(resp, '\n')+1])
-		t.Errorf("status code got: %q want: %q", got, statusNotImplemented)
-	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp, err := requesttesting.MakeRequest(context.Background(), tt.request, nil)
+			if err != nil {
+				t.Fatalf("MakeRequest() got err: %v", err)
+			}
 
-func TestTransferEncodingIdentity(t *testing.T) {
-	request := []byte("GET / HTTP/1.1\r\n" +
-		"Host: localhost:8080\r\n" +
-		"Content-Length: 11\r\n" +
-		"Transfer-Encoding: identity\r\n" +
-		"\r\n" +
-		"5\r\n" +
-		"ABCDE\r\n" +
-		"0\r\n" +
-		"\r\n")
-
-	resp, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
-		want := map[string][]string{"Content-Length": []string{"11"}}
-		if diff := cmp.Diff(want, map[string][]string(r.Header)); diff != "" {
-			t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
-		}
-
-		if diff := cmp.Diff([]string(nil), r.TransferEncoding); diff != "" {
-			t.Errorf("r.TransferEncoding mismatch (-want +got):\n%s", diff)
-		}
-
-		if r.ContentLength != 11 {
-			t.Errorf("r.ContentLength got: %v want: 11", r.ContentLength)
-		}
-
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			t.Errorf("ioutil.ReadAll(r.Body) got err: %v", err)
-			return
-		}
-
-		if got := string(body); got != "5\r\nABCDE\r\n0" {
-			t.Errorf(`r.Body got: %q want: "5\r\nABCDE\r\n0"`, got)
-		}
-	})
-	if err != nil {
-		t.Fatalf("MakeRequest() got err: %v", err)
-	}
-
-	if !bytes.HasPrefix(resp, []byte(statusOK)) {
-		got := string(resp[:bytes.IndexByte(resp, '\n')+1])
-		t.Errorf("status code got: %q want: %q", got, statusOK)
-	}
-}
-
-func TestTransferEncodingListIdentityFirst(t *testing.T) {
-	request := []byte("GET / HTTP/1.1\r\n" +
-		"Host: localhost:8080\r\n" +
-		"Content-Length: 11\r\n" +
-		"Transfer-Encoding: identity, xyz, asdf\r\n" +
-		"\r\n" +
-		"5\r\n" +
-		"ABCDE\r\n" +
-		"0\r\n" +
-		"\r\n")
-
-	resp, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
-		want := map[string][]string{"Content-Length": []string{"11"}}
-		if diff := cmp.Diff(want, map[string][]string(r.Header)); diff != "" {
-			t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
-		}
-
-		if diff := cmp.Diff([]string(nil), r.TransferEncoding); diff != "" {
-			t.Errorf("r.TransferEncoding mismatch (-want +got):\n%s", diff)
-		}
-
-		if r.ContentLength != 11 {
-			t.Errorf("r.ContentLength got: %v want: 11", r.ContentLength)
-		}
-
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			t.Errorf("ioutil.ReadAll(r.Body) got err: %v", err)
-			return
-		}
-
-		if got := string(body); got != "5\r\nABCDE\r\n0" {
-			t.Errorf(`r.Body got: %q want: "5\r\nABCDE\r\n0"`, got)
-		}
-	})
-	if err != nil {
-		t.Fatalf("MakeRequest() got err: %v", err)
-	}
-
-	if !bytes.HasPrefix(resp, []byte(statusOK)) {
-		got := string(resp[:bytes.IndexByte(resp, '\n')+1])
-		t.Errorf("status code got: %q want: %q", got, statusOK)
-	}
-}
-
-func TestTransferEncodingListChunkedFirst(t *testing.T) {
-	request := []byte("GET / HTTP/1.1\r\n" +
-		"Host: localhost:8080\r\n" +
-		"Content-Length: 11\r\n" +
-		"Transfer-Encoding: chunked, xyz, asdf\r\n" +
-		"\r\n" +
-		"5\r\n" +
-		"ABCDE\r\n" +
-		"0\r\n" +
-		"\r\n")
-
-	resp, err := requesttesting.MakeRequest(context.Background(), request, nil)
-	if err != nil {
-		t.Fatalf("MakeRequest() got err: %v", err)
-	}
-
-	if !bytes.HasPrefix(resp, []byte(statusNotImplemented)) {
-		got := string(resp[:bytes.IndexByte(resp, '\n')+1])
-		t.Errorf("status code got: %q want: %q", got, statusNotImplemented)
-	}
-}
-
-func TestTransferEncodingListChunkedIdentity(t *testing.T) {
-	request := []byte("GET / HTTP/1.1\r\n" +
-		"Host: localhost:8080\r\n" +
-		"Content-Length: 11\r\n" +
-		"Transfer-Encoding: chunked, identity\r\n" +
-		"\r\n" +
-		"5\r\n" +
-		"ABCDE\r\n" +
-		"0\r\n" +
-		"\r\n")
-
-	resp, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
-		want := map[string][]string{}
-		if diff := cmp.Diff(want, map[string][]string(r.Header)); diff != "" {
-			t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
-		}
-
-		if diff := cmp.Diff([]string{"chunked"}, r.TransferEncoding); diff != "" {
-			t.Errorf("r.TransferEncoding mismatch (-want +got):\n%s", diff)
-		}
-
-		if r.ContentLength != -1 {
-			t.Errorf("r.ContentLength got: %v want: -1", r.ContentLength)
-		}
-
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			t.Errorf("ioutil.ReadAll(r.Body) got err: %v", err)
-			return
-		}
-
-		if got := string(body); got != "ABCDE" {
-			t.Errorf(`r.Body got: %q want: "ABCDE"`, got)
-		}
-	})
-	if err != nil {
-		t.Fatalf("MakeRequest() got err: %v", err)
-	}
-
-	if !bytes.HasPrefix(resp, []byte(statusOK)) {
-		got := string(resp[:bytes.IndexByte(resp, '\n')+1])
-		t.Errorf("status code got: %q want: %q", got, statusOK)
+			if !bytes.HasPrefix(resp, []byte(tt.want)) {
+				got := string(resp[:bytes.IndexByte(resp, '\n')+1])
+				t.Errorf("status code got: %q want: %q", got, tt.want)
+			}
+		})
 	}
 }
 
@@ -450,93 +343,5 @@ func TestTransferEncodingChunkSizeLength(t *testing.T) {
 	})
 	if err != nil {
 		t.Fatalf("MakeRequest() got err: %v", err)
-	}
-}
-
-func TestTransferEncodingCasingOrdering1(t *testing.T) {
-	request := []byte("GET / HTTP/1.1\r\n" +
-		"Host: localhost:8080\r\n" +
-		"Transfer-Encoding: chunked\r\n" +
-		"transfer-Encoding: identity\r\n" +
-		"\r\n" +
-		"5\r\n" +
-		"ABCDE\r\n" +
-		"0\r\n" +
-		"\r\n")
-
-	resp, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
-		if diff := cmp.Diff(map[string][]string{}, map[string][]string(r.Header)); diff != "" {
-			t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
-		}
-
-		if diff := cmp.Diff([]string{"chunked"}, r.TransferEncoding); diff != "" {
-			t.Errorf("r.TransferEncoding mismatch (-want +got):\n%s", diff)
-		}
-
-		if r.ContentLength != -1 {
-			t.Errorf("r.ContentLength got: %v want: -1", r.ContentLength)
-		}
-
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			t.Errorf("ioutil.ReadAll(r.Body) got err: %v", err)
-			return
-		}
-
-		if got := string(body); got != "ABCDE" {
-			t.Errorf(`r.Body got: %q want: "ABCDE"`, got)
-		}
-	})
-	if err != nil {
-		t.Fatalf("MakeRequest() got err: %v", err)
-	}
-
-	if !bytes.HasPrefix(resp, []byte(statusOK)) {
-		got := string(resp[:bytes.IndexByte(resp, '\n')+1])
-		t.Errorf("status code got: %q want: %q", got, statusOK)
-	}
-}
-
-func TestTransferEncodingCasingOrdering2(t *testing.T) {
-	request := []byte("GET / HTTP/1.1\r\n" +
-		"Host: localhost:8080\r\n" +
-		"transfer-Encoding: chunked\r\n" +
-		"Transfer-Encoding: identity\r\n" +
-		"\r\n" +
-		"5\r\n" +
-		"ABCDE\r\n" +
-		"0\r\n" +
-		"\r\n")
-
-	resp, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
-		if diff := cmp.Diff(map[string][]string{}, map[string][]string(r.Header)); diff != "" {
-			t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
-		}
-
-		if diff := cmp.Diff([]string{"chunked"}, r.TransferEncoding); diff != "" {
-			t.Errorf("r.TransferEncoding mismatch (-want +got):\n%s", diff)
-		}
-
-		if r.ContentLength != -1 {
-			t.Errorf("r.ContentLength got: %v want: -1", r.ContentLength)
-		}
-
-		body, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			t.Errorf("ioutil.ReadAll(r.Body) got err: %v", err)
-			return
-		}
-
-		if got := string(body); got != "ABCDE" {
-			t.Errorf(`r.Body got: %q want: "ABCDE"`, got)
-		}
-	})
-	if err != nil {
-		t.Fatalf("MakeRequest() got err: %v", err)
-	}
-
-	if !bytes.HasPrefix(resp, []byte(statusOK)) {
-		got := string(resp[:bytes.IndexByte(resp, '\n')+1])
-		t.Errorf("status code got: %q want: %q", got, statusOK)
 	}
 }
