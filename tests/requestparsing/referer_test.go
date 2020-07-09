@@ -12,15 +12,15 @@ import (
 )
 
 func TestReferer(t *testing.T) {
-	type refererWant struct {
+	type testWant struct {
 		headers map[string][]string
 		referer string
 	}
 
-	var refererTests = []struct {
+	var tests = []struct {
 		name    string
 		request []byte
-		want    refererWant
+		want    testWant
 	}{
 		{
 			name: "Basic",
@@ -28,7 +28,7 @@ func TestReferer(t *testing.T) {
 				"Host: localhost:8080\r\n" +
 				"Referer: http://example.com\r\n" +
 				"\r\n"),
-			want: refererWant{
+			want: testWant{
 				headers: map[string][]string{"Referer": []string{"http://example.com"}},
 				referer: "http://example.com",
 			},
@@ -40,7 +40,7 @@ func TestReferer(t *testing.T) {
 				"Referer: http://example.com\r\n" +
 				"Referer: http://evil.com\r\n" +
 				"\r\n"),
-			want: refererWant{
+			want: testWant{
 				headers: map[string][]string{"Referer": []string{"http://example.com", "http://evil.com"}},
 				referer: "http://example.com",
 			},
@@ -52,7 +52,7 @@ func TestReferer(t *testing.T) {
 				"referer: http://example.com\r\n" +
 				"Referer: http://evil.com\r\n" +
 				"\r\n"),
-			want: refererWant{
+			want: testWant{
 				headers: map[string][]string{"Referer": []string{"http://example.com", "http://evil.com"}},
 				referer: "http://example.com",
 			},
@@ -64,14 +64,14 @@ func TestReferer(t *testing.T) {
 				"Referer: http://example.com\r\n" +
 				"referer: http://evil.com\r\n" +
 				"\r\n"),
-			want: refererWant{
+			want: testWant{
 				headers: map[string][]string{"Referer": []string{"http://example.com", "http://evil.com"}},
 				referer: "http://example.com",
 			},
 		},
 	}
 
-	for _, tt := range refererTests {
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp, err := requesttesting.MakeRequest(context.Background(), tt.request, func(r *http.Request) {
 				if diff := cmp.Diff(tt.want.headers, map[string][]string(r.Header)); diff != "" {

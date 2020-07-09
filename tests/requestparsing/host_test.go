@@ -10,7 +10,7 @@ import (
 )
 
 func TestHostHeader(t *testing.T) {
-	var hostTests = []struct {
+	var tests = []struct {
 		name    string
 		request []byte
 		want    string
@@ -61,7 +61,7 @@ func TestHostHeader(t *testing.T) {
 		},
 	}
 
-	for _, tt := range hostTests {
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp, err := requesttesting.MakeRequest(context.Background(), tt.request, func(r *http.Request) {
 				if len(r.Header) != 0 {

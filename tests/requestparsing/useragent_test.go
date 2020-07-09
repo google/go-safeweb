@@ -11,15 +11,15 @@ import (
 )
 
 func TestUserAgent(t *testing.T) {
-	type userAgentWant struct {
+	type testWant struct {
 		headers   map[string][]string
 		useragent string
 	}
 
-	var userAgentTests = []struct {
+	var tests = []struct {
 		name    string
 		request []byte
-		want    userAgentWant
+		want    testWant
 	}{
 		{
 			name: "Basic",
@@ -27,7 +27,7 @@ func TestUserAgent(t *testing.T) {
 				"Host: localhost:8080\r\n" +
 				"User-Agent: BlahBlah\r\n" +
 				"\r\n"),
-			want: userAgentWant{
+			want: testWant{
 				headers:   map[string][]string{"User-Agent": []string{"BlahBlah"}},
 				useragent: "BlahBlah",
 			},
@@ -39,7 +39,7 @@ func TestUserAgent(t *testing.T) {
 				"User-Agent: BlahBlah\r\n" +
 				"User-Agent: FooFoo\r\n" +
 				"\r\n"),
-			want: userAgentWant{
+			want: testWant{
 				headers:   map[string][]string{"User-Agent": []string{"BlahBlah", "FooFoo"}},
 				useragent: "BlahBlah",
 			},
@@ -51,7 +51,7 @@ func TestUserAgent(t *testing.T) {
 				"user-Agent: BlahBlah\r\n" +
 				"User-Agent: FooFoo\r\n" +
 				"\r\n"),
-			want: userAgentWant{
+			want: testWant{
 				headers:   map[string][]string{"User-Agent": []string{"BlahBlah", "FooFoo"}},
 				useragent: "BlahBlah",
 			},
@@ -63,14 +63,14 @@ func TestUserAgent(t *testing.T) {
 				"User-Agent: BlahBlah\r\n" +
 				"user-Agent: FooFoo\r\n" +
 				"\r\n"),
-			want: userAgentWant{
+			want: testWant{
 				headers:   map[string][]string{"User-Agent": []string{"BlahBlah", "FooFoo"}},
 				useragent: "BlahBlah",
 			},
 		},
 	}
 
-	for _, tt := range userAgentTests {
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp, err := requesttesting.MakeRequest(context.Background(), tt.request, func(r *http.Request) {
 				if diff := cmp.Diff(tt.want.headers, map[string][]string(r.Header)); diff != "" {
