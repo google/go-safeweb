@@ -1,4 +1,3 @@
-
 # Request Parsing tests
 
 This package contains tests for verify the request parsing behavior of `net/http` in Go's standard library.
