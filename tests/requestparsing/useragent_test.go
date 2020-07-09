@@ -44,6 +44,30 @@ func TestUserAgent(t *testing.T) {
 				useragent: "BlahBlah",
 			},
 		},
+		{
+			name: "CasingOrdering1",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"user-Agent: BlahBlah\r\n" +
+				"User-Agent: FooFoo\r\n" +
+				"\r\n"),
+			want: userAgentWant{
+				headers:   map[string][]string{"User-Agent": []string{"BlahBlah", "FooFoo"}},
+				useragent: "BlahBlah",
+			},
+		},
+		{
+			name: "CasingOrdering1",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"User-Agent: BlahBlah\r\n" +
+				"user-Agent: FooFoo\r\n" +
+				"\r\n"),
+			want: userAgentWant{
+				headers:   map[string][]string{"User-Agent": []string{"BlahBlah", "FooFoo"}},
+				useragent: "BlahBlah",
+			},
+		},
 	}
 
 	for _, tt := range userAgentTests {

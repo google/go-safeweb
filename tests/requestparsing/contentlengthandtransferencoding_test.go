@@ -452,3 +452,91 @@ func TestTransferEncodingChunkSizeLength(t *testing.T) {
 		t.Fatalf("MakeRequest() got err: %v", err)
 	}
 }
+
+func TestTransferEncodingCasingOrdering1(t *testing.T) {
+	request := []byte("GET / HTTP/1.1\r\n" +
+		"Host: localhost:8080\r\n" +
+		"Transfer-Encoding: chunked\r\n" +
+		"transfer-Encoding: identity\r\n" +
+		"\r\n" +
+		"5\r\n" +
+		"ABCDE\r\n" +
+		"0\r\n" +
+		"\r\n")
+
+	resp, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
+		if diff := cmp.Diff(map[string][]string{}, map[string][]string(r.Header)); diff != "" {
+			t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
+		}
+
+		if diff := cmp.Diff([]string{"chunked"}, r.TransferEncoding); diff != "" {
+			t.Errorf("r.TransferEncoding mismatch (-want +got):\n%s", diff)
+		}
+
+		if r.ContentLength != -1 {
+			t.Errorf("r.ContentLength got: %v want: -1", r.ContentLength)
+		}
+
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("ioutil.ReadAll(r.Body) got err: %v", err)
+			return
+		}
+
+		if got := string(body); got != "ABCDE" {
+			t.Errorf(`r.Body got: %q want: "ABCDE"`, got)
+		}
+	})
+	if err != nil {
+		t.Fatalf("MakeRequest() got err: %v", err)
+	}
+
+	if !bytes.HasPrefix(resp, []byte(statusOK)) {
+		got := string(resp[:bytes.IndexByte(resp, '\n')+1])
+		t.Errorf("status code got: %q want: %q", got, statusOK)
+	}
+}
+
+func TestTransferEncodingCasingOrdering2(t *testing.T) {
+	request := []byte("GET / HTTP/1.1\r\n" +
+		"Host: localhost:8080\r\n" +
+		"transfer-Encoding: chunked\r\n" +
+		"Transfer-Encoding: identity\r\n" +
+		"\r\n" +
+		"5\r\n" +
+		"ABCDE\r\n" +
+		"0\r\n" +
+		"\r\n")
+
+	resp, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
+		if diff := cmp.Diff(map[string][]string{}, map[string][]string(r.Header)); diff != "" {
+			t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
+		}
+
+		if diff := cmp.Diff([]string{"chunked"}, r.TransferEncoding); diff != "" {
+			t.Errorf("r.TransferEncoding mismatch (-want +got):\n%s", diff)
+		}
+
+		if r.ContentLength != -1 {
+			t.Errorf("r.ContentLength got: %v want: -1", r.ContentLength)
+		}
+
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			t.Errorf("ioutil.ReadAll(r.Body) got err: %v", err)
+			return
+		}
+
+		if got := string(body); got != "ABCDE" {
+			t.Errorf(`r.Body got: %q want: "ABCDE"`, got)
+		}
+	})
+	if err != nil {
+		t.Fatalf("MakeRequest() got err: %v", err)
+	}
+
+	if !bytes.HasPrefix(resp, []byte(statusOK)) {
+		got := string(resp[:bytes.IndexByte(resp, '\n')+1])
+		t.Errorf("status code got: %q want: %q", got, statusOK)
+	}
+}

@@ -45,6 +45,30 @@ func TestReferer(t *testing.T) {
 				referer: "http://example.com",
 			},
 		},
+		{
+			name: "CasingOrdering1",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"referer: http://example.com\r\n" +
+				"Referer: http://evil.com\r\n" +
+				"\r\n"),
+			want: refererWant{
+				headers: map[string][]string{"Referer": []string{"http://example.com", "http://evil.com"}},
+				referer: "http://example.com",
+			},
+		},
+		{
+			name: "CasingOrdering2",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"Referer: http://example.com\r\n" +
+				"referer: http://evil.com\r\n" +
+				"\r\n"),
+			want: refererWant{
+				headers: map[string][]string{"Referer": []string{"http://example.com", "http://evil.com"}},
+				referer: "http://example.com",
+			},
+		},
 	}
 
 	for _, tt := range refererTests {
