@@ -12,7 +12,7 @@ import (
 )
 
 func TestHeaderParsing(t *testing.T) {
-	var headerTests = []struct {
+	var tests = []struct {
 		name    string
 		request []byte
 		want    map[string][]string
@@ -95,7 +95,7 @@ func TestHeaderParsing(t *testing.T) {
 		},
 	}
 
-	for _, tt := range headerTests {
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp, err := requesttesting.MakeRequest(context.Background(), tt.request, func(r *http.Request) {
 				if diff := cmp.Diff(tt.want, map[string][]string(r.Header)); diff != "" {
@@ -115,7 +115,7 @@ func TestHeaderParsing(t *testing.T) {
 }
 
 func TestStatusCode(t *testing.T) {
-	var statusCodeTests = []struct {
+	var tests = []struct {
 		name    string
 		request []byte
 		want    string
@@ -180,7 +180,7 @@ func TestStatusCode(t *testing.T) {
 		},
 	}
 
-	for _, tt := range statusCodeTests {
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp, err := requesttesting.MakeRequest(context.Background(), tt.request, nil)
 			if err != nil {
