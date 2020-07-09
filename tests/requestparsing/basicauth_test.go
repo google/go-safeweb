@@ -28,23 +28,23 @@ func TestBasicAuth(t *testing.T) {
 			name: "Basic",
 			request: []byte("GET / HTTP/1.1\r\n" +
 				"Host: localhost:8080\r\n" +
-				// Base64 encoding of "Pelle:Password".
-				"Authorization: Basic UGVsbGU6UGFzc3dvcmQ=\r\n" +
+				// Base64 encoding of "Pizza:Password".
+				"Authorization: Basic UGl6emE6UGFzc3dvcmQ=\r\n" +
 				"\r\n"),
 			wantBasicAuth: basicAuth{
-				username: "Pelle",
+				username: "Pizza",
 				password: "Password",
 				ok:       true,
 			},
 			// Same Base64 as above.
-			wantHeaders: map[string][]string{"Authorization": []string{"Basic UGVsbGU6UGFzc3dvcmQ="}},
+			wantHeaders: map[string][]string{"Authorization": []string{"Basic UGl6emE6UGFzc3dvcmQ="}},
 		},
 		{
 			name: "NoTrailingEquals",
 			request: []byte("GET / HTTP/1.1\r\n" +
 				"Host: localhost:8080\r\n" +
-				// Base64 encoding of "Pelle:Password" without trailing equals.
-				"Authorization: Basic UGVsbGU6UGFzc3dvcmQ\r\n" +
+				// Base64 encoding of "Pizza:Password" without trailing equals.
+				"Authorization: Basic UGl6emE6UGFzc3dvcmQ\r\n" +
 				"\r\n"),
 			wantBasicAuth: basicAuth{
 				username: "",
@@ -52,29 +52,29 @@ func TestBasicAuth(t *testing.T) {
 				ok:       false,
 			},
 			// Same Base64 as above.
-			wantHeaders: map[string][]string{"Authorization": []string{"Basic UGVsbGU6UGFzc3dvcmQ"}},
+			wantHeaders: map[string][]string{"Authorization": []string{"Basic UGl6emE6UGFzc3dvcmQ"}},
 		},
 		{
 			name: "DoubleColon",
 			request: []byte("GET / HTTP/1.1\r\n" +
 				"Host: localhost:8080\r\n" +
-				// Base64 encoding of "Pelle:Password:Password".
-				"Authorization: Basic UGVsbGU6UGFzc3dvcmQ6UGFzc3dvcmQ=\r\n" +
+				// Base64 encoding of "Pizza:Password:Password".
+				"Authorization: Basic UGl6emE6UGFzc3dvcmQ6UGFzc3dvcmQ=\r\n" +
 				"\r\n"),
 			wantBasicAuth: basicAuth{
-				username: "Pelle",
+				username: "Pizza",
 				password: "Password:Password",
 				ok:       true,
 			},
 			// Same Base64 as above.
-			wantHeaders: map[string][]string{"Authorization": []string{"Basic UGVsbGU6UGFzc3dvcmQ6UGFzc3dvcmQ="}},
+			wantHeaders: map[string][]string{"Authorization": []string{"Basic UGl6emE6UGFzc3dvcmQ6UGFzc3dvcmQ="}},
 		},
 		{
 			name: "NotBasic",
 			request: []byte("GET / HTTP/1.1\r\n" +
 				"Host: localhost:8080\r\n" +
-				// Base64 encoding of "Pelle:Password:Password".
-				"Authorization: xasic UGVsbGU6UGFzc3dvcmQ6UGFzc3dvcmQ=\r\n" +
+				// Base64 encoding of "Pizza:Password:Password".
+				"Authorization: xasic UGl6emE6UGFzc3dvcmQ6UGFzc3dvcmQ=\r\n" +
 				"\r\n"),
 			wantBasicAuth: basicAuth{
 				username: "",
@@ -82,7 +82,7 @@ func TestBasicAuth(t *testing.T) {
 				ok:       false,
 			},
 			// Same Base64 as above.
-			wantHeaders: map[string][]string{"Authorization": []string{"xasic UGVsbGU6UGFzc3dvcmQ6UGFzc3dvcmQ="}},
+			wantHeaders: map[string][]string{"Authorization": []string{"xasic UGl6emE6UGFzc3dvcmQ6UGFzc3dvcmQ="}},
 		},
 		{
 			name: "Ordering",
