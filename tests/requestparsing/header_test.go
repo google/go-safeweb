@@ -1,7 +1,6 @@
 package requestparsing
 
 import (
-	"bytes"
 	"context"
 	"net/http"
 	"testing"
@@ -106,9 +105,8 @@ func TestHeaderParsing(t *testing.T) {
 				t.Fatalf("MakeRequest() got err: %v", err)
 			}
 
-			if !bytes.HasPrefix(resp, []byte(statusOK)) {
-				got := string(resp[:bytes.IndexByte(resp, '\n')+1])
-				t.Errorf("status code got: %q want: %q", got, statusOK)
+			if got, want := extractStatus(resp), statusOK; got != want {
+				t.Errorf("status code got: %q want: %q", got, want)
 			}
 		})
 	}
@@ -187,8 +185,7 @@ func TestStatusCode(t *testing.T) {
 				t.Fatalf("MakeRequest() got err: %v", err)
 			}
 
-			if !bytes.HasPrefix(resp, []byte(tt.want)) {
-				got := string(resp[:bytes.IndexByte(resp, '\n')+1])
+			if got := extractStatus(resp); got != tt.want {
 				t.Errorf("status code got: %q want: %q", got, tt.want)
 			}
 		})
