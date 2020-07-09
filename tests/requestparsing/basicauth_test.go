@@ -12,17 +12,17 @@ import (
 )
 
 func TestBasicAuth(t *testing.T) {
-	type basicAuthWant struct {
+	type testWant struct {
 		headers  map[string][]string
 		ok       bool
 		username string
 		password string
 	}
 
-	var basicAuthTests = []struct {
+	var tests = []struct {
 		name    string
 		request []byte
-		want    basicAuthWant
+		want    testWant
 	}{
 		{
 			name: "Basic",
@@ -31,7 +31,7 @@ func TestBasicAuth(t *testing.T) {
 				// Base64 encoding of "Pelle:Password".
 				"Authorization: Basic UGVsbGU6UGFzc3dvcmQ=\r\n" +
 				"\r\n"),
-			want: basicAuthWant{
+			want: testWant{
 				// Same Base64 as above.
 				headers:  map[string][]string{"Authorization": []string{"Basic UGVsbGU6UGFzc3dvcmQ="}},
 				ok:       true,
@@ -46,7 +46,7 @@ func TestBasicAuth(t *testing.T) {
 				// Base64 encoding of "Pelle:Password" without trailing equals.
 				"Authorization: Basic UGVsbGU6UGFzc3dvcmQ\r\n" +
 				"\r\n"),
-			want: basicAuthWant{
+			want: testWant{
 				// Same Base64 as above.
 				headers:  map[string][]string{"Authorization": []string{"Basic UGVsbGU6UGFzc3dvcmQ"}},
 				ok:       false,
@@ -61,7 +61,7 @@ func TestBasicAuth(t *testing.T) {
 				// Base64 encoding of "Pelle:Password:Password".
 				"Authorization: Basic UGVsbGU6UGFzc3dvcmQ6UGFzc3dvcmQ=\r\n" +
 				"\r\n"),
-			want: basicAuthWant{
+			want: testWant{
 				// Same Base64 as above.
 				headers:  map[string][]string{"Authorization": []string{"Basic UGVsbGU6UGFzc3dvcmQ6UGFzc3dvcmQ="}},
 				ok:       true,
@@ -76,7 +76,7 @@ func TestBasicAuth(t *testing.T) {
 				// Base64 encoding of "Pelle:Password:Password".
 				"Authorization: xasic UGVsbGU6UGFzc3dvcmQ6UGFzc3dvcmQ=\r\n" +
 				"\r\n"),
-			want: basicAuthWant{
+			want: testWant{
 				// Same Base64 as above.
 				headers:  map[string][]string{"Authorization": []string{"xasic UGVsbGU6UGFzc3dvcmQ6UGFzc3dvcmQ="}},
 				ok:       false,
@@ -93,7 +93,7 @@ func TestBasicAuth(t *testing.T) {
 				// Base64 encoding of "BBB:bbb".
 				"Authorization: basic QkJCOmJiYg==\r\n" +
 				"\r\n"),
-			want: basicAuthWant{
+			want: testWant{
 				// Base64 encoding of "AAA:aaa" and then of "BBB:bbb" in that order.
 				headers:  map[string][]string{"Authorization": []string{"basic QUFBOmFhYQ==", "basic QkJCOmJiYg=="}},
 				ok:       true,
@@ -110,7 +110,7 @@ func TestBasicAuth(t *testing.T) {
 				// Base64 encoding of "BBB:bbb".
 				"authorization: basic QkJCOmJiYg==\r\n" +
 				"\r\n"),
-			want: basicAuthWant{
+			want: testWant{
 				// Base64 encoding of "AAA:aaa" and then of "BBB:bbb" in that order.
 				headers:  map[string][]string{"Authorization": []string{"basic QUFBOmFhYQ==", "basic QkJCOmJiYg=="}},
 				ok:       true,
@@ -127,7 +127,7 @@ func TestBasicAuth(t *testing.T) {
 				// Base64 encoding of "BBB:bbb".
 				"Authorization: basic QkJCOmJiYg==\r\n" +
 				"\r\n"),
-			want: basicAuthWant{
+			want: testWant{
 				// Base64 encoding of "AAA:aaa" and then of "BBB:bbb" in that order.
 				headers:  map[string][]string{"Authorization": []string{"basic QUFBOmFhYQ==", "basic QkJCOmJiYg=="}},
 				ok:       true,
@@ -137,7 +137,7 @@ func TestBasicAuth(t *testing.T) {
 		},
 	}
 
-	for _, tt := range basicAuthTests {
+	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resp, err := requesttesting.MakeRequest(context.Background(), tt.request, func(r *http.Request) {
 				if diff := cmp.Diff(tt.want.headers, map[string][]string(r.Header)); diff != "" {
