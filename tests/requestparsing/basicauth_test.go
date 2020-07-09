@@ -101,6 +101,40 @@ func TestBasicAuth(t *testing.T) {
 				password: "aaa",
 			},
 		},
+		{
+			name: "CasingOrdering1",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				// Base64 encoding of "AAA:aaa".
+				"Authorization: basic QUFBOmFhYQ==\r\n" +
+				// Base64 encoding of "BBB:bbb".
+				"authorization: basic QkJCOmJiYg==\r\n" +
+				"\r\n"),
+			want: basicAuthWant{
+				// Base64 encoding of "AAA:aaa" and then of "BBB:bbb" in that order.
+				headers:  map[string][]string{"Authorization": []string{"basic QUFBOmFhYQ==", "basic QkJCOmJiYg=="}},
+				ok:       true,
+				username: "AAA",
+				password: "aaa",
+			},
+		},
+		{
+			name: "CasingOrdering2",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				// Base64 encoding of "AAA:aaa".
+				"authorization: basic QUFBOmFhYQ==\r\n" +
+				// Base64 encoding of "BBB:bbb".
+				"Authorization: basic QkJCOmJiYg==\r\n" +
+				"\r\n"),
+			want: basicAuthWant{
+				// Base64 encoding of "AAA:aaa" and then of "BBB:bbb" in that order.
+				headers:  map[string][]string{"Authorization": []string{"basic QUFBOmFhYQ==", "basic QkJCOmJiYg=="}},
+				ok:       true,
+				username: "AAA",
+				password: "aaa",
+			},
+		},
 	}
 
 	for _, tt := range basicAuthTests {
