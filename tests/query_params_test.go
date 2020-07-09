@@ -17,7 +17,7 @@ package tests
 import (
 	"bytes"
 	"context"
-	"go-safeweb/testing/requesttesting"
+	"github.com/google/go-safeweb/testing/requesttesting"
 	"net/http"
 	"testing"
 )
