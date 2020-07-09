@@ -1,7 +1,6 @@
 package requestparsing
 
 import (
-	"bytes"
 	"context"
 	"net/http"
 	"testing"
@@ -76,9 +75,8 @@ func TestHostHeader(t *testing.T) {
 				t.Fatalf("MakeRequest() got err: %v", err)
 			}
 
-			if !bytes.HasPrefix(resp, []byte(statusOK)) {
-				got := string(resp[:bytes.IndexByte(resp, '\n')+1])
-				t.Errorf("status code got: %q want: %q", got, statusOK)
+			if got, want := extractStatus(resp), statusOK; got != want {
+				t.Errorf("status code got: %q want: %q", got, want)
 			}
 		})
 	}
@@ -95,8 +93,7 @@ func TestHostHeaderMultiple(t *testing.T) {
 		t.Fatalf("MakeRequest() got err: %v", err)
 	}
 
-	if !bytes.HasPrefix(resp, []byte(statusTooManyHostHeaders)) {
-		got := string(resp[:bytes.IndexByte(resp, '\n')+1])
-		t.Errorf("status code got: %q want: %q", got, statusTooManyHostHeaders)
+	if got, want := extractStatus(resp), statusTooManyHostHeaders; got != want {
+		t.Errorf("status code got: %q want: %q", got, want)
 	}
 }
