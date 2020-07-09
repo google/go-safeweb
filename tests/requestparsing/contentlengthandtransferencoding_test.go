@@ -216,8 +216,7 @@ func TestContentLengthTransferEncoding(t *testing.T) {
 
 				body, err := ioutil.ReadAll(r.Body)
 				if err != nil {
-					t.Errorf("ioutil.ReadAll(r.Body) got err: %v", err)
-					return
+					t.Fatalf("ioutil.ReadAll(r.Body) got err: %v", err)
 				}
 
 				if got := string(body); got != tt.want.body {
@@ -338,7 +337,7 @@ func TestTransferEncodingChunkSizeLength(t *testing.T) {
 
 		_, err := ioutil.ReadAll(r.Body)
 		if err == nil {
-			t.Errorf("ioutil.ReadAll(r.Body) got: %v want: http chunk length too large", err)
+			t.Fatalf("ioutil.ReadAll(r.Body) got: %v want: http chunk length too large", err)
 		}
 	})
 	if err != nil {
