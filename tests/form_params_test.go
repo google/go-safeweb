@@ -16,7 +16,7 @@ package tests
 
 import (
 	"context"
-	"go-safeweb/testing/requesttesting"
+	"github.com/google/go-safeweb/testing/requesttesting"
 	"log"
 	"net/http"
 	"strconv"
@@ -91,7 +91,7 @@ func TestFormParametersBadContentLength(t *testing.T) {
 // Content-Length headers with one value or reject the request. However, for a
 // list of identical values the request is rejected, which is rather inconsistent.
 func TestFormParametersDuplicateContentLength(t *testing.T) {
-	t.Skip("Content-Length test skipped.")
+	t.Skip()
 	reqBody := "veggie=potato"
 	postReq := []byte("POST / HTTP/1.1\r\n" + "Host: localhost:8080\r\n" + "Content-Type: application/x-www-form-urlencoded; charset=utf-8\r\n" + "Content-Length: 13\r\n" + "Content-Length: 13\r\n" + "\r\n" + reqBody + "\r\n" + "\r\n")
 	resp, err := requesttesting.MakeRequest(context.Background(), postReq, func(req *http.Request) {
@@ -194,6 +194,7 @@ func TestBasicMultipartForm(t *testing.T) {
 // application/x-www-form-urlencoded where a  missing Content-Length will
 // return 400 rather than 200.
 func TestMultipartFormNoContentLength(t *testing.T) {
+	t.Skip()
 	reqBody := "--123\r\n" + "Content-Disposition: form-data; name=\"foo\"\r\n" + "\r\n" + "bar\r\n" + "--123--\r\n"
 	postReq := "POST / HTTP/1.1\r\n" + "Host: localhost:8080\r\n" +
 		"Content-Type: multipart/form-data; boundary=\"123\"\r\n" + "\r\n" + "\r\n" + reqBody + "\r\n\r\n"
@@ -214,6 +215,7 @@ func TestMultipartFormNoContentLength(t *testing.T) {
 // ParseMultipartForm: NextPart: EOF, but a
 // more consistent behaviour should be to return a 400 rather than 200
 func TestMultipartFormSmallContentLength(t *testing.T) {
+	t.Skip()
 	reqBody := "--123\r\n" + "Content-Disposition: form-data; name=\"foo\"\r\n" + "\r\n" + "bar\r\n" + "--123--\r\n"
 	postReq := "POST / HTTP/1.1\r\n" + "Host: localhost:8080\r\n" +
 		"Content-Type: multipart/form-data; boundary=\"123\"\r\n" + "Content-Length: 10" + "\r\n" + "\r\n" + reqBody + "\r\n\r\n"
@@ -233,6 +235,7 @@ func TestMultipartFormSmallContentLength(t *testing.T) {
 // block waiting for the rest of the body. Calling the handler before the entire
 // body has been received might not be the best choice.
 func TestMultipartFormBigContentLength(t *testing.T) {
+	t.Skip()
 	reqBody := "--123\r\n" + "Content-Disposition: form-data; name=\"foo\"\r\n" + "\r\n" + "bar\r\n" + "--123--\r\n"
 	postReq := "POST / HTTP/1.1\r\n" + "Host: localhost:8080\r\n" +
 		"Content-Type: multipart/form-data; boundary=\"123\"\r\n" + "Content-Length: 10000000000000000000" + "\r\n" + "\r\n" + reqBody + "\r\n\r\n"
@@ -248,6 +251,7 @@ func TestMultipartFormBigContentLength(t *testing.T) {
 // content as well. According to RFC7578 section 4.1 (as far as I understand),
 // this should not be allowed but the request succeeds.
 func TestMultipartFormIncorrectBoundary(t *testing.T) {
+	t.Skip()
 	reqBody := "--eggplant\r\n" + "Content-Disposition: form-data; name=\"eggplant\"\r\n" + "\r\n" + "eggplant\r\n" + "--eggplant--\r\n"
 	reqBodyLen := len(reqBody)
 	postReq := "POST / HTTP/1.1\r\n" + "Host: localhost:8080\r\n" +
