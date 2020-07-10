@@ -17,66 +17,57 @@ package tests
 import (
 	"bytes"
 	"context"
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/testing/requesttesting"
 	"net/http"
+	"net/url"
 	"testing"
 )
 
-const statusOK = "HTTP/1.1 200 OK\r\n"
+const statusOKReq = "HTTP/1.1 200 OK\r\n"
 const statusBadReq = "HTTP/1.1 400 Bad Request\r\n"
 
-// isOkReq is a helper function that checks whether the server response is 200
-func isOkReq(resp []byte) bool {
-	if bytes.HasPrefix(resp, []byte(statusOK)) {
-		return true
-	}
-	return false
+// isOKReq is a helper function that checks whether the server response is 200
+func isOKReq(resp []byte) bool {
+	return bytes.HasPrefix(resp, []byte(statusOKReq))
 }
 
 // isBadReq is a helper function that checks whether the server response is 400
 func isBadReq(resp []byte) bool {
-	if bytes.HasPrefix(resp, []byte(statusBadReq)) {
-		return true
-	}
-	return false
+	return bytes.HasPrefix(resp, []byte(statusBadReq))
 }
 
 // Ensures Query() only returns a map of size one and verifies whether sending a
 // request with two values for the same key returns a []string of length 2
 // containing the correct values
 func TestMultipleQueryParametersSameKey(t *testing.T) {
-	var (
-		valueOne = "potatO"
-		valueTwo = "Tomato"
-		req      = []byte("GET /?vegetable=" + valueOne + "&vegetable=" + valueTwo + " HTTP/1.1\r\n" + "Host: localhost:8080\r\n" + "\r\n")
+	const (
+		req = "GET /?vegetable=potatO&vegetable=Tomato HTTP/1.1\r\n" +
+			"Host: localhost:8080\r\n" +
+			"\r\n"
 	)
-	resp, err := requesttesting.MakeRequest(context.Background(), req, func(req *http.Request) {
-		queryParams := req.URL.Query()
-		if len(queryParams) != 1 {
-			t.Errorf("len(queryParams): got %d, want %d", len(queryParams), 1)
+	resp, err := requesttesting.MakeRequest(context.Background(), []byte(req), func(req *http.Request) {
+		want := url.Values{
+			"vegetable": []string{"potatO", "Tomato"},
 		}
-
-		vegetableParamValues := queryParams["vegetable"]
-		if len(vegetableParamValues) != 2 {
-			t.Errorf("len(vegetableQueryParams): got %d, want %d", len(vegetableParamValues), 2)
-		}
-		if vegetableParamValues[0] != valueOne || vegetableParamValues[1] != valueTwo {
-			t.Errorf("queryParams values: expected "+valueOne+" and "+valueTwo+", got %s and %s", vegetableParamValues[0], vegetableParamValues[1])
+		got := req.URL.Query()
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("req.URL.Query() = %v, want %v, diff (-want +got):\n%s", got, want, diff)
 		}
 	})
 	if err != nil {
 		t.Errorf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !isOkReq(resp) {
-		t.Errorf("response: want %s, got %s", statusOK, string(resp))
+	if !isOKReq(resp) {
+		t.Errorf("response: want %s, got %s", statusOKReq, resp)
 	}
 
 }
 
 func TestQueryParametersSameKeyDifferentCasing(t *testing.T) {
-
 	req := []byte("GET /?vegetable=potato&Vegetable=tomato HTTP/1.1\r\n" +
-		"Host: localhost:8080\r\n" + "\r\n")
+		"Host: localhost:8080\r\n" +
+		"\r\n")
 	resp, err := requesttesting.MakeRequest(context.Background(), req, func(req *http.Request) {
 		queryParams := req.URL.Query()
 
@@ -91,15 +82,17 @@ func TestQueryParametersSameKeyDifferentCasing(t *testing.T) {
 	if err != nil {
 		t.Errorf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !isOkReq(resp) {
-		t.Errorf("response: want %s, got %s", statusOK, string(resp))
+	if !isOKReq(resp) {
+		t.Errorf("response: want %s, got %s", statusOKReq, resp)
 	}
 }
 
 // TestQueryParametersValidUnicode ensures keys and values that contain non-ASCII characters are parsed correctly
 func TestQueryParametersValidUnicode(t *testing.T) {
-	value := "ăȚâȘî"
-	req := []byte("GET /?vegetable=" + value + " HTTP/1.1\r\n" + "Host: localhost:8080\r\n" + "\r\n")
+	const value = "ăȚâȘî"
+	req := []byte("GET /?vegetable=ăȚâȘî HTTP/1.1\r\n" +
+		"Host: localhost:8080\r\n" +
+		"\r\n")
 	resp, err := requesttesting.MakeRequest(context.Background(), req, func(req *http.Request) {
 		if valueReceived := req.URL.Query()["vegetable"][0]; valueReceived != value {
 			t.Errorf("queryParams values: got %s, want %s", valueReceived, value)
@@ -108,8 +101,8 @@ func TestQueryParametersValidUnicode(t *testing.T) {
 	if err != nil {
 		t.Errorf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !isOkReq(resp) {
-		t.Errorf("response: want %s, got %s", statusOK, string(resp))
+	if !isOKReq(resp) {
+		t.Errorf("response: want %s, got %s", statusOKReq, resp)
 	}
 
 	key := "ăȚâȘî"
@@ -122,24 +115,25 @@ func TestQueryParametersValidUnicode(t *testing.T) {
 	if err != nil {
 		t.Errorf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !isOkReq(resp) {
-		t.Errorf("response: want %s, got %s", statusOK, string(resp))
+	if !isOKReq(resp) {
+		t.Errorf("response: want %s, got %s", statusOKReq, resp)
 	}
 
 }
 
 // Tests whether passing invalid Unicode will result  in a 400 Bad Request response
 func TestQueryParametersInvalidUnicodes(t *testing.T) {
-	key := "\x0F"
-	req := []byte("GET /?" + key + "=tomato&Vegetable=potato HTTP/1.1\r\n" + "Host: localhost:8080\r\n" + "\r\n")
+	req := []byte("GET /?\x0F=tomato&Vegetable=potato HTTP/1.1\r\n" +
+		"Host: localhost:8080\r\n" +
+		"\r\n")
 	resp, err := requesttesting.MakeRequest(context.Background(), req, func(req *http.Request) {
-		t.Error("MakeRequest(): Expected handler not to be called.")
+		t.Fatal("MakeRequest(): Expected handler not to be called for request.")
 	})
 	if err != nil {
 		t.Errorf("MakeRequest(): got err %v, want nil", err)
 	}
 	if !isBadReq(resp) {
-		t.Errorf("response: want %s, got %s", statusBadReq, string(resp))
+		t.Errorf("response: want %s, got %s", statusBadReq, resp)
 	}
 
 }
@@ -148,7 +142,9 @@ func TestQueryParametersInvalidUnicodes(t *testing.T) {
 // values, by breaking URL percent-encoding. Percent-encoding is used to encode
 // special characters in URL
 func TestQueryParametersBreakUrlEncoding(t *testing.T) {
-	brokenKeyReq := []byte("GET /?vegetable%=tomato HTTP/1.1\r\n" + "Host: localhost:8080\r\n" + "\r\n")
+	brokenKeyReq := []byte("GET /?vegetable%=tomato HTTP/1.1\r\n" +
+		"Host: localhost:8080\r\n" +
+		"\r\n")
 	resp, err := requesttesting.MakeRequest(context.Background(), brokenKeyReq, func(req *http.Request) {
 		if lenQueryParams := len(req.URL.Query()); lenQueryParams != 0 {
 			t.Errorf("len(queryParams): got %d, want %d", lenQueryParams, 0)
@@ -157,11 +153,13 @@ func TestQueryParametersBreakUrlEncoding(t *testing.T) {
 	if err != nil {
 		t.Errorf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !isOkReq(resp) {
-		t.Errorf("response: want %s, got %s", statusOK, string(resp))
+	if !isOKReq(resp) {
+		t.Errorf("response: want %s, got %s", statusOKReq, resp)
 	}
 
-	brokenValueReq := []byte("GET /?vegetable=tomato% HTTP/1.1\r\n" + "Host: localhost:8080\r\n" + "\r\n")
+	brokenValueReq := []byte("GET /?vegetable=tomato% HTTP/1.1\r\n" +
+		"Host: localhost:8080\r\n" +
+		"\r\n")
 	resp, err = requesttesting.MakeRequest(context.Background(), brokenValueReq, func(req *http.Request) {
 		if lenVeg := len(req.URL.Query()["vegetable"]); lenVeg != 0 {
 			t.Errorf("len(queryParams): got %d, want %d", lenVeg, 0)
@@ -171,8 +169,8 @@ func TestQueryParametersBreakUrlEncoding(t *testing.T) {
 		t.Errorf("MakeRequest(): got err %v, want nil", err)
 	}
 
-	if !isOkReq(resp) {
-		t.Errorf("response: want %s, got %s", statusOK, string(resp))
+	if !isOKReq(resp) {
+		t.Errorf("response: want %s, got %s", statusOKReq, resp)
 	}
 
 }
@@ -180,37 +178,53 @@ func TestQueryParametersBreakUrlEncoding(t *testing.T) {
 // Test whether both + and %20 are interpreted as space. Having a space in the
 // actual request will not be escaped and will result in a 400
 func TestQueryParametersSpaceBehaviour(t *testing.T) {
-	var (
-		value1 string
-		value2 string
-	)
+	var tests = []struct {
+		name string
+		req  []byte
+		want string
+	}{
+		{
+			name: "+ as encoding for space",
+			req: []byte("GET /?vegetable=potato+pear&Vegetable=tomato HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"\r\n"),
+			want: "potato pear",
+		},
+		{
+			name: "%20 as encoding for space",
+			req: []byte("GET /?vegetable=potato%20pear&Vegetable=tomato HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"\r\n"),
+			want: "potato pear",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			resp, err := requesttesting.MakeRequest(context.Background(), test.req, func(req *http.Request) {
+				if queryParam := req.URL.Query()["vegetable"][0]; queryParam != test.want {
+					t.Errorf("URL.Query():want \"potato pear\", got %s", queryParam)
+				}
+			})
+			if err != nil {
+				t.Errorf("MakeRequest(): got err %v, want nil", err)
+			}
+			if !isOKReq(resp) {
+				t.Errorf("response: want %s, got %s", statusOKReq, resp)
+			}
+		})
+	}
+
 	req := []byte("GET /?vegetable=potato pear&Vegetable=tomato HTTP/1.1\r\n" +
-		"Host: localhost:8080\r\n" + "\r\n")
+		"Host: localhost:8080\r\n" +
+		"\r\n")
 	resp, err := requesttesting.MakeRequest(context.Background(), req, func(req *http.Request) {
-		if req != nil {
-			t.Error("Expected the server not to receive a request containing invalid Unicode.")
-		}
+		t.Fatal("Expected handler not to be called with request containing invalid Unicode.")
 	})
 	if err != nil {
 		t.Errorf("MakeRequest(): got err %v, want nil", err)
 	}
 	if !isBadReq(resp) {
-		t.Errorf("response: want %s, got %s", statusBadReq, string(resp))
-	}
-
-	req = []byte("GET /?vegetable=potato+pear&Vegetable=tomato HTTP/1.1\r\n" +
-		"Host: localhost:8080\r\n" + "\r\n")
-	resp, err = requesttesting.MakeRequest(context.Background(), req, func(req *http.Request) {
-		value1 = req.URL.Query()["vegetable"][0]
-	})
-
-	req = []byte("GET /?vegetable=potato%20pear&Vegetable=tomato HTTP/1.1\r\n" +
-		"Host: localhost:8080\r\n" + "\r\n")
-	resp, err = requesttesting.MakeRequest(context.Background(), req, func(req *http.Request) {
-		value2 = req.URL.Query()["vegetable"][0]
-	})
-
-	if value1 != value2 {
-		t.Errorf("URL.Query():want potato and potato but got %s and %s", value1, value2)
+		t.Errorf("response: want %s, got %s", statusBadReq, resp)
 	}
 }
