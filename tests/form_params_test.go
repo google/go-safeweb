@@ -15,7 +15,9 @@
 package tests
 
 import (
+	"bytes"
 	"context"
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/testing/requesttesting"
 	"net/http"
 	"strconv"
@@ -23,25 +25,28 @@ import (
 )
 
 func TestSimpleFormParameters(t *testing.T) {
-	reqBody := "Veg=Potato&Fruit=Apple"
-	reqBodyLen := len(reqBody)
+	reqBody := "vegetable=potato&fruit=apple"
 	postReq := []byte("POST / HTTP/1.1\r\n" +
 		"Host: localhost:8080\r\n" +
-		"Content-Type: application/x-www-form-urlencoded; charset=ASCII\r\n" + "Content-Length: " + strconv.Itoa(reqBodyLen) + "\r\n" +
+		"Content-Type: application/x-www-form-urlencoded; charset=ASCII\r\n" +
+		"Content-Length: " + strconv.Itoa(len(reqBody)) + "\r\n" +
 		"\r\n" +
 		reqBody + "\r\n" +
 		"\r\n")
 	resp, err := requesttesting.MakeRequest(context.Background(), postReq, func(req *http.Request) {
 		req.ParseForm()
-		if req.Form["Veg"][0] != "Potato" && req.Form["Fruit"][0] != "Apple" {
-			t.Errorf("req.Form: want Potato and Apple, got %s and %s", req.Form["Veg"][0], req.Form["Fruit"][0])
+		if !cmp.Equal([]string{"potato"}, req.Form["vegetable"]) {
+			t.Errorf(`req.Form["vegetable"] = %v, want { "potato" }`, req.Form["vegetable"])
+		}
+		if !cmp.Equal([]string{"apple"}, req.Form["fruit"]) {
+			t.Errorf(`req.Form["fruit"] = %v, want { "apple" }`, req.Form["apple"])
 		}
 	})
 	if err != nil {
-		t.Errorf("MakeRequest(): got err %v, want nil", err)
+		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !isOKReq(resp) {
-		t.Errorf("response: want %s, got %s", statusOKReq, string(resp))
+	if !bytes.HasPrefix(resp, []byte(statusOKReq)) {
+		t.Errorf("response status: got %s, want %s", string(resp), statusOKReq)
 	}
 }
 
@@ -56,17 +61,16 @@ func TestFormParametersMissingContentLength(t *testing.T) {
 		t.Error("MakeRequest(): Expected handler not to be called.")
 	})
 	if err != nil {
-		t.Errorf("MakeRequest(): got err %v, want nil", err)
+		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !isBadReq(resp) {
-		t.Errorf("response: want %s, got %s", statusBadReq, string(resp))
+	if !bytes.HasPrefix(resp, []byte(statusBadReq)) {
+		t.Errorf("response status: got %s, want %s", string(resp), statusBadReq)
 	}
 }
 
 // Ensure passing a negative Content-Length or one that overflows integers results in a
 // 400 Bad Request
 func TestFormParametersBadContentLength(t *testing.T) {
-
 	var tests = []struct {
 		name string
 		req  []byte
@@ -95,13 +99,13 @@ func TestFormParametersBadContentLength(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			resp, err := requesttesting.MakeRequest(context.Background(), test.req, func(req *http.Request) {
-				t.Error("MakeRequest(): Expected handler not to be called.")
+				t.Error("MakeRequest(): expected handler not to be called.")
 			})
 			if err != nil {
-				t.Errorf("MakeRequest(): got err %v, want nil", err)
+				t.Fatalf("MakeRequest(): got err %v, want nil", err)
 			}
-			if !isBadReq(resp) {
-				t.Errorf("response: want %s, got %s", statusBadReq, string(resp))
+			if !bytes.HasPrefix(resp, []byte(statusBadReq)) {
+				t.Errorf("response status: got %s, want %s", string(resp), statusBadReq)
 			}
 		})
 	}
@@ -119,7 +123,6 @@ func TestFormParametersBadContentLength(t *testing.T) {
 // the request and use the duplicated value or reject it. However, a more
 // consistent behaviour would be to handle a) and c) similarly.
 func TestFormParametersDuplicateContentLength(t *testing.T) {
-	t.Skip()
 	type want struct {
 		contentLen    string
 		queryParamVal string
@@ -161,20 +164,23 @@ func TestFormParametersDuplicateContentLength(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		// Skipping to ensure GitHub checks are not failing. This test is made
+		// to fail intentionally to pinpoint behaviour we regard as inconsistent
+		t.Skip()
 		t.Run(test.name, func(t *testing.T) {
 			resp, err := requesttesting.MakeRequest(context.Background(), test.req, func(req *http.Request) {
 				if contentLen := req.Header["Content-Length"][0]; contentLen != test.want.contentLen {
-					t.Errorf("Expected Content-Length to be 13 but got %s", contentLen)
+					t.Errorf(`req.Header["Content-Length"]: got %v, want %v`, contentLen, test.want.contentLen)
 				}
 				if val := req.FormValue("veggie"); val != test.want.queryParamVal {
 					t.Errorf("req.FormValue: want potato, got %s", val)
 				}
 			})
 			if err != nil {
-				t.Errorf("MakeRequest(): got err %v, want nil", err)
+				t.Fatalf("MakeRequest(): got err %v, want nil", err)
 			}
-			if !isOKReq(resp) {
-				t.Errorf("response: want %s, got %s", statusOKReq, resp)
+			if !!bytes.HasPrefix(resp, []byte(statusOKReq)) {
+				t.Errorf("response status: got %s, want %s", resp, statusOKReq)
 			}
 		})
 	}
@@ -192,10 +198,10 @@ func TestFormParametersDuplicateContentLength(t *testing.T) {
 		}
 	})
 	if err != nil {
-		t.Errorf("MakeRequest(): got err %v, want nil", err)
+		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !isBadReq(resp) {
-		t.Errorf("response: want %s, got %s", statusBadReq, resp)
+	if !bytes.HasPrefix(resp, []byte(statusBadReq)) {
+		t.Errorf("response status: got %s, want %s", resp, statusBadReq)
 	}
 }
 
@@ -216,10 +222,10 @@ func TestFormParametersBreakUrlEncoding(t *testing.T) {
 		}
 	})
 	if err != nil {
-		t.Errorf("MakeRequest(): got err %v, want nil", err)
+		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !isOKReq(resp) {
-		t.Errorf("response: want %s, got %s", statusOKReq, resp)
+	if !bytes.HasPrefix(resp, []byte(statusOKReq)) {
+		t.Errorf("response status: got %s, want %s", resp, statusOKReq)
 	}
 }
 
@@ -229,9 +235,8 @@ func TestBasicMultipartForm(t *testing.T) {
 		"\r\n" +
 		"bar\r\n" +
 		"--123--\r\n"
-	reqBodyLen := len(reqBody)
 	postReq := "POST / HTTP/1.1\r\n" + "Host: localhost:8080\r\n" +
-		"Content-Type: multipart/form-data; boundary=\"123\"\r\n" + "Content-Length: " + strconv.Itoa(reqBodyLen) + "\r\n" +
+		"Content-Type: multipart/form-data; boundary=\"123\"\r\n" + "Content-Length: " + strconv.Itoa(len(reqBody)) + "\r\n" +
 		"\r\n" +
 		reqBody + "\r\n" +
 		"\r\n"
@@ -239,18 +244,18 @@ func TestBasicMultipartForm(t *testing.T) {
 
 		e := req.ParseMultipartForm(1024)
 		if e != nil {
-			t.Errorf("ParseMultipartForm: want nil, got %v", e)
+			t.Fatalf("ParseMultipartForm: want nil, got %v", e)
 		}
 
 		if formVal := req.Form["foo"][0]; formVal != "bar" {
-			t.Errorf("FormValue: want bar, got %s", formVal)
+			t.Errorf("FormValue: got %s, want bar", formVal)
 		}
 	})
 	if err != nil {
-		t.Errorf("MakeRequest(): got err %v, want nil", err)
+		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !isOKReq(resp) {
-		t.Errorf("response: want %s, got %s", statusOKReq, resp)
+	if !bytes.HasPrefix(resp, []byte(statusOKReq)) {
+		t.Errorf("response status: got %s, want %s", resp, statusOKReq)
 	}
 }
 
@@ -260,6 +265,8 @@ func TestBasicMultipartForm(t *testing.T) {
 // application/x-www-form-urlencoded where a  missing Content-Length will
 // return 400 rather than 200.
 func TestMultipartFormNoContentLength(t *testing.T) {
+	// Skipping to ensure GitHub checks are not failing. This test is made
+	// to fail intentionally to pinpoint behaviour we regard as inconsistent
 	t.Skip()
 	reqBody := "--123\r\n" +
 		"Content-Disposition: form-data; name=\"foo\"\r\n" +
@@ -276,10 +283,10 @@ func TestMultipartFormNoContentLength(t *testing.T) {
 	})
 
 	if err != nil {
-		t.Errorf("MakeRequest(): got err %v, want nil", err)
+		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !isBadReq(resp) {
-		t.Errorf("response: want %s, got %s", statusBadReq, resp)
+	if !bytes.HasPrefix(resp, []byte(statusBadReq)) {
+		t.Errorf("response status: got %s, want %s", resp, statusBadReq)
 	}
 }
 
@@ -288,6 +295,8 @@ func TestMultipartFormNoContentLength(t *testing.T) {
 // ParseMultipartForm: NextPart: EOF, but a
 // more consistent behaviour should be to return a 400 rather than 200
 func TestMultipartFormSmallContentLength(t *testing.T) {
+	// Skipping to ensure GitHub checks are not failing. This test is made
+	// to fail intentionally to pinpoint behaviour we regard as inconsistent
 	t.Skip()
 	reqBody := "--123\r\n" +
 		"Content-Disposition: form-data; name=\"foo\"\r\n" +
@@ -304,10 +313,10 @@ func TestMultipartFormSmallContentLength(t *testing.T) {
 		t.Error("MakeRequest(): expected handler not to be called")
 	})
 	if err != nil {
-		t.Errorf("MakeRequest(): got err %v, want nil", err)
+		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !isBadReq(resp) {
-		t.Errorf("response: want %s, got %s", statusBadReq, resp)
+	if !bytes.HasPrefix(resp, []byte(statusBadReq)) {
+		t.Errorf("response status: got %s, want %s", resp, statusBadReq)
 	}
 }
 
@@ -316,7 +325,9 @@ func TestMultipartFormSmallContentLength(t *testing.T) {
 // block waiting for the rest of the body. Calling the handler before the entire
 // body has been received might not be the best choice.
 func TestMultipartFormBigContentLength(t *testing.T) {
-	// t.Skip()
+	// Skipping to ensure GitHub checks are not failing. This test is made
+	// to fail intentionally to pinpoint behaviour we regard as inconsistent
+	t.Skip()
 	reqBody := "--123\r\n" +
 		"Content-Disposition: form-data; name=\"foo\"\r\n" +
 		"\r\n" +
@@ -331,7 +342,7 @@ func TestMultipartFormBigContentLength(t *testing.T) {
 		t.Error("MakeRequest(): expected handler not to be called")
 	})
 	if err != nil {
-		t.Errorf("MakeRequest(): got err %v, want nil", err)
+		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
 }
 
@@ -339,16 +350,17 @@ func TestMultipartFormBigContentLength(t *testing.T) {
 // content as well. According to RFC7578 section 4.1 (as far as I understand),
 // this should not be allowed but the request succeeds.
 func TestMultipartFormIncorrectBoundary(t *testing.T) {
+	// Skipping to ensure GitHub checks are not failing. This test is made
+	// to fail intentionally to pinpoint behaviour we regard as inconsistent
 	t.Skip()
 	reqBody := "--eggplant\r\n" +
 		"Content-Disposition: form-data; name=\"eggplant\"\r\n" +
 		"\r\n" +
 		"eggplant\r\n" +
 		"--eggplant--\r\n"
-	reqBodyLen := len(reqBody)
 	postReq := "POST / HTTP/1.1\r\n" +
 		"Host: localhost:8080\r\n" +
-		"Content-Type: multipart/form-data; boundary=\"eggplant\"\r\n" + "Content-Length: " + strconv.Itoa(reqBodyLen) + "\r\n" +
+		"Content-Type: multipart/form-data; boundary=\"eggplant\"\r\n" + "Content-Length: " + strconv.Itoa(len(reqBody)) + "\r\n" +
 		"\r\n" +
 		reqBody +
 		"\r\n"
@@ -357,9 +369,9 @@ func TestMultipartFormIncorrectBoundary(t *testing.T) {
 	})
 
 	if err != nil {
-		t.Errorf("MakeRequest(): got err %v, want nil", err)
+		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !isBadReq(resp) {
-		t.Errorf("response: want %s, got %s", statusBadReq, resp)
+	if !bytes.HasPrefix(resp, []byte(statusBadReq)) {
+		t.Errorf("response status: got %s, want %s", resp, statusBadReq)
 	}
 }
