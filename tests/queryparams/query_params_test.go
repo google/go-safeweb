@@ -11,8 +11,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-package tests
+//
+// Package queryparams provides tests to inspect the behaviour of query
+// parameters parsing in HTTP requests
+package queryparams
 
 import (
 	"bytes"
@@ -24,8 +26,8 @@ import (
 	"testing"
 )
 
-const statusOKReq = "HTTP/1.1 200 OK\r\n"
-const statusBadReq = "HTTP/1.1 400 Bad Request\r\n"
+const status200OK = "HTTP/1.1 200 OK\r\n"
+const status400BadReq = "HTTP/1.1 400 Bad Request\r\n"
 
 // Ensures Query() only returns a map of size one and verifies whether sending a
 // request with two values for the same key returns a []string of length 2
@@ -35,19 +37,17 @@ func TestMultipleQueryParametersSameKey(t *testing.T) {
 		"Host: localhost:8080\r\n" +
 		"\r\n"
 	resp, err := requesttesting.MakeRequest(context.Background(), []byte(req), func(req *http.Request) {
-		want := url.Values{
-			"vegetable": []string{"potatO", "Tomato"},
-		}
+		want := url.Values{"vegetable": []string{"potatO", "Tomato"}}
 		got := req.URL.Query()
 		if diff := cmp.Diff(want, got); diff != "" {
-			t.Errorf("req.URL.Query() = %v, want %v, diff (-want +got):\n%s", got, want, diff)
+			t.Errorf("req.URL.Query(): got %v, want %v, diff (-want +got):\n%s", got, want, diff)
 		}
 	})
 	if err != nil {
 		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !bytes.HasPrefix(resp, []byte(statusOKReq)) {
-		t.Errorf("response status: got %s, want %s", resp, statusOKReq)
+	if !bytes.HasPrefix(resp, []byte(status200OK)) {
+		t.Errorf("response status: got %s, want %s", resp, status200OK)
 	}
 }
 
@@ -56,72 +56,86 @@ func TestQueryParametersSameKeyDifferentCasing(t *testing.T) {
 		"Host: localhost:8080\r\n" +
 		"\r\n")
 	resp, err := requesttesting.MakeRequest(context.Background(), req, func(req *http.Request) {
-		queryParams := req.URL.Query()
-
-		if len(queryParams) != 2 {
-			t.Errorf("len(queryParams): got %d, want %d", len(queryParams), 2)
+		want := url.Values{
+			"vegetable": []string{"potato"},
+			"Vegetable": []string{"tomato"},
 		}
-
-		if len(queryParams["vegetable"]) != 1 || len(queryParams["Vegetable"]) != 1 {
-			t.Errorf("Expected one value for query parameter vegetables and one for Vegetables, got %d and %d", len(queryParams["vegetable"]), len(queryParams["Vegetable"]))
+		got := req.URL.Query()
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("req.URL.Query(): got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 		}
 	})
 	if err != nil {
 		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !bytes.HasPrefix(resp, []byte(statusOKReq)) {
-		t.Errorf("response status: got %s, want %s", resp, statusOKReq)
+	if !bytes.HasPrefix(resp, []byte(status200OK)) {
+		t.Errorf("response status: got %s, want %s", resp, status200OK)
 	}
 }
 
 // TestQueryParametersValidUnicode ensures keys and values that contain non-ASCII characters are parsed correctly
 func TestQueryParametersValidUnicode(t *testing.T) {
-	const value = "ăȚâȘî"
 	req := []byte("GET /?vegetable=ăȚâȘî HTTP/1.1\r\n" +
 		"Host: localhost:8080\r\n" +
 		"\r\n")
 	resp, err := requesttesting.MakeRequest(context.Background(), req, func(req *http.Request) {
-		if valueReceived := req.URL.Query()["vegetable"][0]; valueReceived != value {
-			t.Errorf("queryParams values: got %s, want %s", valueReceived, value)
+		want := url.Values{"vegetable": []string{"ăȚâȘî"}}
+		got := req.URL.Query()
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("req.URL.Query(): got %v, want %v, diff (-want +got):\n%s", got, want, diff)
 		}
 	})
 	if err != nil {
 		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !bytes.HasPrefix(resp, []byte(statusOKReq)) {
-		t.Errorf("response status: got %s, want %s", resp, statusOKReq)
+	if !bytes.HasPrefix(resp, []byte(status200OK)) {
+		t.Errorf("response status: got %s, want %s", resp, status200OK)
 	}
 
-	key := "ăȚâȘî"
-	req = []byte("GET /?" + key + "=vegetable HTTP/1.1\r\n" +
+	req = []byte("GET /?ăȚâȘî=vegetable HTTP/1.1\r\n" +
 		"Host: localhost:8080\r\n" +
 		"\r\n")
 	resp, err = requesttesting.MakeRequest(context.Background(), req, func(req *http.Request) {
-		if listLen := len(req.URL.Query()[key]); listLen != 1 {
-			t.Errorf("len(queryParamsKey): got %d, want 1 value for %s", listLen, key)
+		want := url.Values{"ăȚâȘî": []string{"vegetable"}}
+		got := req.URL.Query()
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("req.URL.Query(): got %v, want %v, diff (-want +got):\n%s", got, want, diff)
 		}
 	})
 	if err != nil {
 		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !bytes.HasPrefix(resp, []byte(statusOKReq)) {
-		t.Errorf("response status: got %s, want %s", resp, statusOKReq)
+	if !bytes.HasPrefix(resp, []byte(status200OK)) {
+		t.Errorf("response status: got %s, want %s", resp, status200OK)
 	}
 }
 
-// Tests whether passing invalid Unicode will result  in a 400 Bad Request response
+// Tests whether passing invalid Unicode in both key and value will result in a 400 Bad Request response
 func TestQueryParametersInvalidUnicodes(t *testing.T) {
 	req := []byte("GET /?\x0F=tomato&Vegetable=potato HTTP/1.1\r\n" +
 		"Host: localhost:8080\r\n" +
 		"\r\n")
 	resp, err := requesttesting.MakeRequest(context.Background(), req, func(req *http.Request) {
-		t.Fatal("MakeRequest(): Expected handler not to be called for request.")
+		t.Fatal("expected handler not to be called for request.")
 	})
 	if err != nil {
 		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !bytes.HasPrefix(resp, []byte(statusBadReq)) {
-		t.Errorf("response status: got %s, want %s", resp, statusBadReq)
+	if !bytes.HasPrefix(resp, []byte(status400BadReq)) {
+		t.Errorf("response status: got %s, want %s", resp, status400BadReq)
+	}
+
+	req = []byte("GET /?vegetable=\x0F&Vegetable=potato HTTP/1.1\r\n" +
+		"Host: localhost:8080\r\n" +
+		"\r\n")
+	resp, err = requesttesting.MakeRequest(context.Background(), req, func(req *http.Request) {
+		t.Fatal("expected handler not to be called for request.")
+	})
+	if err != nil {
+		t.Fatalf("MakeRequest(): got err %v, want nil", err)
+	}
+	if !bytes.HasPrefix(resp, []byte(status400BadReq)) {
+		t.Errorf("response status: got %s, want %s", resp, status400BadReq)
 	}
 
 }
@@ -141,8 +155,8 @@ func TestQueryParametersBreakUrlEncoding(t *testing.T) {
 	if err != nil {
 		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !bytes.HasPrefix(resp, []byte(statusOKReq)) {
-		t.Errorf("response status: got %s, want %s", resp, statusOKReq)
+	if !bytes.HasPrefix(resp, []byte(status200OK)) {
+		t.Errorf("response status: got %s, want %s", resp, status200OK)
 	}
 
 	brokenValueReq := []byte("GET /?vegetable=tomato% HTTP/1.1\r\n" +
@@ -157,8 +171,8 @@ func TestQueryParametersBreakUrlEncoding(t *testing.T) {
 		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
 
-	if !bytes.HasPrefix(resp, []byte(statusOKReq)) {
-		t.Errorf("response status: got %s, want %s", resp, statusOKReq)
+	if !bytes.HasPrefix(resp, []byte(status200OK)) {
+		t.Errorf("response status: got %s, want %s", resp, status200OK)
 	}
 
 }
@@ -166,7 +180,7 @@ func TestQueryParametersBreakUrlEncoding(t *testing.T) {
 // Test whether both + and %20 are interpreted as space. Having a space in the
 // actual request will not be escaped and will result in a 400
 func TestQueryParametersSpaceBehaviour(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		name string
 		req  []byte
 		want string
@@ -197,8 +211,8 @@ func TestQueryParametersSpaceBehaviour(t *testing.T) {
 			if err != nil {
 				t.Fatalf("MakeRequest(): got err %v, want nil", err)
 			}
-			if !bytes.HasPrefix(resp, []byte(statusOKReq)) {
-				t.Errorf("response status: got %s, want %s", resp, statusOKReq)
+			if !bytes.HasPrefix(resp, []byte(status200OK)) {
+				t.Errorf("response status: got %s, want %s", resp, status200OK)
 			}
 		})
 	}
@@ -207,12 +221,12 @@ func TestQueryParametersSpaceBehaviour(t *testing.T) {
 		"Host: localhost:8080\r\n" +
 		"\r\n")
 	resp, err := requesttesting.MakeRequest(context.Background(), req, func(req *http.Request) {
-		t.Fatal("Expected handler not to be called with request containing invalid Unicode.")
+		t.Fatal("expected handler not to be called with request containing invalid Unicode.")
 	})
 	if err != nil {
 		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !bytes.HasPrefix(resp, []byte(statusBadReq)) {
-		t.Errorf("response status: got %s, want %s", resp, statusBadReq)
+	if !bytes.HasPrefix(resp, []byte(status400BadReq)) {
+		t.Errorf("response status: got %s, want %s", resp, status400BadReq)
 	}
 }

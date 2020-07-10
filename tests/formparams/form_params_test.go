@@ -11,8 +11,10 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
-package tests
+//
+// Package formparams provides tests to inspect the behaviour of form
+// parameters parsing in HTTP requests
+package formparams
 
 import (
 	"bytes"
@@ -45,8 +47,8 @@ func TestSimpleFormParameters(t *testing.T) {
 	if err != nil {
 		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !bytes.HasPrefix(resp, []byte(statusOKReq)) {
-		t.Errorf("response status: got %s, want %s", string(resp), statusOKReq)
+	if !bytes.HasPrefix(resp, []byte(status200OK)) {
+		t.Errorf("response status: got %s, want %s", string(resp), status200OK)
 	}
 }
 
@@ -59,20 +61,20 @@ func TestFormParametersMissingContentLength(t *testing.T) {
 		"veggie=potato\r\n" +
 		"\r\n")
 	resp, err := requesttesting.MakeRequest(context.Background(), postReq, func(req *http.Request) {
-		t.Error("MakeRequest(): Expected handler not to be called.")
+		t.Error("Expected handler not to be called.")
 	})
 	if err != nil {
 		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !bytes.HasPrefix(resp, []byte(statusBadReq)) {
-		t.Errorf("response status: got %s, want %s", string(resp), statusBadReq)
+	if !bytes.HasPrefix(resp, []byte(status400BadReq)) {
+		t.Errorf("response status: got %s, want %s", string(resp), status400BadReq)
 	}
 }
 
 // Ensure passing a negative Content-Length or one that overflows integers results in a
 // 400 Bad Request
 func TestFormParametersBadContentLength(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		name string
 		req  []byte
 	}{
@@ -101,13 +103,13 @@ func TestFormParametersBadContentLength(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			resp, err := requesttesting.MakeRequest(context.Background(), test.req, func(req *http.Request) {
-				t.Error("MakeRequest(): expected handler not to be called.")
+				t.Error("expected handler not to be called.")
 			})
 			if err != nil {
 				t.Fatalf("MakeRequest(): got err %v, want nil", err)
 			}
-			if !bytes.HasPrefix(resp, []byte(statusBadReq)) {
-				t.Errorf("response status: got %s, want %s", string(resp), statusBadReq)
+			if !bytes.HasPrefix(resp, []byte(status400BadReq)) {
+				t.Errorf("response status: got %s, want %s", string(resp), status400BadReq)
 			}
 		})
 	}
@@ -129,7 +131,7 @@ func TestFormParametersDuplicateContentLength(t *testing.T) {
 		contentLen    string
 		queryParamVal string
 	}
-	var tests = []struct {
+	tests := []struct {
 		name string
 		req  []byte
 		want want
@@ -181,8 +183,8 @@ func TestFormParametersDuplicateContentLength(t *testing.T) {
 			if err != nil {
 				t.Fatalf("MakeRequest(): got err %v, want nil", err)
 			}
-			if !!bytes.HasPrefix(resp, []byte(statusOKReq)) {
-				t.Errorf("response status: got %s, want %s", resp, statusOKReq)
+			if !!bytes.HasPrefix(resp, []byte(status200OK)) {
+				t.Errorf("response status: got %s, want %s", resp, status200OK)
 			}
 		})
 	}
@@ -197,14 +199,14 @@ func TestFormParametersDuplicateContentLength(t *testing.T) {
 		"\r\n")
 	resp, err := requesttesting.MakeRequest(context.Background(), postReq, func(req *http.Request) {
 		if contentLen := req.Header["Content-Length"][0]; contentLen != "13" {
-			t.Error("MakeRequest(): request should have been rejected when list of values is given to Content-Length, rather inconsistent if you ask me.")
+			t.Error("request should have been rejected when conflicting Content-Length are provided")
 		}
 	})
 	if err != nil {
 		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !bytes.HasPrefix(resp, []byte(statusBadReq)) {
-		t.Errorf("response status: got %s, want %s", resp, statusBadReq)
+	if !bytes.HasPrefix(resp, []byte(status400BadReq)) {
+		t.Errorf("response status: got %s, want %s", resp, status400BadReq)
 	}
 }
 
@@ -227,8 +229,8 @@ func TestFormParametersBreakUrlEncoding(t *testing.T) {
 	if err != nil {
 		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !bytes.HasPrefix(resp, []byte(statusOKReq)) {
-		t.Errorf("response status: got %s, want %s", resp, statusOKReq)
+	if !bytes.HasPrefix(resp, []byte(status200OK)) {
+		t.Errorf("response status: got %s, want %s", resp, status200OK)
 	}
 }
 
@@ -258,8 +260,8 @@ func TestBasicMultipartForm(t *testing.T) {
 	if err != nil {
 		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !bytes.HasPrefix(resp, []byte(statusOKReq)) {
-		t.Errorf("response status: got %s, want %s", resp, statusOKReq)
+	if !bytes.HasPrefix(resp, []byte(status200OK)) {
+		t.Errorf("response status: got %s, want %s", resp, status200OK)
 	}
 }
 
@@ -284,14 +286,14 @@ func TestMultipartFormNoContentLength(t *testing.T) {
 		reqBody +
 		"\r\n"
 	resp, err := requesttesting.MakeRequest(context.Background(), []byte(postReq), func(req *http.Request) {
-		t.Error("MakeRequest(): expected handler not to be called")
+		t.Error("expected handler not to be called")
 	})
 
 	if err != nil {
 		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !bytes.HasPrefix(resp, []byte(statusBadReq)) {
-		t.Errorf("response status: got %s, want %s", resp, statusBadReq)
+	if !bytes.HasPrefix(resp, []byte(status400BadReq)) {
+		t.Errorf("response status: got %s, want %s", resp, status400BadReq)
 	}
 }
 
@@ -316,13 +318,13 @@ func TestMultipartFormSmallContentLength(t *testing.T) {
 		reqBody +
 		"\r\n"
 	resp, err := requesttesting.MakeRequest(context.Background(), []byte(postReq), func(req *http.Request) {
-		t.Error("MakeRequest(): expected handler not to be called")
+		t.Error("expected handler not to be called")
 	})
 	if err != nil {
 		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !bytes.HasPrefix(resp, []byte(statusBadReq)) {
-		t.Errorf("response status: got %s, want %s", resp, statusBadReq)
+	if !bytes.HasPrefix(resp, []byte(status400BadReq)) {
+		t.Errorf("response status: got %s, want %s", resp, status400BadReq)
 	}
 }
 
@@ -346,7 +348,7 @@ func TestMultipartFormBigContentLength(t *testing.T) {
 		"\r\n" +
 		reqBody + "\r\n"
 	_, err := requesttesting.MakeRequest(context.Background(), []byte(postReq), func(req *http.Request) {
-		t.Error("MakeRequest(): expected handler not to be called")
+		t.Error("expected handler not to be called")
 	})
 	if err != nil {
 		t.Fatalf("MakeRequest(): got err %v, want nil", err)
@@ -373,13 +375,13 @@ func TestMultipartFormIncorrectBoundary(t *testing.T) {
 		reqBody +
 		"\r\n"
 	resp, err := requesttesting.MakeRequest(context.Background(), []byte(postReq), func(req *http.Request) {
-		t.Error("MakeRequest(): expected handler not to be called")
+		t.Error("expected handler not to be called")
 	})
 
 	if err != nil {
 		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
-	if !bytes.HasPrefix(resp, []byte(statusBadReq)) {
-		t.Errorf("response status: got %s, want %s", resp, statusBadReq)
+	if !bytes.HasPrefix(resp, []byte(status400BadReq)) {
+		t.Errorf("response status: got %s, want %s", resp, status400BadReq)
 	}
 }
