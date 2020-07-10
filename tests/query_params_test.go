@@ -31,11 +31,9 @@ const statusBadReq = "HTTP/1.1 400 Bad Request\r\n"
 // request with two values for the same key returns a []string of length 2
 // containing the correct values
 func TestMultipleQueryParametersSameKey(t *testing.T) {
-	const (
-		req = "GET /?vegetable=potatO&vegetable=Tomato HTTP/1.1\r\n" +
-			"Host: localhost:8080\r\n" +
-			"\r\n"
-	)
+	const req = "GET /?vegetable=potatO&vegetable=Tomato HTTP/1.1\r\n" +
+		"Host: localhost:8080\r\n" +
+		"\r\n"
 	resp, err := requesttesting.MakeRequest(context.Background(), []byte(req), func(req *http.Request) {
 		want := url.Values{
 			"vegetable": []string{"potatO", "Tomato"},
