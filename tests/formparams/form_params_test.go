@@ -179,7 +179,7 @@ func TestFormParametersDuplicateContentLength(t *testing.T) {
 				if contentLen := req.Header["Content-Length"][0]; contentLen != test.want.contentLen {
 					t.Errorf(`req.Header["Content-Length"]: got %v, want %v`, contentLen, test.want.contentLen)
 				}
-				if val := req.FormValue("veggie"); val != test.want.queryParamVal {
+				if val := req.Form["veggie"][0]; val != test.want.queryParamVal {
 					t.Errorf("req.FormValue: want potato, got %s", val)
 				}
 			})
