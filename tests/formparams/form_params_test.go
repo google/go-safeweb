@@ -26,6 +26,9 @@ import (
 	"testing"
 )
 
+const status200OK = "HTTP/1.1 200 OK\r\n"
+const status400BadReq = "HTTP/1.1 400 Bad Request\r\n"
+
 func TestSimpleFormParameters(t *testing.T) {
 	reqBody := "vegetable=potato&fruit=apple"
 	postReq := []byte("POST / HTTP/1.1\r\n" +
