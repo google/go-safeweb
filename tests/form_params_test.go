@@ -55,7 +55,8 @@ func TestSimpleFormParameters(t *testing.T) {
 func TestFormParametersMissingContentLength(t *testing.T) {
 	postReq := []byte("POST / HTTP/1.1\r\n" +
 		"Host: localhost:8080\r\n" +
-		"Content-Type: application/x-www-form-urlencoded; charset=ASCII\r\n" + "veggie=potato\r\n" +
+		"Content-Type: application/x-www-form-urlencoded; charset=ASCII\r\n" +
+		"veggie=potato\r\n" +
 		"\r\n")
 	resp, err := requesttesting.MakeRequest(context.Background(), postReq, func(req *http.Request) {
 		t.Error("MakeRequest(): Expected handler not to be called.")
