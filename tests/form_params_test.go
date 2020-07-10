@@ -79,7 +79,8 @@ func TestFormParametersBadContentLength(t *testing.T) {
 		{
 			name: "Negative Content-Length",
 			req: []byte("POST / HTTP/1.1\r\n" +
-				"Host: localhost:8080\r\n" + "Content-Type: application/x-www-form-urlencoded; charset=ASCII\r\n" +
+				"Host: localhost:8080\r\n" +
+				"Content-Type: application/x-www-form-urlencoded; charset=ASCII\r\n" +
 				"Content-Length: -1\r\n" +
 				"\r\n" +
 				"veggie=potato\r\n" +
@@ -188,7 +189,8 @@ func TestFormParametersDuplicateContentLength(t *testing.T) {
 
 	postReq := []byte("POST / HTTP/1.1\r\n" +
 		"Host: localhost:8080\r\n" +
-		"Content-Type: application/x-www-form-urlencoded; charset=ASCII\r\n" + "Content-Length: 13\r\n" +
+		"Content-Type: application/x-www-form-urlencoded; charset=ASCII\r\n" +
+		"Content-Length: 13\r\n" +
 		"Content-Length: 12\r\n" +
 		"\r\n" +
 		"veggie=potato\r\n" +
@@ -236,8 +238,10 @@ func TestBasicMultipartForm(t *testing.T) {
 		"\r\n" +
 		"bar\r\n" +
 		"--123--\r\n"
-	postReq := "POST / HTTP/1.1\r\n" + "Host: localhost:8080\r\n" +
-		"Content-Type: multipart/form-data; boundary=\"123\"\r\n" + "Content-Length: " + strconv.Itoa(len(reqBody)) + "\r\n" +
+	postReq := "POST / HTTP/1.1\r\n" +
+		"Host: localhost:8080\r\n" +
+		"Content-Type: multipart/form-data; boundary=\"123\"\r\n" +
+		"Content-Length: " + strconv.Itoa(len(reqBody)) + "\r\n" +
 		"\r\n" +
 		reqBody + "\r\n" +
 		"\r\n"
@@ -276,7 +280,8 @@ func TestMultipartFormNoContentLength(t *testing.T) {
 		"--123--\r\n"
 	postReq := "POST / HTTP/1.1\r\n" +
 		"Host: localhost:8080\r\n" +
-		"Content-Type: multipart/form-data; boundary=\"123\"\r\n" + "\r\n" +
+		"Content-Type: multipart/form-data; boundary=\"123\"\r\n" +
+		"\r\n" +
 		reqBody +
 		"\r\n"
 	resp, err := requesttesting.MakeRequest(context.Background(), []byte(postReq), func(req *http.Request) {
@@ -306,7 +311,8 @@ func TestMultipartFormSmallContentLength(t *testing.T) {
 		"--123--\r\n"
 	postReq := "POST / HTTP/1.1\r\n" +
 		"Host: localhost:8080\r\n" +
-		"Content-Type: multipart/form-data; boundary=\"123\"\r\n" + "Content-Length: 10\r\n" +
+		"Content-Type: multipart/form-data; boundary=\"123\"\r\n" +
+		"Content-Length: 10\r\n" +
 		"\r\n" +
 		reqBody +
 		"\r\n"
@@ -336,7 +342,8 @@ func TestMultipartFormBigContentLength(t *testing.T) {
 		"--123--\r\n"
 	postReq := "POST / HTTP/1.1\r\n" +
 		"Host: localhost:8080\r\n" +
-		"Content-Type: multipart/form-data; boundary=\"123\"\r\n" + "Content-Length: 10000000000000000000\r\n" +
+		"Content-Type: multipart/form-data; boundary=\"123\"\r\n" +
+		"Content-Length: 10000000000000000000\r\n" +
 		"\r\n" +
 		reqBody + "\r\n"
 	_, err := requesttesting.MakeRequest(context.Background(), []byte(postReq), func(req *http.Request) {
@@ -361,7 +368,8 @@ func TestMultipartFormIncorrectBoundary(t *testing.T) {
 		"--eggplant--\r\n"
 	postReq := "POST / HTTP/1.1\r\n" +
 		"Host: localhost:8080\r\n" +
-		"Content-Type: multipart/form-data; boundary=\"eggplant\"\r\n" + "Content-Length: " + strconv.Itoa(len(reqBody)) + "\r\n" +
+		"Content-Type: multipart/form-data; boundary=\"eggplant\"\r\n" +
+		"Content-Length: " + strconv.Itoa(len(reqBody)) + "\r\n" +
 		"\r\n" +
 		reqBody +
 		"\r\n"

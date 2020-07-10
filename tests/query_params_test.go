@@ -94,7 +94,9 @@ func TestQueryParametersValidUnicode(t *testing.T) {
 	}
 
 	key := "ăȚâȘî"
-	req = []byte("GET /?" + key + "=vegetable HTTP/1.1\r\n" + "Host: localhost:8080\r\n" + "\r\n")
+	req = []byte("GET /?" + key + "=vegetable HTTP/1.1\r\n" +
+		"Host: localhost:8080\r\n" +
+		"\r\n")
 	resp, err = requesttesting.MakeRequest(context.Background(), req, func(req *http.Request) {
 		if listLen := len(req.URL.Query()[key]); listLen != 1 {
 			t.Errorf("len(queryParamsKey): got %d, want 1 value for %s", listLen, key)
