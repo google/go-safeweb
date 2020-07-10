@@ -246,7 +246,6 @@ func TestBasicMultipartForm(t *testing.T) {
 		reqBody + "\r\n" +
 		"\r\n"
 	resp, err := requesttesting.MakeRequest(context.Background(), []byte(postReq), func(req *http.Request) {
-
 		e := req.ParseMultipartForm(1024)
 		if e != nil {
 			t.Fatalf("ParseMultipartForm: want nil, got %v", e)

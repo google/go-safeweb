@@ -49,7 +49,6 @@ func TestMultipleQueryParametersSameKey(t *testing.T) {
 	if !bytes.HasPrefix(resp, []byte(statusOKReq)) {
 		t.Errorf("response status: got %s, want %s", resp, statusOKReq)
 	}
-
 }
 
 func TestQueryParametersSameKeyDifferentCasing(t *testing.T) {
@@ -108,7 +107,6 @@ func TestQueryParametersValidUnicode(t *testing.T) {
 	if !bytes.HasPrefix(resp, []byte(statusOKReq)) {
 		t.Errorf("response status: got %s, want %s", resp, statusOKReq)
 	}
-
 }
 
 // Tests whether passing invalid Unicode will result  in a 400 Bad Request response
