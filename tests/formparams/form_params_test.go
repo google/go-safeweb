@@ -388,3 +388,6 @@ func TestMultipartFormIncorrectBoundary(t *testing.T) {
 		t.Errorf("response status: got %s, want %s", resp, status400BadReq)
 	}
 }
+
+// TODO(marmihali@): Since req.Form["x"] and req.FormValue("x") return different
+// types, this aspect should be investigated more in future tests
