@@ -22,7 +22,6 @@ func (d *dispatcher) Write(resp safehttp.Response) error {
 	default:
 		panic("not a safe response type")
 	}
-	return nil
 }
 
 func (d *dispatcher) ExecuteTemplate(t safehttp.Template, data interface{}) error {
@@ -32,7 +31,6 @@ func (d *dispatcher) ExecuteTemplate(t safehttp.Template, data interface{}) erro
 	default:
 		panic("not a safe response type")
 	}
-	return nil
 }
 
 func TestHandleRequestWrite(t *testing.T) {
