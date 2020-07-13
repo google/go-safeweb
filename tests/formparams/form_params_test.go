@@ -64,7 +64,7 @@ func TestFormParametersMissingContentLength(t *testing.T) {
 		"veggie=potato\r\n" +
 		"\r\n")
 	resp, err := requesttesting.MakeRequest(context.Background(), postReq, func(req *http.Request) {
-		t.Error("Expected handler not to be called.")
+		t.Error("expected handler not to be called.")
 	})
 	if err != nil {
 		t.Fatalf("MakeRequest(): got err %v, want nil", err)
@@ -118,17 +118,14 @@ func TestFormParametersBadContentLength(t *testing.T) {
 	}
 }
 
-// Tests behaviour when multiple Content-Length values are passed. Go's
-// behaviour is the following:
-// a) if we pass two Content-Length headers containing the same value, the // request
-// is deemed valid
-// b) if we pass two Content-Length headers containing different values, the
-// server will respond with a 400 Bad Request
-// c) if we pass one Content-Length header containing a list of equal values,
-// the server will respond with a 400 Bad Request
+// Tests behaviour when multiple Content-Length values are passed using three
+// testcases:
+// a) passing two Content-Length headers containing the same value
+// b) passing two Content-Length headers containing different values
+// c) passing one Content-Length header containing a list of equal values
 // For a) and c), RFC 7320, Section 3.3.2 says that the server can either accept
-// the request and use the duplicated value or reject it. However, a more
-// consistent behaviour would be to handle a) and c) similarly.
+// the request and use the duplicated value or reject it and for b) it should be
+// rejected. It is expected that Go will handle a) and c) in a similar manner
 func TestFormParametersDuplicateContentLength(t *testing.T) {
 	type want struct {
 		contentLen    string
@@ -171,11 +168,17 @@ func TestFormParametersDuplicateContentLength(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		// Skipping to ensure GitHub checks are not failing. This test is made
-		// to fail intentionally to pinpoint behaviour we regard as inconsistent
+		// Skipping to ensure GitHub checks are not failing. Go will deem the
+		// request with duplicate Content-Length headers as valid and the one
+		// containing a list of identical values as invalid
 		t.Skip()
 		t.Run(test.name, func(t *testing.T) {
 			resp, err := requesttesting.MakeRequest(context.Background(), test.req, func(req *http.Request) {
+				want := []string{"13", "13,"}
+				got := req.Header["Content-Length"]
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("req.URL.Query(): got %v, want %v, diff (-want +got): \n%s", got, want, diff)
+				}
 				if contentLen := req.Header["Content-Length"][0]; contentLen != test.want.contentLen {
 					t.Errorf(`req.Header["Content-Length"]: got %v, want %v`, contentLen, test.want.contentLen)
 				}
@@ -201,9 +204,7 @@ func TestFormParametersDuplicateContentLength(t *testing.T) {
 		"veggie=potato\r\n" +
 		"\r\n")
 	resp, err := requesttesting.MakeRequest(context.Background(), postReq, func(req *http.Request) {
-		if contentLen := req.Header["Content-Length"][0]; contentLen != "13" {
-			t.Error("request should have been rejected when conflicting Content-Length are provided")
-		}
+		t.Error("expected handler not to be called")
 	})
 	if err != nil {
 		t.Fatalf("MakeRequest(): got err %v, want nil", err)
@@ -215,18 +216,21 @@ func TestFormParametersDuplicateContentLength(t *testing.T) {
 
 // Test whether form parameters with Content-Type:
 // application/x-www-form-urlencoded that break percent-encoding will be
-// ignored
+// ignored and following valid query parameters will be discarded
 func TestFormParametersBreakUrlEncoding(t *testing.T) {
 	postReq := []byte("POST / HTTP/1.1\r\n" +
 		"Host: localhost:8080\r\n" +
 		"Content-Type: application/x-www-form-urlencoded\r\n" +
-		"Content-Length: 10\r\n" +
+		"Content-Length: 22\r\n" +
 		"\r\n" +
-		"veggie=%sc\r\n" +
+		"veggie=%sc&fruit=apple\r\n" +
 		"\r\n")
 	resp, err := requesttesting.MakeRequest(context.Background(), postReq, func(req *http.Request) {
-		if val := req.Form["veggie"]; len(req.Form["veggie"]) != 0 {
-			t.Errorf("req.Form[\"veggie\"]: got %s, want %s.", val, "")
+		if values := req.Form["veggie"]; len(values) != 0 {
+			t.Errorf("req.Form[\"veggie\"]: got %v, want [].", values)
+		}
+		if values := req.Form["fruit"]; len(values) != 0 {
+			t.Errorf("req.Form[\"fruit\"]: got %v, want [].", values)
 		}
 	})
 	if err != nil {
@@ -248,12 +252,12 @@ func TestBasicMultipartForm(t *testing.T) {
 		"Content-Type: multipart/form-data; boundary=\"123\"\r\n" +
 		"Content-Length: " + strconv.Itoa(len(reqBody)) + "\r\n" +
 		"\r\n" +
-		reqBody + "\r\n" +
+		// CRLF is already in reqBody
+		reqBody +
 		"\r\n"
 	resp, err := requesttesting.MakeRequest(context.Background(), []byte(postReq), func(req *http.Request) {
-		e := req.ParseMultipartForm(1024)
-		if e != nil {
-			t.Fatalf("ParseMultipartForm: want nil, got %v", e)
+		if err := req.ParseMultipartForm(1024); err != nil {
+			t.Fatalf("ParseMultipartForm: want nil, got %v", err)
 		}
 
 		if formVal := req.Form["foo"][0]; formVal != "bar" {
@@ -268,14 +272,13 @@ func TestBasicMultipartForm(t *testing.T) {
 	}
 }
 
-// Test behaviour of multipart/form-data request passed with no Content-Length.
-// In this case, the body will be ignored and ParseMultiPartForm()å parsing will fail
-// with NextPart:EOF.  This is rather inconsistent with
-// application/x-www-form-urlencoded where a  missing Content-Length will
-// return 400 rather than 200.
+// Test whether a multipart/form-data request passed with no Content-Length
+// will be rejected as a bad request by the server and return a 400
 func TestMultipartFormNoContentLength(t *testing.T) {
-	// Skipping to ensure GitHub checks are not failing. This test is made
-	// to fail intentionally to pinpoint behaviour we regard as inconsistent
+	// Skipping to ensure GitHub checks are not failing. The testcase shows the body will be ignored and ParseMultiPartForm will fail
+	// with NextPart:EOF.  This is rather inconsistent with
+	// application/x-www-form-urlencoded where a  missing Content-Length will
+	// return 400 rather than 200.
 	t.Skip()
 	reqBody := "--123\r\n" +
 		"Content-Disposition: form-data; name=\"foo\"\r\n" +
@@ -300,13 +303,12 @@ func TestMultipartFormNoContentLength(t *testing.T) {
 	}
 }
 
-// Test behaviour of multipart/form-data request passed with smaller
-// Content-Length than the actual body. It will trigger a parsing error
-// ParseMultipartForm: NextPart: EOF, but a
-// more consistent behaviour should be to return a 400 rather than 200
+// Test whether passing a multipart/form-data request results in a 400 Bad
+// Request server response.
 func TestMultipartFormSmallContentLength(t *testing.T) {
-	// Skipping to ensure GitHub checks are not failing. This test is made
-	// to fail intentionally to pinpoint behaviour we regard as inconsistent
+	// Skipping to ensure GitHub checks are not failing. The test will reach the
+	// handler and  result in the error ParseMultipartForm: NextPart: EOF rather
+	// than be rejected by the server.
 	t.Skip()
 	reqBody := "--123\r\n" +
 		"Content-Disposition: form-data; name=\"foo\"\r\n" +
@@ -318,6 +320,7 @@ func TestMultipartFormSmallContentLength(t *testing.T) {
 		"Content-Type: multipart/form-data; boundary=\"123\"\r\n" +
 		"Content-Length: 10\r\n" +
 		"\r\n" +
+		// reqBody ends with CRLF
 		reqBody +
 		"\r\n"
 	resp, err := requesttesting.MakeRequest(context.Background(), []byte(postReq), func(req *http.Request) {
@@ -331,13 +334,14 @@ func TestMultipartFormSmallContentLength(t *testing.T) {
 	}
 }
 
-// Test behaviour of multipart/form-data request passed with bigger
-// Content-Length than the actual body. It will parse successfully and then
-// block waiting for the rest of the body. Calling the handler before the entire
-// body has been received might not be the best choice.
+// Test whether passing a multipart/form-data request with bigger
+// Content-Length results in the server blocking, waiting for the entire request
+// to be sent.
 func TestMultipartFormBigContentLength(t *testing.T) {
-	// Skipping to ensure GitHub checks are not failing. This test is made
-	// to fail intentionally to pinpoint behaviour we regard as inconsistent
+	// Skipping to ensure GitHub checks are not failing. The handler will be
+	// actually called as soon as the first part of the body is received, will
+	// return the parsed results and only then block waiting for the rest of the
+	// body. This can lead to a Denial of Service attack.
 	t.Skip()
 	reqBody := "--123\r\n" +
 		"Content-Disposition: form-data; name=\"foo\"\r\n" +
@@ -349,7 +353,8 @@ func TestMultipartFormBigContentLength(t *testing.T) {
 		"Content-Type: multipart/form-data; boundary=\"123\"\r\n" +
 		"Content-Length: 10000000000000000000\r\n" +
 		"\r\n" +
-		reqBody + "\r\n"
+		reqBody +
+		"\r\n"
 	_, err := requesttesting.MakeRequest(context.Background(), []byte(postReq), func(req *http.Request) {
 		t.Error("expected handler not to be called")
 	})
@@ -359,11 +364,11 @@ func TestMultipartFormBigContentLength(t *testing.T) {
 }
 
 // Test behaviour of multipart/form-data when the boundary appears in the
-// content as well. According to RFC7578 section 4.1 (as far as I understand),
-// this should not be allowed but the request succeeds.
+// content as well. According to RFC7578 section 4.1, the request should be
+// rejected with a 400 Bad Request.
 func TestMultipartFormIncorrectBoundary(t *testing.T) {
-	// Skipping to ensure GitHub checks are not failing. This test is made
-	// to fail intentionally to pinpoint behaviour we regard as inconsistent
+	// Skipping to ensure GitHub checks are not failing. The request will
+	// actually be considered valid by the server and parsed successfully.
 	t.Skip()
 	reqBody := "--eggplant\r\n" +
 		"Content-Disposition: form-data; name=\"eggplant\"\r\n" +
