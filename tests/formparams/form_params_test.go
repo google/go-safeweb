@@ -64,7 +64,7 @@ func TestFormParametersMissingContentLength(t *testing.T) {
 		"veggie=potato\r\n" +
 		"\r\n")
 	resp, err := requesttesting.MakeRequest(context.Background(), postReq, func(req *http.Request) {
-
+		t.Fatal("expected handler not to be called when the request is missing the Content-Length header")
 	})
 	if err != nil {
 		t.Fatalf("MakeRequest(): got err %v, want nil", err)
@@ -106,7 +106,7 @@ func TestFormParametersBadContentLength(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			resp, err := requesttesting.MakeRequest(context.Background(), test.req, func(req *http.Request) {
-				t.Error("expected handler not to be called.")
+				t.Error("expected handler not to be called with invalid Content-Length headers")
 			})
 			if err != nil {
 				t.Fatalf("MakeRequest(): got err %v, want nil", err)
@@ -188,7 +188,7 @@ func TestFormParametersInvalidDuplicateContentLength(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			resp, err := requesttesting.MakeRequest(context.Background(), test.req, func(req *http.Request) {
-				t.Error("expected handler not to be called.")
+				t.Error("expected handler not to be called")
 			})
 			if err != nil {
 				t.Fatalf("MakeRequest(): got %v, want nil", err)
@@ -212,11 +212,16 @@ func TestFormParametersBreakUrlEncoding(t *testing.T) {
 		"veggie=%sc&fruit=apple\r\n" +
 		"\r\n")
 	resp, err := requesttesting.MakeRequest(context.Background(), postReq, func(req *http.Request) {
-		if values := req.Form["veggie"]; len(values) != 0 {
-			t.Errorf("req.Form[\"veggie\"]: got %v, want [].", values)
+		req.ParseForm()
+		var want []string
+		got := req.Form["veggie"]
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf(`URL.Query()["veggie"]:, got %v, want %v`, req.Form["vegetable"], nil)
 		}
-		if values := req.Form["fruit"]; len(values) != 0 {
-			t.Errorf("req.Form[\"fruit\"]: got %v, want [].", values)
+		want = []string{"apple"}
+		got = req.Form["fruit"]
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf(`URL.Query()["fruit"]:, got %v, want %v`, req.Form["fruit"], want)
 		}
 	})
 	if err != nil {
