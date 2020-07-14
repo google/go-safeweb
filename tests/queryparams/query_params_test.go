@@ -168,10 +168,15 @@ func TestQueryParametersBreakUrlEncoding(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			resp, err := requesttesting.MakeRequest(context.Background(), test.req, func(req *http.Request) {
-				var want []string = nil
+				var want []string
 				got := req.URL.Query()["vegetable"]
 				if diff := cmp.Diff(want, got); diff != "" {
-					t.Errorf("URL.Query():, got %v, want %v", req.URL.Query()["vegetable"], nil)
+					t.Errorf(`URL.Query()["vegetable"]:, got %v, want %v`, req.URL.Query()["vegetable"], want)
+				}
+				want = []string{"potato"}
+				got = req.URL.Query()["Vegetable"]
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf(`URL.Query()["Vegetable"]:, got %v, want %v`, req.URL.Query()["vegetable"], want)
 				}
 			})
 			if err != nil {
