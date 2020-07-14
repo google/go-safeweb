@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-//
+
 // Package formparams provides tests to inspect the behaviour of form
 // parameters parsing in HTTP requests
 package formparams
@@ -64,7 +64,7 @@ func TestFormParametersMissingContentLength(t *testing.T) {
 		"veggie=potato\r\n" +
 		"\r\n")
 	resp, err := requesttesting.MakeRequest(context.Background(), postReq, func(req *http.Request) {
-		t.Error("expected handler not to be called.")
+
 	})
 	if err != nil {
 		t.Fatalf("MakeRequest(): got err %v, want nil", err)
@@ -125,16 +125,42 @@ func TestFormParametersBadContentLength(t *testing.T) {
 // c) passing one Content-Length header containing a list of equal values
 // For a) and c), RFC 7320, Section 3.3.2 says that the server can either accept
 // the request and use the duplicated value or reject it and for b) it should be
-// rejected. It is expected that Go will handle a) and c) in a similar manner
-func TestFormParametersDuplicateContentLength(t *testing.T) {
-	type want struct {
-		contentLen    string
-		queryParamVal string
+// rejected. Go will handle a) as a valid request and c) as an invalid requet, as the following two tests demonstrate
+
+func TestFormParametersValidDuplicateContentLength(t *testing.T) {
+	postReq := []byte("POST / HTTP/1.1\r\n" +
+		"Host: localhost:8080\r\n" +
+		"Content-Type: application/x-www-form-urlencoded; charset=ASCII\r\n" +
+		"Content-Length: 13\r\n" +
+		"Content-Length: 13\r\n" +
+		"\r\n" +
+		"veggie=potato&veggie=a\r\n" +
+		"\r\n")
+	resp, err := requesttesting.MakeRequest(context.Background(), postReq, func(req *http.Request) {
+		want := []string{"13"}
+		got := req.Header["Content-Length"]
+		if diff := cmp.Diff(want, got); diff != "" {
+			t.Errorf("req.Header: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
+		}
+		req.ParseForm()
+		if want := []string{"potato"}; !cmp.Equal(want, req.Form["veggie"]) {
+			t.Errorf(`Form["veggie"]: got %v, want %v`, req.Form["veggie"], want)
+		}
+
+	})
+	if err != nil {
+		t.Fatalf("MakeRequest(): got err %v, want nil", err)
 	}
+	if !bytes.HasPrefix(resp, []byte(status200OK)) {
+		t.Errorf("response status: got %s, want %s", resp, status200OK)
+	}
+
+}
+
+func TestFormParametersInvalidDuplicateContentLength(t *testing.T) {
 	tests := []struct {
 		name string
 		req  []byte
-		want want
 	}{
 		{
 			name: "Two Content-Length Headers",
@@ -142,14 +168,10 @@ func TestFormParametersDuplicateContentLength(t *testing.T) {
 				"Host: localhost:8080\r\n" +
 				"Content-Type: application/x-www-form-urlencoded; charset=utf-8\r\n" +
 				"Content-Length: 13\r\n" +
-				"Content-Length: 13\r\n" +
+				"Content-Length: 12\r\n" +
 				"\r\n" +
 				"veggie=potato\r\n" +
 				"\r\n"),
-			want: want{
-				contentLen:    "13",
-				queryParamVal: "potato",
-			},
 		},
 		{
 			name: "List of same value in Content-Length Header",
@@ -160,57 +182,21 @@ func TestFormParametersDuplicateContentLength(t *testing.T) {
 				"\r\n" +
 				"veggie=potato\r\n" +
 				"\r\n"),
-			want: want{
-				contentLen:    "13",
-				queryParamVal: "potato",
-			},
 		},
 	}
 
 	for _, test := range tests {
-		// Skipping to ensure GitHub checks are not failing. Go will deem the
-		// request with duplicate Content-Length headers as valid and the one
-		// containing a list of identical values as invalid
-		t.Skip()
 		t.Run(test.name, func(t *testing.T) {
 			resp, err := requesttesting.MakeRequest(context.Background(), test.req, func(req *http.Request) {
-				want := []string{"13", "13,"}
-				got := req.Header["Content-Length"]
-				if diff := cmp.Diff(want, got); diff != "" {
-					t.Errorf("req.URL.Query(): got %v, want %v, diff (-want +got): \n%s", got, want, diff)
-				}
-				if contentLen := req.Header["Content-Length"][0]; contentLen != test.want.contentLen {
-					t.Errorf(`req.Header["Content-Length"]: got %v, want %v`, contentLen, test.want.contentLen)
-				}
-				if val := req.Form["veggie"][0]; val != test.want.queryParamVal {
-					t.Errorf("req.FormValue: want potato, got %s", val)
-				}
+				t.Error("expected handler not to be called.")
 			})
 			if err != nil {
-				t.Fatalf("MakeRequest(): got err %v, want nil", err)
+				t.Fatalf("MakeRequest(): got %v, want nil", err)
 			}
-			if !!bytes.HasPrefix(resp, []byte(status200OK)) {
-				t.Errorf("response status: got %s, want %s", resp, status200OK)
+			if !bytes.HasPrefix(resp, []byte(status400BadReq)) {
+				t.Errorf("response status: got %s, want %s", resp, status400BadReq)
 			}
 		})
-	}
-
-	postReq := []byte("POST / HTTP/1.1\r\n" +
-		"Host: localhost:8080\r\n" +
-		"Content-Type: application/x-www-form-urlencoded; charset=ASCII\r\n" +
-		"Content-Length: 13\r\n" +
-		"Content-Length: 12\r\n" +
-		"\r\n" +
-		"veggie=potato\r\n" +
-		"\r\n")
-	resp, err := requesttesting.MakeRequest(context.Background(), postReq, func(req *http.Request) {
-		t.Error("expected handler not to be called")
-	})
-	if err != nil {
-		t.Fatalf("MakeRequest(): got err %v, want nil", err)
-	}
-	if !bytes.HasPrefix(resp, []byte(status400BadReq)) {
-		t.Errorf("response status: got %s, want %s", resp, status400BadReq)
 	}
 }
 
@@ -259,9 +245,8 @@ func TestBasicMultipartForm(t *testing.T) {
 		if err := req.ParseMultipartForm(1024); err != nil {
 			t.Fatalf("ParseMultipartForm: want nil, got %v", err)
 		}
-
-		if formVal := req.Form["foo"][0]; formVal != "bar" {
-			t.Errorf("FormValue: got %s, want bar", formVal)
+		if want := []string{"bar"}; !cmp.Equal(want, req.Form["foo"]) {
+			t.Errorf("req.Form[foo]: got %v, want %s", req.Form["foo"], want)
 		}
 	})
 	if err != nil {
@@ -394,5 +379,5 @@ func TestMultipartFormIncorrectBoundary(t *testing.T) {
 	}
 }
 
-// TODO(marmihali@): Since req.Form["x"] and req.FormValue("x") return different
+// TODO(maramihali@): Since req.Form["x"] and req.FormValue("x") return different
 // types, this aspect should be investigated more in future tests
