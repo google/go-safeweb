@@ -1,8 +1,9 @@
 package safehtml_test
 
 import (
-	"io"
-	"strings"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/google/go-safeweb/safehttp"
@@ -10,61 +11,69 @@ import (
 	"github.com/google/safehtml/template"
 )
 
-type dispatcher struct {
-	wr io.Writer
-}
+type dispatcher struct{}
 
-func (d *dispatcher) Write(resp safehttp.Response) error {
+func (d *dispatcher) Write(rw http.ResponseWriter, resp safehttp.Response) error {
 	switch x := resp.(type) {
 	case safehtml.HTML:
-		_, err := d.wr.Write([]byte(x.String()))
+		_, err := rw.Write([]byte(x.String()))
 		return err
 	default:
 		panic("not a safe response type")
 	}
 }
 
-func (d *dispatcher) ExecuteTemplate(t safehttp.Template, data interface{}) error {
+func (d *dispatcher) ExecuteTemplate(rw http.ResponseWriter, t safehttp.Template, data interface{}) error {
 	switch x := t.(type) {
 	case *template.Template:
-		return x.Execute(d.wr, data)
+		return x.Execute(rw, data)
 	default:
 		panic("not a safe response type")
 	}
 }
 
 func TestHandleRequestWrite(t *testing.T) {
-	b := &strings.Builder{}
-	d := &dispatcher{wr: b}
+	m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, _ *safehttp.IncomingRequest) safehttp.Result {
+		return rw.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
+	}, &dispatcher{})
 
-	m := safehttp.NewMachinery(func(w *safehttp.ResponseWriter, _ safehttp.IncomingRequest) safehttp.Result {
-		return w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
-	}, d)
+	req := httptest.NewRequest("GET", "/", nil)
+	recorder := httptest.NewRecorder()
 
-	m.HandleRequest("GET / HTTP/1.1\r\n" +
-		"\r\n")
+	m.HandleRequest(recorder, req)
+
+	resp := recorder.Result()
 
 	want := "&lt;h1&gt;Escaped, so not really a heading&lt;/h1&gt;"
-	got := b.String()
-	if got != want {
-		t.Errorf("response got = %q, want %q", got, want)
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("ioutil.ReadAll(resp.Body) got err: %v, want nil", err)
+	}
+
+	if got := string(body); got != want {
+		t.Errorf("resp.Body: got = %q, want %q", got, want)
 	}
 }
 
 func TestHandleRequestWriteTemplate(t *testing.T) {
-	b := &strings.Builder{}
-	d := &dispatcher{wr: b}
+	m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, _ *safehttp.IncomingRequest) safehttp.Result {
+		return rw.WriteTemplate(template.Must(template.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
+	}, &dispatcher{})
 
-	m := safehttp.NewMachinery(func(w *safehttp.ResponseWriter, _ safehttp.IncomingRequest) safehttp.Result {
-		return w.WriteTemplate(template.Must(template.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
-	}, d)
+	req := httptest.NewRequest("GET", "/", nil)
+	recorder := httptest.NewRecorder()
 
-	m.HandleRequest("GET / HTTP/1.1\r\n" +
-		"\r\n")
+	m.HandleRequest(recorder, req)
+
+	resp := recorder.Result()
 
 	want := "<h1>This is an actual heading, though.</h1>"
-	got := b.String()
-	if got != want {
-		t.Errorf("response got = %q, want %q", got, want)
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("ioutil.ReadAll(resp.Body) got err: %v, want nil", err)
+	}
+
+	if got := string(body); got != want {
+		t.Errorf("resp.Body: got = %q, want %q", got, want)
 	}
 }
