@@ -29,8 +29,7 @@ type Result struct{}
 
 // Write TODO
 func (w *ResponseWriter) Write(resp Response) Result {
-	err := w.d.Write(w.rw, resp)
-	if err != nil {
+	if err := w.d.Write(w.rw, resp); err != nil {
 		panic("error")
 	}
 	return Result{}
@@ -38,8 +37,7 @@ func (w *ResponseWriter) Write(resp Response) Result {
 
 // WriteTemplate TODO
 func (w *ResponseWriter) WriteTemplate(t Template, data interface{}) Result {
-	err := w.d.ExecuteTemplate(w.rw, t, data)
-	if err != nil {
+	if err := w.d.ExecuteTemplate(w.rw, t, data); err != nil {
 		panic("error")
 	}
 	return Result{}
