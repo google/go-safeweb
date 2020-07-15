@@ -9,7 +9,7 @@ import (
 )
 
 func TestSet(t *testing.T) {
-	h := NewHeader()
+	h := newHeader(http.Header{})
 	if err := h.Set("pizza-pasta", "potato-carrot"); err != nil {
 		t.Fatalf(`h.Set("pizza-pasta", "potato-carrot") got err: %v`, err)
 	}
@@ -19,7 +19,7 @@ func TestSet(t *testing.T) {
 }
 
 func TestSetDisallowed(t *testing.T) {
-	h := NewHeader()
+	h := newHeader(http.Header{})
 	err := h.Set("Set-Cookie", "x=y")
 	if got, want := err.Error(), `The header with name "Set-Cookie" is disallowed.`; got != want {
 		t.Errorf(`h.Set("Set-Cookie", "x=y") got: %v want: %v`, got, want)
@@ -30,7 +30,7 @@ func TestSetDisallowed(t *testing.T) {
 }
 
 func TestSetImmutable(t *testing.T) {
-	h := NewHeader()
+	h := newHeader(http.Header{})
 	h.MarkImmutable("pizza-pasta")
 	err := h.Set("pizza-pasta", "potato-carrot")
 	if got, want := err.Error(), `The header with name "Pizza-Pasta" is immutable.`; got != want {
@@ -42,7 +42,7 @@ func TestSetImmutable(t *testing.T) {
 }
 
 func TestAdd(t *testing.T) {
-	h := NewHeader()
+	h := newHeader(http.Header{})
 	if err := h.Add("pizza-pasta", "potato-carrot"); err != nil {
 		t.Fatalf(`h.Add("pizza-pasta", "potato-carrot") got err: %v`, err)
 	}
@@ -55,7 +55,7 @@ func TestAdd(t *testing.T) {
 }
 
 func TestAddDisallowed(t *testing.T) {
-	h := NewHeader()
+	h := newHeader(http.Header{})
 	err := h.Add("Set-Cookie", "potato-carrot")
 	if got, want := err.Error(), `The header with name "Set-Cookie" is disallowed.`; got != want {
 		t.Errorf(`h.Add("Set-Cookie", "potato-carrot") got: %v want: %v`, got, want)
@@ -66,7 +66,7 @@ func TestAddDisallowed(t *testing.T) {
 }
 
 func TestAddImmutable(t *testing.T) {
-	h := NewHeader()
+	h := newHeader(http.Header{})
 	if err := h.Add("pizza-paSta", "potato-carrot"); err != nil {
 		t.Fatalf(`h.Add("pizza-paSta", "potato-carrot") got err: %v`, err)
 	}
@@ -81,7 +81,7 @@ func TestAddImmutable(t *testing.T) {
 }
 
 func TestDel(t *testing.T) {
-	h := NewHeader()
+	h := newHeader(http.Header{})
 	if err := h.Set("piZza-pasTa", "potato-carrot"); err != nil {
 		t.Fatalf(`h.Set("piZza-pasTa", "potato-carrot") got err: %v`, err)
 	}
@@ -94,7 +94,7 @@ func TestDel(t *testing.T) {
 }
 
 func TestDelDisallowed(t *testing.T) {
-	h := NewHeader()
+	h := newHeader(http.Header{})
 	err := h.Del("Set-Cookie")
 	if got, want := err.Error(), `The header with name "Set-Cookie" is disallowed.`; got != want {
 		t.Errorf(`h.Del("Set-Cookie") got: %v want: %v`, got, want)
@@ -102,7 +102,7 @@ func TestDelDisallowed(t *testing.T) {
 }
 
 func TestDelImmutable(t *testing.T) {
-	h := NewHeader()
+	h := newHeader(http.Header{})
 	if err := h.Set("piZza-pasTa", "potato-carrot"); err != nil {
 		t.Fatalf(`h.Set("piZza-pasTa", "potato-carrot") got err: %v`, err)
 	}
@@ -117,7 +117,7 @@ func TestDelImmutable(t *testing.T) {
 }
 
 func TestWriteSubSet(t *testing.T) {
-	h := NewHeader()
+	h := newHeader(http.Header{})
 	if err := h.Set("pizzA-pastA", "potato-carrot"); err != nil {
 		t.Fatalf(`h.Set("pizzA-pastA", "potato-carrot") got err: %v`, err)
 	}
@@ -150,7 +150,7 @@ func TestWriteSubSet(t *testing.T) {
 }
 
 func TestSetCookie(t *testing.T) {
-	h := NewHeader()
+	h := newHeader(http.Header{})
 	c := &http.Cookie{Name: "x", Value: "y"}
 	h.SetCookie(c)
 	if got, want := h.Get("Set-Cookie"), "x=y"; got != want {
@@ -159,7 +159,7 @@ func TestSetCookie(t *testing.T) {
 }
 
 func TestSetCookieInvalidName(t *testing.T) {
-	h := NewHeader()
+	h := newHeader(http.Header{})
 	c := &http.Cookie{Name: "x=", Value: "y"}
 	h.SetCookie(c)
 	if got, want := h.Get("Set-Cookie"), ""; got != want {
