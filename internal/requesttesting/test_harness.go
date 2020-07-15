@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package requesttesting provides a harness and other test utilities for
+// verifying the behaviour of the net/http package in Go's standard library.
 package requesttesting
 
 import (
@@ -42,7 +44,7 @@ type FakeListener struct {
 	clientEndpoint net.Conn
 }
 
-// NewFakeListener creates an instance of fakeListener. This will pass requests to the HTTP server as part of the testing harness.
+// NewFakeListener creates an instance of fakeListener.
 func NewFakeListener() *FakeListener {
 	s2c, c2s := net.Pipe()
 	c := make(chan net.Conn, 1)
@@ -126,7 +128,6 @@ func MakeRequest(ctx context.Context, req []byte, callback func(*http.Request)) 
 	if n == 4096 {
 		return nil, errors.New("response larger than or equal to 4096 bytes")
 	}
-	
 
 	return resp[:n], server.Shutdown(ctx)
 }

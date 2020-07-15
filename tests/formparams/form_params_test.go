@@ -19,11 +19,12 @@ package formparams
 import (
 	"bytes"
 	"context"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-safeweb/testing/requesttesting"
 	"net/http"
 	"strconv"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-safeweb/internal/requesttesting"
 )
 
 const status200OK = "HTTP/1.1 200 OK\r\n"
