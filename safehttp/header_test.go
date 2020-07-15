@@ -34,7 +34,7 @@ func TestSet(t *testing.T) {
 func TestSetDisallowed(t *testing.T) {
 	h := newHeader(http.Header{})
 	err := h.Set("Set-Cookie", "x=y")
-	if got, want := err.Error(), `The header with name "Set-Cookie" is disallowed.`; got != want {
+	if got, want := err.Error(), "disallowed header"; got != want {
 		t.Errorf(`h.Set("Set-Cookie", "x=y") got: %v want: %v`, got, want)
 	}
 	if diff := cmp.Diff([]string(nil), h.Values("set-cookie")); diff != "" {
@@ -46,7 +46,7 @@ func TestSetImmutable(t *testing.T) {
 	h := newHeader(http.Header{})
 	h.MarkImmutable("pizza-pasta")
 	err := h.Set("pizza-pasta", "potato-carrot")
-	if got, want := err.Error(), `The header with name "Pizza-Pasta" is immutable.`; got != want {
+	if got, want := err.Error(), "immutable header"; got != want {
 		t.Errorf(`h.Set("pizza-pasta", "potato-carrot") got: %v want: %v`, got, want)
 	}
 	if diff := cmp.Diff([]string(nil), h.Values("pizza-pasta")); diff != "" {
@@ -70,7 +70,7 @@ func TestAdd(t *testing.T) {
 func TestAddDisallowed(t *testing.T) {
 	h := newHeader(http.Header{})
 	err := h.Add("Set-Cookie", "potato-carrot")
-	if got, want := err.Error(), `The header with name "Set-Cookie" is disallowed.`; got != want {
+	if got, want := err.Error(), "disallowed header"; got != want {
 		t.Errorf(`h.Add("Set-Cookie", "potato-carrot") got: %v want: %v`, got, want)
 	}
 	if diff := cmp.Diff([]string(nil), h.Values("set-cookie")); diff != "" {
@@ -85,7 +85,7 @@ func TestAddImmutable(t *testing.T) {
 	}
 	h.MarkImmutable("pIzza-pasta")
 	err := h.Add("pizza-paSta", "banana-apple")
-	if got, want := err.Error(), `The header with name "Pizza-Pasta" is immutable.`; got != want {
+	if got, want := err.Error(), "immutable header"; got != want {
 		t.Errorf(`h.Add("Set-Cookie", "potato-carrot") got: %v want: %v`, got, want)
 	}
 	if diff := cmp.Diff([]string{"potato-carrot"}, h.Values("pizza-pasta")); diff != "" {
@@ -109,7 +109,7 @@ func TestDel(t *testing.T) {
 func TestDelDisallowed(t *testing.T) {
 	h := newHeader(http.Header{})
 	err := h.Del("Set-Cookie")
-	if got, want := err.Error(), `The header with name "Set-Cookie" is disallowed.`; got != want {
+	if got, want := err.Error(), "disallowed header"; got != want {
 		t.Errorf(`h.Del("Set-Cookie") got: %v want: %v`, got, want)
 	}
 }
@@ -121,7 +121,7 @@ func TestDelImmutable(t *testing.T) {
 	}
 	h.MarkImmutable("PIZZA-PASTA")
 	err := h.Del("piZZa-pasta")
-	if got, want := err.Error(), `The header with name "Pizza-Pasta" is immutable.`; got != want {
+	if got, want := err.Error(), "immutable header"; got != want {
 		t.Errorf(`h.Add("Set-Cookie", "potato-carrot") got: %v want: %v`, got, want)
 	}
 	if diff := cmp.Diff([]string{"potato-carrot"}, h.Values("pizza-pasta")); diff != "" {
