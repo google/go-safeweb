@@ -33,9 +33,9 @@ func newHeader(h http.Header) Header {
 	return Header{wrappedHeader: h, immutable: map[string]bool{}}
 }
 
-// MarkImmutable marks the header with the name `name` as immutable.
-// This header is now read-only. `name` is canonicalized using
-// textproto.CanonicalMIMEHeaderKey first.
+// MarkImmutable marks the header with the given name as immutable.
+// This header is now read-only. The name is first canonicalized
+// using textproto.CanonicalMIMEHeaderKey.
 func (h Header) MarkImmutable(name string) {
 	name = textproto.CanonicalMIMEHeaderKey(name)
 	if disallowedHeaders[name] {
@@ -44,8 +44,8 @@ func (h Header) MarkImmutable(name string) {
 	h.immutable[name] = true
 }
 
-// Set sets the header with the name `name` to the value of `value`.
-// `name` is canonicalized using textproto.CanonicalMIMEHeaderKey first.
+// Set sets the header with the given name to the given value.
+// The name is first canonicalized using textproto.CanonicalMIMEHeaderKey.
 // If this headers is not immutable, this function removes all other
 // values currently associated with this header before setting the new
 // value. Returns an error when applied on immutable headers.
@@ -61,9 +61,9 @@ func (h Header) Set(name, value string) error {
 	return nil
 }
 
-// Add adds a new header with the name `name` and the value `value` to
-// the collection of headers. `name` is canonicalized using
-// textproto.CanonicalMIMEHeaderKey first. Returns an error when applied
+// Add adds a new header with the given name and the given value to
+// the collection of headers. The name is first canonicalized using
+// textproto.CanonicalMIMEHeaderKey. Returns an error when applied
 // on immutable headers.
 func (h Header) Add(name, value string) error {
 	name = textproto.CanonicalMIMEHeaderKey(name)
@@ -77,9 +77,9 @@ func (h Header) Add(name, value string) error {
 	return nil
 }
 
-// Del deletes all headers with name `name`. `name` is canonicalized using
-// textproto.CanonicalMIMEHeaderKey first. Returns an error when applied
-// on immutable headers.
+// Del deletes all headers with the given name. The name is first
+// canonicalized using textproto.CanonicalMIMEHeaderKey. Returns an
+// error when applied on immutable headers.
 func (h Header) Del(name string) error {
 	name = textproto.CanonicalMIMEHeaderKey(name)
 	if disallowedHeaders[name] {
@@ -92,15 +92,15 @@ func (h Header) Del(name string) error {
 	return nil
 }
 
-// Get returns the value of the first header with the name `name`.
-// `name` is canonicalized using textproto.CanonicalMIMEHeaderKey first.
-// If no header exists with the name `name` then "" is returned.
+// Get returns the value of the first header with the given name.
+// The name is first canonicalized using textproto.CanonicalMIMEHeaderKey.
+// If no header exists with the given name then "" is returned.
 func (h Header) Get(name string) string {
 	return h.wrappedHeader.Get(name)
 }
 
-// Values returns all the values of all the headers with the name `name`.
-// `name` is canonicalized using textproto.CanonicalMIMEHeaderKey first.
+// Values returns all the values of all the headers with the given name.
+// The name is first canonicalized using textproto.CanonicalMIMEHeaderKey.
 // If no header exists with the name `name` then nil is returned.
 func (h Header) Values(name string) []string {
 	return h.wrappedHeader.Values(name)
