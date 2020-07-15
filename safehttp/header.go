@@ -15,11 +15,17 @@
 package safehttp
 
 import (
+	"errors"
 	"net/http"
 	"net/textproto"
 )
 
 var disallowedHeaders = map[string]bool{"Set-Cookie": true}
+
+const (
+	disallowedErrorMessage = "disallowed header"
+	immutableErrorMessage  = "immutable header"
+)
 
 // Header represents the key-value pairs in an HTTP header.
 // The keys will be in canonical form, as returned by
@@ -52,10 +58,10 @@ func (h Header) MarkImmutable(name string) {
 func (h Header) Set(name, value string) error {
 	name = textproto.CanonicalMIMEHeaderKey(name)
 	if disallowedHeaders[name] {
-		return headerIsDisallowedError{name: name}
+		return errors.New(disallowedErrorMessage)
 	}
 	if h.immutable[name] {
-		return headerIsImmutableError{name: name}
+		return errors.New(immutableErrorMessage)
 	}
 	h.wrappedHeader.Set(name, value)
 	return nil
@@ -68,10 +74,10 @@ func (h Header) Set(name, value string) error {
 func (h Header) Add(name, value string) error {
 	name = textproto.CanonicalMIMEHeaderKey(name)
 	if disallowedHeaders[name] {
-		return headerIsDisallowedError{name: name}
+		return errors.New(disallowedErrorMessage)
 	}
 	if h.immutable[name] {
-		return headerIsImmutableError{name: name}
+		return errors.New(immutableErrorMessage)
 	}
 	h.wrappedHeader.Add(name, value)
 	return nil
@@ -83,10 +89,10 @@ func (h Header) Add(name, value string) error {
 func (h Header) Del(name string) error {
 	name = textproto.CanonicalMIMEHeaderKey(name)
 	if disallowedHeaders[name] {
-		return headerIsDisallowedError{name: name}
+		return errors.New(disallowedErrorMessage)
 	}
 	if h.immutable[name] {
-		return headerIsImmutableError{name: name}
+		return errors.New(immutableErrorMessage)
 	}
 	h.wrappedHeader.Del(name)
 	return nil
@@ -116,19 +122,3 @@ func (h Header) SetCookie(cookie *http.Cookie) {
 }
 
 // TODO: Add Write, WriteSubset and Clone when needed.
-
-type headerIsImmutableError struct {
-	name string
-}
-
-func (err headerIsImmutableError) Error() string {
-	return "The header with name \"" + err.name + "\" is immutable."
-}
-
-type headerIsDisallowedError struct {
-	name string
-}
-
-func (err headerIsDisallowedError) Error() string {
-	return "The header with name \"" + err.name + "\" is disallowed."
-}
