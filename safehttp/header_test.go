@@ -2,7 +2,6 @@ package safehttp
 
 import (
 	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -113,39 +112,6 @@ func TestDelImmutable(t *testing.T) {
 	}
 	if diff := cmp.Diff([]string{"potato-carrot"}, h.Values("pizza-pasta")); diff != "" {
 		t.Errorf(`h.Values("pizza-pasta") mismatch (-want +got):\n%s`, diff)
-	}
-}
-
-func TestWriteSubSet(t *testing.T) {
-	h := newHeader(http.Header{})
-	if err := h.Set("pizzA-pastA", "potato-carrot"); err != nil {
-		t.Fatalf(`h.Set("pizzA-pastA", "potato-carrot") got err: %v`, err)
-	}
-	if err := h.Add("pIzza-pAsta", "orange-pear"); err != nil {
-		t.Fatalf(`h.Add("pIzza-pAsta", "orange-pear") got err: %v`, err)
-	}
-	if err := h.Add("bolognESE-LASAGna", "tomato-apple"); err != nil {
-		t.Fatalf(`h.Add("bolognESE-LASAGna", "tomato-apple") got err: %v`, err)
-	}
-	if err := h.Add("tACO-kebab", "lettuce-tomato"); err != nil {
-		t.Fatalf(`h.Add("tACO-kebab", "lettuce-tomato") got err: %v`, err)
-	}
-
-	exclude := map[string]bool{"PIZZA-pasta": true, "BOLOGNESE-lasagna": true}
-	builder := &strings.Builder{}
-	if err := h.WriteSubset(builder, exclude); err != nil {
-		t.Fatalf(`h.Set("pizzA-pastA", "potato-carrot") got err: %v`, err)
-	}
-
-	got := builder.String()
-	if !strings.Contains(got, "Taco-Kebab") {
-		t.Error(`strings.Contains(got, "Taco-Kebab") got: false want: true`)
-	}
-	if strings.Contains(got, "Pizza-Pasta") {
-		t.Error(`strings.Contains(got, "Pizza-Pasta") got: true want: false`)
-	}
-	if strings.Contains(got, "Bolognese-Lasagna") {
-		t.Error(`strings.Contains(got, "Bolognese-Lasagna") got: true want: false`)
 	}
 }
 
