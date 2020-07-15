@@ -20,8 +20,14 @@ import (
 
 // ResponseWriter TODO
 type ResponseWriter struct {
-	d  Dispatcher
-	rw http.ResponseWriter
+	d      Dispatcher
+	rw     http.ResponseWriter
+	header Header
+}
+
+func newResponseWriter(d Dispatcher, rw http.ResponseWriter) ResponseWriter {
+	header := newHeader(rw.Header())
+	return ResponseWriter{d: d, rw: rw, header: header}
 }
 
 // Result TODO
@@ -46,6 +52,13 @@ func (w *ResponseWriter) WriteTemplate(t Template, data interface{}) Result {
 // ServerError TODO
 func (w *ResponseWriter) ServerError(code StatusCode, resp Response) Result {
 	return Result{}
+}
+
+// Header returns the collection of headers that will be set
+// on the response. Headers must be changed before Write, WriteTemplate
+// or any other similar function is called for the first time.
+func (w ResponseWriter) Header() Header {
+	return w.header
 }
 
 // Dispatcher TODO
