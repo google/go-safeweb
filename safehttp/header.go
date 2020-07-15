@@ -1,7 +1,6 @@
 package safehttp
 
 import (
-	"io"
 	"net/http"
 	"net/textproto"
 )
@@ -93,22 +92,6 @@ func (h Header) Values(name string) []string {
 	return h.wrappedHeader.Values(name)
 }
 
-// Write writes the headers in wire format to the writer.
-func (h Header) Write(writer io.Writer) error {
-	return h.wrappedHeader.Write(writer)
-}
-
-// WriteSubset writes the headers in wire format to the writer. Excludes
-// header names in `exclude` while writing to wire format. Header names in
-// `exclude` are first canonicalized using textproto.CanonicalMIMEHeaderKey.
-func (h Header) WriteSubset(writer io.Writer, exclude map[string]bool) error {
-	newExclude := map[string]bool{}
-	for k, v := range exclude {
-		newExclude[textproto.CanonicalMIMEHeaderKey(k)] = v
-	}
-	return h.wrappedHeader.WriteSubset(writer, newExclude)
-}
-
 // SetCookie adds the cookie provided as a Set-Cookie header in the header
 // collection.
 // TODO: Replace http.Cookie with safehttp.Cookie.
@@ -117,6 +100,8 @@ func (h Header) SetCookie(cookie *http.Cookie) {
 		h.wrappedHeader.Add("Set-Cookie", v)
 	}
 }
+
+// TODO: Add Write, WriteSubset and Clone when needed.
 
 type headerIsImmutableError struct {
 	name string
