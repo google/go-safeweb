@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package requestparsing
+package headers
 
 import (
 	"context"
@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-safeweb/testing/requesttesting"
+	"github.com/google/go-safeweb/internal/requesttesting"
 )
 
 func TestUserAgent(t *testing.T) {
