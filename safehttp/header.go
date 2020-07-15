@@ -16,9 +16,8 @@ type Header struct {
 	immutable     map[string]bool
 }
 
-// NewHeader creates a new empty header.
-func NewHeader() Header {
-	return Header{wrappedHeader: http.Header{}, immutable: map[string]bool{}}
+func newHeader(h http.Header) Header {
+	return Header{wrappedHeader: h, immutable: map[string]bool{}}
 }
 
 // MarkImmutable marks the header with the name `name` as immutable.
