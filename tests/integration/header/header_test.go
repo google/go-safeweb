@@ -2,12 +2,12 @@ package header
 
 import (
 	"bufio"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/safehtml"
 )
@@ -46,15 +46,23 @@ func TestAccessIncomingHeaders(t *testing.T) {
 	recorder := httptest.NewRecorder()
 
 	m.HandleRequest(recorder, req)
+}
+
+func TestChangingResponseHeaders(t *testing.T) {
+	m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, _ *safehttp.IncomingRequest) safehttp.Result {
+		rw.Header().Set("pIZZA", "Pasta")
+		return rw.Write(safehtml.HTMLEscaped("hello"))
+	}, &dispatcher{})
+
+	req := httptest.NewRequest("GET", "/", nil)
+	recorder := httptest.NewRecorder()
+
+	m.HandleRequest(recorder, req)
 
 	resp := recorder.Result()
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf("ioutil.ReadAll(resp.Body) got err: %v, want nil", err)
-	}
-
-	if got, want := string(body), "hello"; got != want {
-		t.Errorf("resp.Body: got = %q, want %q", got, want)
+	want := []string{"Pasta"}
+	if diff := cmp.Diff(want, resp.Header["Pizza"]); diff != "" {
+		t.Errorf(`resp.Header["Pizza"] mismatch (-want +got):\n%s`, diff)
 	}
 }
