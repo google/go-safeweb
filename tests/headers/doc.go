@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package requestparsing contains tests to verify the
-// request parsing behavior of `net/http` in Go's standard library.
+// Package headers contains tests to verify the
+// request parsing behavior of net/http in Go's standard library.
 // Note: All tests use verbatim newline characters in their
 // requests instead of using multiline strings to ensure that
 // \r and \n end up in exactly the right places.
-package requestparsing
+package headers
