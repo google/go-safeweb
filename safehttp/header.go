@@ -110,8 +110,8 @@ func (h Header) Values(name string) []string {
 }
 
 // SetCookie adds the cookie provided as a Set-Cookie header in the header
-// collection. If the cookie is nil or cookie.Name is invalid, an empty
-// string is returned.
+// collection. If the cookie is nil or cookie.Name is invalid, no header is
+// added.
 // TODO: Replace http.Cookie with safehttp.Cookie.
 func (h Header) SetCookie(cookie *http.Cookie) {
 	if v := cookie.String(); v != "" {
