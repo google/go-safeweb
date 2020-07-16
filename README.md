@@ -5,10 +5,13 @@
 `go-safeweb` is a collection of libraries for writing secure-by-default HTTP
 servers in Go.
 
+See [this document](./docs/high-level-design.md) for a high level design and
+goals.
+
 ## Contributing
 
 This project is in an early stage. We are temporarily **not accepting** any
-contributions. 
+contributions.
 
 ## Source Code Headers
 
