@@ -206,6 +206,9 @@ func TestStatusCode(t *testing.T) {
 	}
 }
 
+// TestValues verifies that the http.Header.Values() function
+// returns the header values in the order that they are sent
+// in the request to the server.
 func TestValues(t *testing.T) {
 	var tests = []struct {
 		name    string
