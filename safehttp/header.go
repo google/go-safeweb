@@ -31,12 +31,12 @@ const (
 // The keys will be in canonical form, as returned by
 // textproto.CanonicalMIMEHeaderKey.
 type Header struct {
-	wrappedHeader http.Header
-	immutable     map[string]bool
+	wrapped   http.Header
+	immutable map[string]bool
 }
 
 func newHeader(h http.Header) Header {
-	return Header{wrappedHeader: h, immutable: map[string]bool{}}
+	return Header{wrapped: h, immutable: map[string]bool{}}
 }
 
 // MarkImmutable marks the header with the given name as immutable.
@@ -44,9 +44,6 @@ func newHeader(h http.Header) Header {
 // using textproto.CanonicalMIMEHeaderKey.
 func (h Header) MarkImmutable(name string) {
 	name = textproto.CanonicalMIMEHeaderKey(name)
-	if disallowedHeaders[name] {
-		return
-	}
 	h.immutable[name] = true
 }
 
@@ -63,7 +60,7 @@ func (h Header) Set(name, value string) error {
 	if h.immutable[name] {
 		return errors.New(immutableErrorMessage)
 	}
-	h.wrappedHeader.Set(name, value)
+	h.wrapped.Set(name, value)
 	return nil
 }
 
@@ -79,7 +76,7 @@ func (h Header) Add(name, value string) error {
 	if h.immutable[name] {
 		return errors.New(immutableErrorMessage)
 	}
-	h.wrappedHeader.Add(name, value)
+	h.wrapped.Add(name, value)
 	return nil
 }
 
@@ -94,7 +91,7 @@ func (h Header) Del(name string) error {
 	if h.immutable[name] {
 		return errors.New(immutableErrorMessage)
 	}
-	h.wrappedHeader.Del(name)
+	h.wrapped.Del(name)
 	return nil
 }
 
@@ -102,14 +99,14 @@ func (h Header) Del(name string) error {
 // The name is first canonicalized using textproto.CanonicalMIMEHeaderKey.
 // If no header exists with the given name then "" is returned.
 func (h Header) Get(name string) string {
-	return h.wrappedHeader.Get(name)
+	return h.wrapped.Get(name)
 }
 
 // Values returns all the values of all the headers with the given name.
 // The name is first canonicalized using textproto.CanonicalMIMEHeaderKey.
 // If no header exists with the name `name` then nil is returned.
 func (h Header) Values(name string) []string {
-	return h.wrappedHeader.Values(name)
+	return h.wrapped.Values(name)
 }
 
 // SetCookie adds the cookie provided as a Set-Cookie header in the header
@@ -117,7 +114,7 @@ func (h Header) Values(name string) []string {
 // TODO: Replace http.Cookie with safehttp.Cookie.
 func (h Header) SetCookie(cookie *http.Cookie) {
 	if v := cookie.String(); v != "" {
-		h.wrappedHeader.Add("Set-Cookie", v)
+		h.wrapped.Add("Set-Cookie", v)
 	}
 }
 

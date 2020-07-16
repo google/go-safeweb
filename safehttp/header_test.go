@@ -24,7 +24,7 @@ import (
 func TestSet(t *testing.T) {
 	h := newHeader(http.Header{})
 	if err := h.Set("pizza-pasta", "potato-carrot"); err != nil {
-		t.Fatalf(`h.Set("pizza-pasta", "potato-carrot") got err: %v`, err)
+		t.Fatalf(`h.Set("pizza-pasta", "potato-carrot") got err: %v want: nil`, err)
 	}
 	if got, want := h.Get("pIzza-pAsta"), "potato-carrot"; got != want {
 		t.Errorf(`h.Get("pIzza-pAsta") got: %q want %q`, got, want)
@@ -57,10 +57,10 @@ func TestSetImmutable(t *testing.T) {
 func TestAdd(t *testing.T) {
 	h := newHeader(http.Header{})
 	if err := h.Add("pizza-pasta", "potato-carrot"); err != nil {
-		t.Fatalf(`h.Add("pizza-pasta", "potato-carrot") got err: %v`, err)
+		t.Fatalf(`h.Add("pizza-pasta", "potato-carrot") got err: %v want: nil`, err)
 	}
 	if err := h.Add("pizzA-pastA", "banana-apple"); err != nil {
-		t.Fatalf(`h.Add("pizzA-pastA", "banana-apple") got err: %v`, err)
+		t.Fatalf(`h.Add("pizzA-pastA", "banana-apple") got err: %v want: nil`, err)
 	}
 	if diff := cmp.Diff([]string{"potato-carrot", "banana-apple"}, h.Values("pizza-pasta")); diff != "" {
 		t.Errorf(`h.Values("pizza-pasta") mismatch (-want +got):\n%s`, diff)
@@ -81,7 +81,7 @@ func TestAddDisallowed(t *testing.T) {
 func TestAddImmutable(t *testing.T) {
 	h := newHeader(http.Header{})
 	if err := h.Add("pizza-paSta", "potato-carrot"); err != nil {
-		t.Fatalf(`h.Add("pizza-paSta", "potato-carrot") got err: %v`, err)
+		t.Fatalf(`h.Add("pizza-paSta", "potato-carrot") got err: %v want: nil`, err)
 	}
 	h.MarkImmutable("pIzza-pasta")
 	err := h.Add("pizza-paSta", "banana-apple")
@@ -96,10 +96,10 @@ func TestAddImmutable(t *testing.T) {
 func TestDel(t *testing.T) {
 	h := newHeader(http.Header{})
 	if err := h.Set("piZza-pasTa", "potato-carrot"); err != nil {
-		t.Fatalf(`h.Set("piZza-pasTa", "potato-carrot") got err: %v`, err)
+		t.Fatalf(`h.Set("piZza-pasTa", "potato-carrot") got err: %v want: nil`, err)
 	}
 	if err := h.Del("piZZa-pasta"); err != nil {
-		t.Fatalf(`h.Del("piZZa-pasta") got err: %v`, err)
+		t.Fatalf(`h.Del("piZZa-pasta") got err: %v want: nil`, err)
 	}
 	if diff := cmp.Diff([]string(nil), h.Values("pizza-pasta")); diff != "" {
 		t.Errorf(`h.Values("pizza-pasta") mismatch (-want +got):\n%s`, diff)
@@ -117,7 +117,7 @@ func TestDelDisallowed(t *testing.T) {
 func TestDelImmutable(t *testing.T) {
 	h := newHeader(http.Header{})
 	if err := h.Set("piZza-pasTa", "potato-carrot"); err != nil {
-		t.Fatalf(`h.Set("piZza-pasTa", "potato-carrot") got err: %v`, err)
+		t.Fatalf(`h.Set("piZza-pasTa", "potato-carrot") got err: %v want: nil`, err)
 	}
 	h.MarkImmutable("PIZZA-PASTA")
 	err := h.Del("piZZa-pasta")
