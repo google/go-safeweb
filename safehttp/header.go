@@ -104,7 +104,7 @@ func (h Header) Get(name string) string {
 
 // Values returns all the values of all the headers with the given name.
 // The name is first canonicalized using textproto.CanonicalMIMEHeaderKey.
-// If no header exists with the name `name` then nil is returned.
+// If no header exists with the given name then nil is returned.
 func (h Header) Values(name string) []string {
 	return h.wrapped.Values(name)
 }
