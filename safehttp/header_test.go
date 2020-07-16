@@ -23,11 +23,11 @@ import (
 
 func TestSet(t *testing.T) {
 	h := newHeader(http.Header{})
-	if err := h.Set("pizza-pasta", "potato-carrot"); err != nil {
-		t.Fatalf(`h.Set("pizza-pasta", "potato-carrot") got err: %v want: nil`, err)
+	if err := h.Set("Foo-Key", "Bar-Value"); err != nil {
+		t.Fatalf(`h.Set("Foo-Key", "Bar-Value") got err: %v want: nil`, err)
 	}
-	if got, want := h.Get("pIzza-pAsta"), "potato-carrot"; got != want {
-		t.Errorf(`h.Get("pIzza-pAsta") got: %q want %q`, got, want)
+	if got, want := h.Get("Foo-Key"), "Bar-Value"; got != want {
+		t.Errorf(`h.Get("Foo-Key") got: %q want %q`, got, want)
 	}
 }
 
@@ -37,72 +37,72 @@ func TestSetDisallowed(t *testing.T) {
 	if got, want := err.Error(), "disallowed header"; got != want {
 		t.Errorf(`h.Set("Set-Cookie", "x=y") got: %v want: %v`, got, want)
 	}
-	if diff := cmp.Diff([]string(nil), h.Values("set-cookie")); diff != "" {
-		t.Errorf(`h.Values("set-cookie") mismatch (-want +got):\n%s`, diff)
+	if diff := cmp.Diff([]string(nil), h.Values("Set-Cookie")); diff != "" {
+		t.Errorf(`h.Values("Set-Cookie") mismatch (-want +got):\n%s`, diff)
 	}
 }
 
 func TestSetImmutable(t *testing.T) {
 	h := newHeader(http.Header{})
-	h.MarkImmutable("pizza-pasta")
-	err := h.Set("pizza-pasta", "potato-carrot")
+	h.MarkImmutable("Foo-Key")
+	err := h.Set("Foo-Key", "Bar-Value")
 	if got, want := err.Error(), "immutable header"; got != want {
-		t.Errorf(`h.Set("pizza-pasta", "potato-carrot") got: %v want: %v`, got, want)
+		t.Errorf(`h.Set("Foo-Key", "Bar-Value") got: %v want: %v`, got, want)
 	}
-	if diff := cmp.Diff([]string(nil), h.Values("pizza-pasta")); diff != "" {
-		t.Errorf(`h.Values("pizza-pasta") mismatch (-want +got):\n%s`, diff)
+	if diff := cmp.Diff([]string(nil), h.Values("Foo-Key")); diff != "" {
+		t.Errorf(`h.Values("Foo-Key") mismatch (-want +got):\n%s`, diff)
 	}
 }
 
 func TestAdd(t *testing.T) {
 	h := newHeader(http.Header{})
-	if err := h.Add("pizza-pasta", "potato-carrot"); err != nil {
-		t.Fatalf(`h.Add("pizza-pasta", "potato-carrot") got err: %v want: nil`, err)
+	if err := h.Add("Foo-Key", "Bar-Value"); err != nil {
+		t.Fatalf(`h.Add("Foo-Key", "Bar-Value") got err: %v want: nil`, err)
 	}
-	if err := h.Add("pizzA-pastA", "banana-apple"); err != nil {
-		t.Fatalf(`h.Add("pizzA-pastA", "banana-apple") got err: %v want: nil`, err)
+	if err := h.Add("Foo-Key", "Bar-Value-2"); err != nil {
+		t.Fatalf(`h.Add("Foo-Key", "Bar-Value-2") got err: %v want: nil`, err)
 	}
-	if diff := cmp.Diff([]string{"potato-carrot", "banana-apple"}, h.Values("pizza-pasta")); diff != "" {
-		t.Errorf(`h.Values("pizza-pasta") mismatch (-want +got):\n%s`, diff)
+	if diff := cmp.Diff([]string{"Bar-Value", "Bar-Value-2"}, h.Values("Foo-Key")); diff != "" {
+		t.Errorf(`h.Values("Foo-Key") mismatch (-want +got):\n%s`, diff)
 	}
 }
 
 func TestAddDisallowed(t *testing.T) {
 	h := newHeader(http.Header{})
-	err := h.Add("Set-Cookie", "potato-carrot")
+	err := h.Add("Set-Cookie", "x=y")
 	if got, want := err.Error(), "disallowed header"; got != want {
-		t.Errorf(`h.Add("Set-Cookie", "potato-carrot") got: %v want: %v`, got, want)
+		t.Errorf(`h.Add("Set-Cookie", "x=y") got: %v want: %v`, got, want)
 	}
-	if diff := cmp.Diff([]string(nil), h.Values("set-cookie")); diff != "" {
-		t.Errorf(`h.Values("set-cookie") mismatch (-want +got):\n%s`, diff)
+	if diff := cmp.Diff([]string(nil), h.Values("Set-Cookie")); diff != "" {
+		t.Errorf(`h.Values("Set-Cookie") mismatch (-want +got):\n%s`, diff)
 	}
 }
 
 func TestAddImmutable(t *testing.T) {
 	h := newHeader(http.Header{})
-	if err := h.Add("pizza-paSta", "potato-carrot"); err != nil {
-		t.Fatalf(`h.Add("pizza-paSta", "potato-carrot") got err: %v want: nil`, err)
+	if err := h.Add("Foo-Key", "Bar-Value"); err != nil {
+		t.Fatalf(`h.Add("Foo-Key", "Bar-Value") got err: %v want: nil`, err)
 	}
-	h.MarkImmutable("pIzza-pasta")
-	err := h.Add("pizza-paSta", "banana-apple")
+	h.MarkImmutable("Foo-Key")
+	err := h.Add("Foo-Key", "Bar-Value-2")
 	if got, want := err.Error(), "immutable header"; got != want {
-		t.Errorf(`h.Add("Set-Cookie", "potato-carrot") got: %v want: %v`, got, want)
+		t.Errorf(`h.Add("Set-Cookie", "Bar-Value") got: %v want: %v`, got, want)
 	}
-	if diff := cmp.Diff([]string{"potato-carrot"}, h.Values("pizza-pasta")); diff != "" {
-		t.Errorf(`h.Values("pizza-pasta") mismatch (-want +got):\n%s`, diff)
+	if diff := cmp.Diff([]string{"Bar-Value"}, h.Values("Foo-Key")); diff != "" {
+		t.Errorf(`h.Values("Foo-Key") mismatch (-want +got):\n%s`, diff)
 	}
 }
 
 func TestDel(t *testing.T) {
 	h := newHeader(http.Header{})
-	if err := h.Set("piZza-pasTa", "potato-carrot"); err != nil {
-		t.Fatalf(`h.Set("piZza-pasTa", "potato-carrot") got err: %v want: nil`, err)
+	if err := h.Set("Foo-Key", "Bar-Value"); err != nil {
+		t.Fatalf(`h.Set("Foo-Key", "Bar-Value") got err: %v want: nil`, err)
 	}
-	if err := h.Del("piZZa-pasta"); err != nil {
-		t.Fatalf(`h.Del("piZZa-pasta") got err: %v want: nil`, err)
+	if err := h.Del("Foo-Key"); err != nil {
+		t.Fatalf(`h.Del("Foo-Key") got err: %v want: nil`, err)
 	}
-	if diff := cmp.Diff([]string(nil), h.Values("pizza-pasta")); diff != "" {
-		t.Errorf(`h.Values("pizza-pasta") mismatch (-want +got):\n%s`, diff)
+	if diff := cmp.Diff([]string(nil), h.Values("Foo-Key")); diff != "" {
+		t.Errorf(`h.Values("Foo-Key") mismatch (-want +got):\n%s`, diff)
 	}
 }
 
@@ -116,16 +116,16 @@ func TestDelDisallowed(t *testing.T) {
 
 func TestDelImmutable(t *testing.T) {
 	h := newHeader(http.Header{})
-	if err := h.Set("piZza-pasTa", "potato-carrot"); err != nil {
-		t.Fatalf(`h.Set("piZza-pasTa", "potato-carrot") got err: %v want: nil`, err)
+	if err := h.Set("Foo-Key", "Bar-Value"); err != nil {
+		t.Fatalf(`h.Set("Foo-Key", "Bar-Value") got err: %v want: nil`, err)
 	}
-	h.MarkImmutable("PIZZA-PASTA")
-	err := h.Del("piZZa-pasta")
+	h.MarkImmutable("Foo-Key")
+	err := h.Del("Foo-Key")
 	if got, want := err.Error(), "immutable header"; got != want {
-		t.Errorf(`h.Add("Set-Cookie", "potato-carrot") got: %v want: %v`, got, want)
+		t.Errorf(`h.Add("Set-Cookie", "Bar-Value") got: %v want: %v`, got, want)
 	}
-	if diff := cmp.Diff([]string{"potato-carrot"}, h.Values("pizza-pasta")); diff != "" {
-		t.Errorf(`h.Values("pizza-pasta") mismatch (-want +got):\n%s`, diff)
+	if diff := cmp.Diff([]string{"Bar-Value"}, h.Values("Foo-Key")); diff != "" {
+		t.Errorf(`h.Values("Foo-Key") mismatch (-want +got):\n%s`, diff)
 	}
 }
 
