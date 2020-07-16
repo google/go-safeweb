@@ -31,6 +31,16 @@ func TestSet(t *testing.T) {
 	}
 }
 
+func TestSetCanonicalization(t *testing.T) {
+	h := newHeader(http.Header{})
+	if err := h.Set("fOo-KeY", "Bar-Value"); err != nil {
+		t.Fatalf(`h.Set("fOo-KeY", "Bar-Value") got err: %v want: nil`, err)
+	}
+	if got, want := h.Get("FoO-kEy"), "Bar-Value"; got != want {
+		t.Errorf(`h.Get("FoO-kEy") got: %q want %q`, got, want)
+	}
+}
+
 func TestSetDisallowed(t *testing.T) {
 	h := newHeader(http.Header{})
 	err := h.Set("Set-Cookie", "x=y")
@@ -64,6 +74,19 @@ func TestAdd(t *testing.T) {
 	}
 	if diff := cmp.Diff([]string{"Bar-Value", "Bar-Value-2"}, h.Values("Foo-Key")); diff != "" {
 		t.Errorf(`h.Values("Foo-Key") mismatch (-want +got):\n%s`, diff)
+	}
+}
+
+func TestAddCanonicalization(t *testing.T) {
+	h := newHeader(http.Header{})
+	if err := h.Add("fOo-KeY", "Bar-Value"); err != nil {
+		t.Fatalf(`h.Add("fOo-KeY", "Bar-Value") got err: %v want: nil`, err)
+	}
+	if err := h.Add("FoO-kEy", "Bar-Value-2"); err != nil {
+		t.Fatalf(`h.Add("FoO-kEy", "Bar-Value-2") got err: %v want: nil`, err)
+	}
+	if diff := cmp.Diff([]string{"Bar-Value", "Bar-Value-2"}, h.Values("fOO-KEY")); diff != "" {
+		t.Errorf(`h.Values("fOO-KEY")) mismatch (-want +got):\n%s`, diff)
 	}
 }
 
@@ -103,6 +126,19 @@ func TestDel(t *testing.T) {
 	}
 	if diff := cmp.Diff([]string(nil), h.Values("Foo-Key")); diff != "" {
 		t.Errorf(`h.Values("Foo-Key") mismatch (-want +got):\n%s`, diff)
+	}
+}
+
+func TestDelCanonicalization(t *testing.T) {
+	h := newHeader(http.Header{})
+	if err := h.Set("fOo-KeY", "Bar-Value"); err != nil {
+		t.Fatalf(`h.Set("fOo-KeY", "Bar-Value") got err: %v want: nil`, err)
+	}
+	if err := h.Del("FoO-kEy"); err != nil {
+		t.Fatalf(`h.Del("FoO-kEy") got err: %v want: nil`, err)
+	}
+	if diff := cmp.Diff([]string(nil), h.Values("FOO-kEY")); diff != "" {
+		t.Errorf(`h.Values("FOO-kEY") mismatch (-want +got):\n%s`, diff)
 	}
 }
 
