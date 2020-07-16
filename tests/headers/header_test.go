@@ -205,3 +205,47 @@ func TestStatusCode(t *testing.T) {
 		})
 	}
 }
+
+func TestValues(t *testing.T) {
+	var tests = []struct {
+		name    string
+		request []byte
+		want    []string
+	}{
+		{
+			name: "Ordering1",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"A: X\r\n" +
+				"A: Y\r\n" +
+				"\r\n"),
+			want: []string{"X", "Y"},
+		},
+		{
+			name: "Ordering2",
+			request: []byte("GET / HTTP/1.1\r\n" +
+				"Host: localhost:8080\r\n" +
+				"A: Y\r\n" +
+				"A: X\r\n" +
+				"\r\n"),
+			want: []string{"Y", "X"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp, err := requesttesting.MakeRequest(context.Background(), tt.request, func(r *http.Request) {
+				if diff := cmp.Diff(tt.want, r.Header.Values("A")); diff != "" {
+					t.Errorf(`r.Header.Values("A") mismatch (-want +got):\n%s`, diff)
+				}
+			})
+			if err != nil {
+				t.Fatalf("MakeRequest() got err: %v want: nil", err)
+			}
+
+			if got, want := extractStatus(resp), statusOK; got != want {
+				t.Errorf("status code got: %q want: %q", got, want)
+			}
+		})
+	}
+}
