@@ -43,9 +43,9 @@ func (dispatcher) ExecuteTemplate(rw http.ResponseWriter, t safehttp.Template, d
 }
 
 func TestAccessIncomingHeaders(t *testing.T) {
-	m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
-		if got, want := ir.Header.Get("A"), "B"; got != want {
-			t.Errorf(`ir.Header.Get("A") got: %v want: %v`, got, want)
+	m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+		if got, want := r.Header.Get("A"), "B"; got != want {
+			t.Errorf(`r.Header.Get("A") got: %v want: %v`, got, want)
 		}
 		return rw.Write(safehtml.HTMLEscaped("hello"))
 	}, &dispatcher{})

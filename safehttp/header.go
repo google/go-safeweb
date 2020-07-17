@@ -33,8 +33,12 @@ func newHeader(h http.Header) Header {
 }
 
 // MarkImmutable marks the header with the given name as immutable.
-// This header is now read-only. The name is first canonicalized
-// using textproto.CanonicalMIMEHeaderKey.
+// The name is first canonicalized using textproto.CanonicalMIMEHeaderKey.
+// This header is now read-only. If the header previously was
+// undefined, then it will forever be undefined. Other methods in
+// the struct can't write to, change or delete the header with this
+// name. These methods will instead fail when applied on an immutable
+// header.
 func (h Header) MarkImmutable(name string) {
 	name = textproto.CanonicalMIMEHeaderKey(name)
 	h.immutable[name] = true
@@ -42,9 +46,9 @@ func (h Header) MarkImmutable(name string) {
 
 // Set sets the header with the given name to the given value.
 // The name is first canonicalized using textproto.CanonicalMIMEHeaderKey.
-// If this headers is not immutable, this function removes all other
-// values currently associated with this header before setting the new
-// value. Returns an error when applied on immutable headers.
+// This method first removes all other values associated with this
+// header before setting the new value. Returns an error when
+// applied on immutable headers or on the Set-Cookie header.
 func (h Header) Set(name, value string) error {
 	name = textproto.CanonicalMIMEHeaderKey(name)
 	if err := h.writableHeader(name); err != nil {
@@ -57,7 +61,7 @@ func (h Header) Set(name, value string) error {
 // Add adds a new header with the given name and the given value to
 // the collection of headers. The name is first canonicalized using
 // textproto.CanonicalMIMEHeaderKey. Returns an error when applied
-// on immutable headers.
+// on immutable headers or on the Set-Cookie header.
 func (h Header) Add(name, value string) error {
 	name = textproto.CanonicalMIMEHeaderKey(name)
 	if err := h.writableHeader(name); err != nil {
@@ -69,7 +73,8 @@ func (h Header) Add(name, value string) error {
 
 // Del deletes all headers with the given name. The name is first
 // canonicalized using textproto.CanonicalMIMEHeaderKey. Returns an
-// error when applied on immutable headers.
+// error when applied on immutable headers or on the Set-Cookie
+// header.
 func (h Header) Del(name string) error {
 	name = textproto.CanonicalMIMEHeaderKey(name)
 	if err := h.writableHeader(name); err != nil {
@@ -89,7 +94,10 @@ func (h Header) Get(name string) string {
 // Values returns all the values of all the headers with the given name.
 // The name is first canonicalized using textproto.CanonicalMIMEHeaderKey.
 // The values are returned in the same order as they were sent in the request.
-// If no header exists with the given name then nil is returned.
+// The values are returned as a copy of the original slice of strings in
+// the internal header map. This is to prevent modification of the original
+// slice. If no header exists with the given name then an empty slice is
+// returned.
 func (h Header) Values(name string) []string {
 	v := h.wrapped.Values(name)
 	clone := make([]string, len(v))
@@ -99,7 +107,8 @@ func (h Header) Values(name string) []string {
 
 // SetCookie adds the cookie provided as a Set-Cookie header in the header
 // collection. If the cookie is nil or cookie.Name is invalid, no header is
-// added.
+// added. This is the only method that can modify the Set-Cookie header.
+// If other methods try to modify the header they will return errors.
 // TODO: Replace http.Cookie with safehttp.Cookie.
 func (h Header) SetCookie(cookie *http.Cookie) {
 	if v := cookie.String(); v != "" {
