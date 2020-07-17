@@ -105,7 +105,10 @@ func (h Header) Get(name string) string {
 // The values are returned in the same order as they were sent in the request.
 // If no header exists with the given name then nil is returned.
 func (h Header) Values(name string) []string {
-	return h.wrapped.Values(name)
+	v := h.wrapped.Values(name)
+	clone := make([]string, len(v))
+	copy(clone, v)
+	return clone
 }
 
 // SetCookie adds the cookie provided as a Set-Cookie header in the header
