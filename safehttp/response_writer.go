@@ -20,8 +20,12 @@ import (
 
 // ResponseWriter TODO
 type ResponseWriter struct {
-	d      Dispatcher
-	rw     http.ResponseWriter
+	d  Dispatcher
+	rw http.ResponseWriter
+
+	// Having this field unexported is essential for
+	// security. Otherwise one can easily overwrite
+	// the struct bypassing all our safety guarantees.
 	header Header
 }
 
@@ -55,8 +59,8 @@ func (w *ResponseWriter) ServerError(code StatusCode, resp Response) Result {
 }
 
 // Header returns the collection of headers that will be set
-// on the response. Headers must be changed before Write, WriteTemplate
-// or any other similar function is called for the first time.
+// on the response. Headers must be set before writing a
+// response (e.g. Write, WriteTemplate).
 func (w ResponseWriter) Header() Header {
 	return w.header
 }

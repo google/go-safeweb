@@ -31,6 +31,11 @@ func TestSet(t *testing.T) {
 	}
 }
 
+// TestSetCanonicalization verifies that names of headers
+// are canonicalized before being interpreted as header
+// names.
+// Note that the casing of the header name is different
+// when accessing and modifying the same header.
 func TestSetCanonicalization(t *testing.T) {
 	h := newHeader(http.Header{})
 	if err := h.Set("fOo-KeY", "Bar-Value"); err != nil {
@@ -100,6 +105,11 @@ func TestAdd(t *testing.T) {
 	}
 }
 
+// TestAddCanonicalization verifies that names of headers
+// are canonicalized before being interpreted as header
+// names.
+// Note that the casing of the header name is different
+// when accessing and modifying the same header.
 func TestAddCanonicalization(t *testing.T) {
 	h := newHeader(http.Header{})
 	if err := h.Add("fOo-KeY", "Bar-Value"); err != nil {
@@ -172,6 +182,11 @@ func TestDel(t *testing.T) {
 	}
 }
 
+// TestDelCanonicalization verifies that names of headers
+// are canonicalized before being interpreted as header
+// names.
+// Note that the casing of the header name is different
+// when accessing and modifying the same header.
 func TestDelCanonicalization(t *testing.T) {
 	h := newHeader(http.Header{})
 	if err := h.Set("fOo-KeY", "Bar-Value"); err != nil {
@@ -250,6 +265,10 @@ func TestSetCookieInvalidName(t *testing.T) {
 	}
 }
 
+// TestValuesModifyImmutable verifies that modifying the
+// slice returned by Values() doesn't modify the underlying
+// slice. The test ensures that Values() returns a copy
+// of the underlying slice.
 func TestValuesModifyImmutable(t *testing.T) {
 	h := newHeader(http.Header{})
 	if err := h.Set("Foo-Key", "Bar-Value"); err != nil {
@@ -322,6 +341,13 @@ func TestAddSet(t *testing.T) {
 		t.Errorf(`h.Set("Foo-Key", "Pizza-Value") got err: %v want: nil`, err)
 	}
 	if diff := cmp.Diff([]string{"Pizza-Value"}, h.Values("Foo-Key")); diff != "" {
+		t.Errorf("h.Values(\"Foo-Key\") mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestValuesEmptyHeader(t *testing.T) {
+	h := newHeader(http.Header{})
+	if diff := cmp.Diff([]string{}, h.Values("Foo-Key")); diff != "" {
 		t.Errorf("h.Values(\"Foo-Key\") mismatch (-want +got):\n%s", diff)
 	}
 }
