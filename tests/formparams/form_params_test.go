@@ -40,10 +40,9 @@ func TestSimpleFormParameters(t *testing.T) {
 		reqBody + "\r\n" +
 		"\r\n")
 	resp, err := requesttesting.MakeRequest(context.Background(), postReq, func(req *http.Request) {
-		req.ParseForm()
 		err := req.ParseForm()
 		if err != nil {
-			t.Errorf("req.ParseForm: got %v, want nil", err)
+			t.Errorf("req.ParseForm(): got %v, want nil", err)
 		}
 		if !cmp.Equal([]string{"potato"}, req.Form["vegetable"]) {
 			t.Errorf(`req.Form["vegetable"] = %v, want { "potato" }`, req.Form["vegetable"])
