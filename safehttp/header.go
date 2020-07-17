@@ -20,11 +20,6 @@ import (
 	"net/textproto"
 )
 
-const (
-	setCookieErrorMessage = "can't write to Set-Cookie header"
-	immutableErrorMessage = "immutable header"
-)
-
 // Header represents the key-value pairs in an HTTP header.
 // The keys will be in canonical form, as returned by
 // textproto.CanonicalMIMEHeaderKey.
@@ -52,11 +47,8 @@ func (h Header) MarkImmutable(name string) {
 // value. Returns an error when applied on immutable headers.
 func (h Header) Set(name, value string) error {
 	name = textproto.CanonicalMIMEHeaderKey(name)
-	if name == "Set-Cookie" {
-		return errors.New(setCookieErrorMessage)
-	}
-	if h.immutable[name] {
-		return errors.New(immutableErrorMessage)
+	if err := h.writableHeader(name); err != nil {
+		return err
 	}
 	h.wrapped.Set(name, value)
 	return nil
@@ -68,11 +60,8 @@ func (h Header) Set(name, value string) error {
 // on immutable headers.
 func (h Header) Add(name, value string) error {
 	name = textproto.CanonicalMIMEHeaderKey(name)
-	if name == "Set-Cookie" {
-		return errors.New(setCookieErrorMessage)
-	}
-	if h.immutable[name] {
-		return errors.New(immutableErrorMessage)
+	if err := h.writableHeader(name); err != nil {
+		return err
 	}
 	h.wrapped.Add(name, value)
 	return nil
@@ -83,11 +72,8 @@ func (h Header) Add(name, value string) error {
 // error when applied on immutable headers.
 func (h Header) Del(name string) error {
 	name = textproto.CanonicalMIMEHeaderKey(name)
-	if name == "Set-Cookie" {
-		return errors.New(setCookieErrorMessage)
-	}
-	if h.immutable[name] {
-		return errors.New(immutableErrorMessage)
+	if err := h.writableHeader(name); err != nil {
+		return err
 	}
 	h.wrapped.Del(name)
 	return nil
@@ -122,3 +108,15 @@ func (h Header) SetCookie(cookie *http.Cookie) {
 }
 
 // TODO: Add Write, WriteSubset and Clone when needed.
+
+// writableHeader assumes that the given name already has been canonicalized
+// using textproto.CanonicalMIMEHeaderKey.
+func (h Header) writableHeader(name string) error {
+	if name == "Set-Cookie" {
+		return errors.New("can't write to Set-Cookie header")
+	}
+	if h.immutable[name] {
+		return errors.New("immutable header")
+	}
+	return nil
+}
