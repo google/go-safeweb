@@ -43,9 +43,8 @@ func TestSetCanonicalization(t *testing.T) {
 
 func TestSetSetCookie(t *testing.T) {
 	h := newHeader(http.Header{})
-	err := h.Set("Set-Cookie", "x=y")
-	if got, want := err.Error(), "can't write to Set-Cookie header"; got != want {
-		t.Errorf(`h.Set("Set-Cookie", "x=y") got: %v want: %v`, got, want)
+	if err := h.Set("Set-Cookie", "x=y"); err == nil {
+		t.Error(`h.Set("Set-Cookie", "x=y") got: nil want: error`)
 	}
 	if diff := cmp.Diff([]string{}, h.Values("Set-Cookie")); diff != "" {
 		t.Errorf(`h.Values("Set-Cookie") mismatch (-want +got):\n%s`, diff)
@@ -55,9 +54,8 @@ func TestSetSetCookie(t *testing.T) {
 func TestSetImmutable(t *testing.T) {
 	h := newHeader(http.Header{})
 	h.MarkImmutable("Foo-Key")
-	err := h.Set("Foo-Key", "Bar-Value")
-	if got, want := err.Error(), "immutable header"; got != want {
-		t.Errorf(`h.Set("Foo-Key", "Bar-Value") got: %v want: %v`, got, want)
+	if err := h.Set("Foo-Key", "Bar-Value"); err == nil {
+		t.Error(`h.Set("Foo-Key", "Bar-Value") got: nil want: error`)
 	}
 	if diff := cmp.Diff([]string{}, h.Values("Foo-Key")); diff != "" {
 		t.Errorf(`h.Values("Foo-Key") mismatch (-want +got):\n%s`, diff)
@@ -92,9 +90,8 @@ func TestAddCanonicalization(t *testing.T) {
 
 func TestAddSetCookie(t *testing.T) {
 	h := newHeader(http.Header{})
-	err := h.Add("Set-Cookie", "x=y")
-	if got, want := err.Error(), "can't write to Set-Cookie header"; got != want {
-		t.Errorf(`h.Add("Set-Cookie", "x=y") got: %v want: %v`, got, want)
+	if err := h.Add("Set-Cookie", "x=y"); err == nil {
+		t.Error(`h.Add("Set-Cookie", "x=y") got: nil want: error`)
 	}
 	if diff := cmp.Diff([]string{}, h.Values("Set-Cookie")); diff != "" {
 		t.Errorf(`h.Values("Set-Cookie") mismatch (-want +got):\n%s`, diff)
@@ -107,9 +104,8 @@ func TestAddImmutable(t *testing.T) {
 		t.Fatalf(`h.Add("Foo-Key", "Bar-Value") got err: %v want: nil`, err)
 	}
 	h.MarkImmutable("Foo-Key")
-	err := h.Add("Foo-Key", "Bar-Value-2")
-	if got, want := err.Error(), "immutable header"; got != want {
-		t.Errorf(`h.Add("Set-Cookie", "Bar-Value") got: %v want: %v`, got, want)
+	if err := h.Add("Foo-Key", "Bar-Value-2"); err == nil {
+		t.Error(`h.Add("Set-Cookie", "Bar-Value") got: nil want: error`)
 	}
 	if diff := cmp.Diff([]string{"Bar-Value"}, h.Values("Foo-Key")); diff != "" {
 		t.Errorf(`h.Values("Foo-Key") mismatch (-want +got):\n%s`, diff)
@@ -144,9 +140,8 @@ func TestDelCanonicalization(t *testing.T) {
 
 func TestDelSetCookie(t *testing.T) {
 	h := newHeader(http.Header{})
-	err := h.Del("Set-Cookie")
-	if got, want := err.Error(), "can't write to Set-Cookie header"; got != want {
-		t.Errorf(`h.Del("Set-Cookie") got: %v want: %v`, got, want)
+	if err := h.Del("Set-Cookie"); err == nil {
+		t.Error(`h.Del("Set-Cookie") got: nil want: error`)
 	}
 }
 
@@ -156,9 +151,8 @@ func TestDelImmutable(t *testing.T) {
 		t.Fatalf(`h.Set("Foo-Key", "Bar-Value") got err: %v want: nil`, err)
 	}
 	h.MarkImmutable("Foo-Key")
-	err := h.Del("Foo-Key")
-	if got, want := err.Error(), "immutable header"; got != want {
-		t.Errorf(`h.Add("Set-Cookie", "Bar-Value") got: %v want: %v`, got, want)
+	if err := h.Del("Foo-Key"); err == nil {
+		t.Error(`h.Add("Set-Cookie", "Bar-Value") got: nil want: error`)
 	}
 	if diff := cmp.Diff([]string{"Bar-Value"}, h.Values("Foo-Key")); diff != "" {
 		t.Errorf(`h.Values("Foo-Key") mismatch (-want +got):\n%s`, diff)
