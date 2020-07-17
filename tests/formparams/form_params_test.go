@@ -217,12 +217,12 @@ func TestFormParametersBreakUrlEncoding(t *testing.T) {
 		var want []string
 		got := req.Form["veggie"]
 		if diff := cmp.Diff(want, got); diff != "" {
-			t.Errorf(`URL.Query()["veggie"]:, got %v, want %v`, req.Form["vegetable"], nil)
+			t.Errorf(`Form["veggie"]:, got %v, want %v`, req.Form["vegetable"], nil)
 		}
 		want = []string{"apple"}
 		got = req.Form["fruit"]
 		if diff := cmp.Diff(want, got); diff != "" {
-			t.Errorf(`URL.Query()["fruit"]:, got %v, want %v`, req.Form["fruit"], want)
+			t.Errorf(`Form["fruit"]:, got %v, want %v`, req.Form["fruit"], want)
 		}
 	})
 	if err != nil {
