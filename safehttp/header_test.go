@@ -289,31 +289,34 @@ func TestValuesModifyImmutable(t *testing.T) {
 // return the headers values in the order that they were
 // set.
 func TestValuesOrdering(t *testing.T) {
-	t.Run("Bar Pizza", func(t *testing.T) {
-		h := newHeader(http.Header{})
-		if err := h.Add("Foo-Key", "Bar-Value"); err != nil {
-			t.Errorf(`h.Add("Foo-Key", "Bar-Value") got err: %v want: nil`, err)
-		}
-		if err := h.Add("Foo-Key", "Pizza-Value"); err != nil {
-			t.Errorf(`h.Add("Foo-Key", "Pizza-Value") got err: %v want: nil`, err)
-		}
-		if diff := cmp.Diff([]string{"Bar-Value", "Pizza-Value"}, h.Values("Foo-Key")); diff != "" {
-			t.Errorf("h.Values(\"Foo-Key\") mismatch (-want +got):\n%s", diff)
-		}
-	})
+	var tests = []struct {
+		name   string
+		values []string
+	}{
+		{
+			name:   "Bar Pizza",
+			values: []string{"Bar-Value", "Pizza-Value"},
+		},
+		{
+			name:   "Pizza Bar",
+			values: []string{"Pizza-Value", "Bar-Value"},
+		},
+	}
 
-	t.Run("Pizza Bar", func(t *testing.T) {
-		h := newHeader(http.Header{})
-		if err := h.Add("Foo-Key", "Pizza-Value"); err != nil {
-			t.Errorf(`h.Add("Foo-Key", "Pizza-Value") got err: %v want: nil`, err)
-		}
-		if err := h.Add("Foo-Key", "Bar-Value"); err != nil {
-			t.Errorf(`h.Add("Foo-Key", "Bar-Value") got err: %v want: nil`, err)
-		}
-		if diff := cmp.Diff([]string{"Pizza-Value", "Bar-Value"}, h.Values("Foo-Key")); diff != "" {
-			t.Errorf("h.Values(\"Foo-Key\") mismatch (-want +got):\n%s", diff)
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := newHeader(http.Header{})
+			if err := h.Add("Foo-Key", tt.values[0]); err != nil {
+				t.Errorf(`h.Add("Foo-Key", tt.values[0]) got err: %v want: nil`, err)
+			}
+			if err := h.Add("Foo-Key", tt.values[1]); err != nil {
+				t.Errorf(`h.Add("Foo-Key", tt.values[1]) got err: %v want: nil`, err)
+			}
+			if diff := cmp.Diff(tt.values, h.Values("Foo-Key")); diff != "" {
+				t.Errorf("h.Values(\"Foo-Key\") mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
 }
 
 func TestManyEqualKeyValuePairs(t *testing.T) {
