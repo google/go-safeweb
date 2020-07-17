@@ -47,7 +47,7 @@ func TestSetSetCookie(t *testing.T) {
 	if got, want := err.Error(), "can't write to Set-Cookie header"; got != want {
 		t.Errorf(`h.Set("Set-Cookie", "x=y") got: %v want: %v`, got, want)
 	}
-	if diff := cmp.Diff([]string(nil), h.Values("Set-Cookie")); diff != "" {
+	if diff := cmp.Diff([]string{}, h.Values("Set-Cookie")); diff != "" {
 		t.Errorf(`h.Values("Set-Cookie") mismatch (-want +got):\n%s`, diff)
 	}
 }
@@ -59,7 +59,7 @@ func TestSetImmutable(t *testing.T) {
 	if got, want := err.Error(), "immutable header"; got != want {
 		t.Errorf(`h.Set("Foo-Key", "Bar-Value") got: %v want: %v`, got, want)
 	}
-	if diff := cmp.Diff([]string(nil), h.Values("Foo-Key")); diff != "" {
+	if diff := cmp.Diff([]string{}, h.Values("Foo-Key")); diff != "" {
 		t.Errorf(`h.Values("Foo-Key") mismatch (-want +got):\n%s`, diff)
 	}
 }
@@ -96,7 +96,7 @@ func TestAddSetCookie(t *testing.T) {
 	if got, want := err.Error(), "can't write to Set-Cookie header"; got != want {
 		t.Errorf(`h.Add("Set-Cookie", "x=y") got: %v want: %v`, got, want)
 	}
-	if diff := cmp.Diff([]string(nil), h.Values("Set-Cookie")); diff != "" {
+	if diff := cmp.Diff([]string{}, h.Values("Set-Cookie")); diff != "" {
 		t.Errorf(`h.Values("Set-Cookie") mismatch (-want +got):\n%s`, diff)
 	}
 }
@@ -124,7 +124,7 @@ func TestDel(t *testing.T) {
 	if err := h.Del("Foo-Key"); err != nil {
 		t.Fatalf(`h.Del("Foo-Key") got err: %v want: nil`, err)
 	}
-	if diff := cmp.Diff([]string(nil), h.Values("Foo-Key")); diff != "" {
+	if diff := cmp.Diff([]string{}, h.Values("Foo-Key")); diff != "" {
 		t.Errorf(`h.Values("Foo-Key") mismatch (-want +got):\n%s`, diff)
 	}
 }
@@ -137,7 +137,7 @@ func TestDelCanonicalization(t *testing.T) {
 	if err := h.Del("FoO-kEy"); err != nil {
 		t.Fatalf(`h.Del("FoO-kEy") got err: %v want: nil`, err)
 	}
-	if diff := cmp.Diff([]string(nil), h.Values("FOO-kEY")); diff != "" {
+	if diff := cmp.Diff([]string{}, h.Values("FOO-kEY")); diff != "" {
 		t.Errorf(`h.Values("FOO-kEY") mismatch (-want +got):\n%s`, diff)
 	}
 }
@@ -180,5 +180,21 @@ func TestSetCookieInvalidName(t *testing.T) {
 	h.SetCookie(c)
 	if got, want := h.Get("Set-Cookie"), ""; got != want {
 		t.Errorf(`h.Get("Set-Cookie") got: %q want: %q`, got, want)
+	}
+}
+
+func TestValuesModifyImmutable(t *testing.T) {
+	h := newHeader(http.Header{})
+	if err := h.Set("Foo-Key", "Bar-Value"); err != nil {
+		t.Fatalf(`h.Set("Foo-Key", "Bar-Value") got err: %v want: nil`, err)
+	}
+	h.MarkImmutable("Foo-Key")
+	v := h.Values("Foo-Key")
+	if diff := cmp.Diff([]string{"Bar-Value"}, v); diff != "" {
+		t.Errorf(`h.Values("Foo-Key") mismatch (-want +got):\n%s`, diff)
+	}
+	v[0] = "Evil-Value"
+	if got, want := h.Get("Foo-Key"), "Bar-Value"; got != want {
+		t.Errorf(`h.Get("Foo-Key") got: %v want: %v`, got, want)
 	}
 }
