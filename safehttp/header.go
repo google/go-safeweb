@@ -20,11 +20,9 @@ import (
 	"net/textproto"
 )
 
-var disallowedHeaders = map[string]bool{"Set-Cookie": true}
-
 const (
-	disallowedErrorMessage = "disallowed header"
-	immutableErrorMessage  = "immutable header"
+	setCookieErrorMessage = "can't write to Set-Cookie header"
+	immutableErrorMessage = "immutable header"
 )
 
 // Header represents the key-value pairs in an HTTP header.
@@ -54,8 +52,8 @@ func (h Header) MarkImmutable(name string) {
 // value. Returns an error when applied on immutable headers.
 func (h Header) Set(name, value string) error {
 	name = textproto.CanonicalMIMEHeaderKey(name)
-	if disallowedHeaders[name] {
-		return errors.New(disallowedErrorMessage)
+	if name == "Set-Cookie" {
+		return errors.New(setCookieErrorMessage)
 	}
 	if h.immutable[name] {
 		return errors.New(immutableErrorMessage)
@@ -70,8 +68,8 @@ func (h Header) Set(name, value string) error {
 // on immutable headers.
 func (h Header) Add(name, value string) error {
 	name = textproto.CanonicalMIMEHeaderKey(name)
-	if disallowedHeaders[name] {
-		return errors.New(disallowedErrorMessage)
+	if name == "Set-Cookie" {
+		return errors.New(setCookieErrorMessage)
 	}
 	if h.immutable[name] {
 		return errors.New(immutableErrorMessage)
@@ -85,8 +83,8 @@ func (h Header) Add(name, value string) error {
 // error when applied on immutable headers.
 func (h Header) Del(name string) error {
 	name = textproto.CanonicalMIMEHeaderKey(name)
-	if disallowedHeaders[name] {
-		return errors.New(disallowedErrorMessage)
+	if name == "Set-Cookie" {
+		return errors.New(setCookieErrorMessage)
 	}
 	if h.immutable[name] {
 		return errors.New(immutableErrorMessage)
@@ -104,6 +102,7 @@ func (h Header) Get(name string) string {
 
 // Values returns all the values of all the headers with the given name.
 // The name is first canonicalized using textproto.CanonicalMIMEHeaderKey.
+// The values are returned in the same order as they were sent in the request.
 // If no header exists with the given name then nil is returned.
 func (h Header) Values(name string) []string {
 	return h.wrapped.Values(name)

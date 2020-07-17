@@ -41,10 +41,10 @@ func TestSetCanonicalization(t *testing.T) {
 	}
 }
 
-func TestSetDisallowed(t *testing.T) {
+func TestSetSetCookie(t *testing.T) {
 	h := newHeader(http.Header{})
 	err := h.Set("Set-Cookie", "x=y")
-	if got, want := err.Error(), "disallowed header"; got != want {
+	if got, want := err.Error(), "can't write to Set-Cookie header"; got != want {
 		t.Errorf(`h.Set("Set-Cookie", "x=y") got: %v want: %v`, got, want)
 	}
 	if diff := cmp.Diff([]string(nil), h.Values("Set-Cookie")); diff != "" {
@@ -90,10 +90,10 @@ func TestAddCanonicalization(t *testing.T) {
 	}
 }
 
-func TestAddDisallowed(t *testing.T) {
+func TestAddSetCookie(t *testing.T) {
 	h := newHeader(http.Header{})
 	err := h.Add("Set-Cookie", "x=y")
-	if got, want := err.Error(), "disallowed header"; got != want {
+	if got, want := err.Error(), "can't write to Set-Cookie header"; got != want {
 		t.Errorf(`h.Add("Set-Cookie", "x=y") got: %v want: %v`, got, want)
 	}
 	if diff := cmp.Diff([]string(nil), h.Values("Set-Cookie")); diff != "" {
@@ -142,10 +142,10 @@ func TestDelCanonicalization(t *testing.T) {
 	}
 }
 
-func TestDelDisallowed(t *testing.T) {
+func TestDelSetCookie(t *testing.T) {
 	h := newHeader(http.Header{})
 	err := h.Del("Set-Cookie")
-	if got, want := err.Error(), "disallowed header"; got != want {
+	if got, want := err.Error(), "can't write to Set-Cookie header"; got != want {
 		t.Errorf(`h.Del("Set-Cookie") got: %v want: %v`, got, want)
 	}
 }
