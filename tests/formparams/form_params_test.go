@@ -148,7 +148,7 @@ func TestFormParametersValidDuplicateContentLength(t *testing.T) {
 		}
 		err := req.ParseForm()
 		if err != nil {
-			t.Errorf("req.ParseForm: got %v, want nil", err)
+			t.Errorf("req.ParseForm(): got %v, want nil", err)
 		}
 		if want := []string{"potato"}; !cmp.Equal(want, req.Form["veggie"]) {
 			t.Errorf(`Form["veggie"]: got %v, want %v`, req.Form["veggie"], want)
@@ -260,7 +260,7 @@ func TestBasicMultipartForm(t *testing.T) {
 		"\r\n"
 	resp, err := requesttesting.MakeRequest(context.Background(), []byte(postReq), func(req *http.Request) {
 		if err := req.ParseMultipartForm(1024); err != nil {
-			t.Fatalf("ParseMultipartForm: want nil, got %v", err)
+			t.Fatalf("req.ParseMultipartForm(): want nil, got %v", err)
 		}
 		if want := []string{"bar"}; !cmp.Equal(want, req.Form["foo"]) {
 			t.Errorf("req.Form[foo]: got %v, want %s", req.Form["foo"], want)
