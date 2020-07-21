@@ -40,8 +40,7 @@ func TestSimpleFormParameters(t *testing.T) {
 		reqBody + "\r\n" +
 		"\r\n")
 	resp, err := requesttesting.MakeRequest(context.Background(), postReq, func(req *http.Request) {
-		err := req.ParseForm()
-		if err != nil {
+		if err := req.ParseForm(); err != nil {
 			t.Errorf("req.ParseForm(): got %v, want nil", err)
 		}
 		if !cmp.Equal([]string{"potato"}, req.Form["vegetable"]) {
@@ -146,8 +145,7 @@ func TestFormParametersValidDuplicateContentLength(t *testing.T) {
 		if diff := cmp.Diff(want, got); diff != "" {
 			t.Errorf("req.Header: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 		}
-		err := req.ParseForm()
-		if err != nil {
+		if err := req.ParseForm(); err != nil {
 			t.Errorf("req.ParseForm(): got %v, want nil", err)
 		}
 		if want := []string{"potato"}; !cmp.Equal(want, req.Form["veggie"]) {
@@ -219,21 +217,18 @@ func TestFormParametersBreakUrlEncoding(t *testing.T) {
 		"veggie=%sc&fruit=apple\r\n" +
 		"\r\n")
 	resp, err := requesttesting.MakeRequest(context.Background(), postReq, func(req *http.Request) {
-		err := req.ParseForm().Error()
-		wantErr := `invalid URL escape "%sc"`
-		if err != wantErr {
-			t.Errorf(`req.ParseForm(): want %v, got %v`, wantErr, err)
+		if err := req.ParseForm(); err == nil {
+			t.Errorf(`req.ParseForm(): got %v, want invalid URL escape`, err)
 		}
-
 		var want []string
 		got := req.Form["veggie"]
 		if diff := cmp.Diff(want, got); diff != "" {
-			t.Errorf(`Form["veggie"]:, got %v, want %v`, req.Form["vegetable"], nil)
+			t.Errorf(`Form["veggie"]: got %v, want %v`, req.Form["vegetable"], nil)
 		}
 		want = []string{"apple"}
 		got = req.Form["fruit"]
 		if diff := cmp.Diff(want, got); diff != "" {
-			t.Errorf(`Form["fruit"]:, got %v, want %v`, req.Form["fruit"], want)
+			t.Errorf(`Form["fruit"]: got %v, want %v`, req.Form["fruit"], want)
 		}
 	})
 	if err != nil {
