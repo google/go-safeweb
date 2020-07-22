@@ -32,53 +32,48 @@ func newIncomingRequest(req *http.Request) IncomingRequest {
 
 // QueryForm TODO
 func (r IncomingRequest) QueryForm() (*Form, error) {
-	const fnQueryForm = "QueryForm"
 	if r.req.Method != "GET" {
-		return &Form{}, errors.New(fnQueryForm + ": got request method " + r.req.Method + ", want GET")
+		return &Form{}, errors.New("got request method " + r.req.Method + ", want GET")
 	}
 	err := r.req.ParseForm()
 	if err != nil {
-		return &Form{}, errors.New(fnQueryForm + ": " + err.Error())
+		return &Form{}, err
 	}
 	return &Form{values: r.req.Form, err: nil, parsed: true}, nil
 }
 
 // PostForm TODO
 func (r IncomingRequest) PostForm() (*Form, error) {
-	const fnPostForm = "PostForm"
 	if r.req.Method != "POST" && r.req.Method != "PATCH" && r.req.Method != "PUT" {
-		return &Form{}, errors.New(fnPostForm + ": got request method " + r.req.Method + ", want POST/PATCH/PUT")
+		return &Form{}, errors.New("got request method " + r.req.Method + ", want POST/PATCH/PUT")
 	}
 
 	if ct := r.req.Header.Get("Content-Type"); ct != "application/x-www-form-urlencoded" {
-		return &Form{}, errors.New(fnPostForm + ": invalid method called for Content-Type:" + ct + ", want MultipartForm")
+		return &Form{}, errors.New("invalid method called for Content-Type:" + ct + ", want MultipartForm")
 	}
 	err := r.req.ParseForm()
 	if err != nil {
-		return &Form{}, errors.New(fnPostForm + ": " + err.Error())
+		return &Form{}, err
 	}
 	return &Form{values: r.req.PostForm, err: nil, parsed: true}, nil
 }
 
 // MultipartForm TODO
 func (r IncomingRequest) MultipartForm(maxMemory int64) (*MultipartForm, error) {
-	const (
-		fnMultipartForm  = "MultipartForm"
-		defaultMaxMemory = 32 << 20
-	)
+	const defaultMaxMemory = 32 << 20
 	if r.req.Method != "POST" && r.req.Method != "PATCH" && r.req.Method != "PUT" {
-		return &MultipartForm{}, errors.New(fnMultipartForm + ": got request method " + r.req.Method + ", want POST/PATCH/PUT")
+		return &MultipartForm{}, errors.New("got request method " + r.req.Method + ", want POST/PATCH/PUT")
 	}
 
 	if ct := r.req.Header.Get("Content-Type"); !strings.HasPrefix(ct, "multipart/form-data") {
-		return &MultipartForm{}, errors.New(fnMultipartForm + ": invalid method called for Content-Type:" + ct + ", want PostForm")
+		return &MultipartForm{}, errors.New("invalid method called for Content-Type:" + ct + ", want PostForm")
 	}
 	if maxMemory < 0 || maxMemory > defaultMaxMemory {
 		maxMemory = defaultMaxMemory
 	}
 	err := r.req.ParseMultipartForm(maxMemory)
 	if err != nil {
-		return &MultipartForm{}, errors.New(fnMultipartForm + ": " + err.Error())
+		return &MultipartForm{}, err
 	}
 	mf := &MultipartForm{
 		form: Form{
