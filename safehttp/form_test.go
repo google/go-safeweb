@@ -63,7 +63,7 @@ func getParsedForm(r *IncomingRequest) (*Form, error) {
 		return f, err
 	}
 	mf, err := r.MultipartForm(32 << 20)
-	return &mf.form, err
+	return mf.Form, err
 }
 
 func TestValidInt(t *testing.T) {
@@ -80,25 +80,21 @@ func TestValidInt(t *testing.T) {
 	tests := []struct {
 		name    string
 		req     *http.Request
-		resp    string
 		formVal int
 	}{
 		{
 			name:    "valid int in GET request",
 			req:     getReq,
-			resp:    status200OK,
 			formVal: 10,
 		},
 		{
 			name:    "valid int in POST non-multipart request",
 			req:     postReq,
-			resp:    status200OK,
 			formVal: 10,
 		},
 		{
 			name:    "valid int in POST multipart request",
 			req:     multipartReq,
-			resp:    status200OK,
 			formVal: 10,
 		},
 	}
@@ -145,25 +141,21 @@ func TestValidIntSlice(t *testing.T) {
 	tests := []struct {
 		name    string
 		req     *http.Request
-		resp    string
 		formVal []int
 	}{
 		{
 			name:    "valid int slice in GET request",
 			req:     getReq,
-			resp:    status200OK,
 			formVal: []int{10, 4},
 		},
 		{
 			name:    "valid int slice in POST non-multipart request",
 			req:     postReq,
-			resp:    status200OK,
 			formVal: []int{10, 4},
 		},
 		{
 			name:    "valid int slice in POST multipart request",
 			req:     multipartReq,
-			resp:    status200OK,
 			formVal: []int{10, 4},
 		},
 	}
