@@ -147,8 +147,7 @@ func (f *Form) Bool(paramKey string, defaultValue bool) bool {
 	return false
 }
 
-// clearSlice is a helper functions that clears the slice slicePtr points to when an error occured
-func (f *Form) clearSlice(slicePtr interface{}) {
+func clearSlice(slicePtr interface{}) error {
 	switch vs := slicePtr.(type) {
 	case *[]string:
 		*vs = nil
@@ -159,9 +158,11 @@ func (f *Form) clearSlice(slicePtr interface{}) {
 	case *[]uint64:
 		*vs = nil
 	case *[]bool:
+		*vs = nil
 	default:
-		f.err = fmt.Errorf("type not supported in Slice call: %T", vs)
+		return fmt.Errorf("type not supported in Slice call: %T", vs)
 	}
+	return nil
 }
 
 // Slice checks whether key paramKey maps to any query or form parameters. If it
@@ -171,11 +172,11 @@ func (f *Form) clearSlice(slicePtr interface{}) {
 // to nil.
 func (f *Form) Slice(slicePtr interface{}, paramKey string) {
 	if f.err != nil {
-		f.clearSlice(slicePtr)
+		f.err = clearSlice(slicePtr)
 	}
 	mapVals, ok := f.values[paramKey]
 	if !ok {
-		f.clearSlice(slicePtr)
+		clearSlice(slicePtr)
 		f.err = fmt.Errorf("no value found for key %q", paramKey)
 	}
 	switch values := slicePtr.(type) {
@@ -238,7 +239,7 @@ func (f *Form) Slice(slicePtr interface{}, paramKey string) {
 		}
 		*values = res
 	default:
-		f.clearSlice(slicePtr)
+		f.err = clearSlice(slicePtr)
 	}
 	return
 }
