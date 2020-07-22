@@ -134,70 +134,100 @@ func (f *Form) Bool(paramName string, defaultValue bool) bool {
 
 // Slice TODO
 func (f *Form) Slice(slice interface{}, paramName string) {
-	if f.err != nil {
-		slice = nil
-		return
-	}
 	if !f.parsed {
 		panic("form has not been parsed")
 	}
-	vals, ok := f.values[paramName]
-	if !ok {
-		f.err = errors.New("no value found for key " + paramName)
-		slice = nil
-	}
-	len := len(vals)
-	switch data := slice.(type) {
+	mapVals, ok := f.values[paramName]
+	switch values := slice.(type) {
 	case *[]string:
-		res := *data
-		res = make([]string, 0, len)
-		for _, x := range vals {
+		if f.err != nil {
+			*values = nil
+			return
+		}
+		if !ok {
+			f.err = errors.New("no value found for key " + paramName)
+			*values = nil
+		}
+		res := make([]string, 0, len(mapVals))
+		for _, x := range mapVals {
 			res = append(res, x)
 		}
+		*values = res
 	case *[]int:
-		res := *data
-		res = make([]int, 0, len)
-		for _, x := range vals {
+		if f.err != nil {
+			*values = nil
+			return
+		}
+		if !ok {
+			f.err = errors.New("no value found for key " + paramName)
+			*values = nil
+		}
+		res := make([]int, 0, len(mapVals))
+		for _, x := range mapVals {
 			x, err := strconv.Atoi(x)
 			if err != nil {
 				f.err = err
-				slice = nil
+				*values = nil
 				return
 			}
 			res = append(res, x)
+			*values = res
 		}
 	case *[]uint64:
-		res := *data
-		res = make([]uint64, 0, len)
-		for _, x := range vals {
+		if f.err != nil {
+			*values = nil
+			return
+		}
+		if !ok {
+			f.err = errors.New("no value found for key " + paramName)
+			*values = nil
+		}
+		res := make([]uint64, 0, len(mapVals))
+		for _, x := range mapVals {
 			x, err := strconv.ParseUint(x, 10, 0)
 			if err != nil {
 				f.err = err
-				slice = nil
+				*values = nil
 				return
 			}
 			res = append(res, x)
 		}
+		*values = res
 	case *[]float64:
-		res := *data
-		res = make([]float64, 0, len)
-		for _, x := range vals {
+		if f.err != nil {
+			*values = nil
+			return
+		}
+		if !ok {
+			f.err = errors.New("no value found for key " + paramName)
+			*values = nil
+		}
+		res := make([]float64, 0, len(mapVals))
+		for _, x := range mapVals {
 			x, err := strconv.ParseFloat(x, 64)
 			if err != nil {
 				f.err = err
-				slice = nil
+				*values = nil
 				return
 			}
 			res = append(res, x)
 		}
+		*values = res
 	case *[]bool:
-		res := *data
-		res = make([]bool, 0, len)
-		for _, x := range vals {
+		if f.err != nil {
+			*values = nil
+			return
+		}
+		if !ok {
+			f.err = errors.New("no value found for key " + paramName)
+			*values = nil
+		}
+		res := make([]bool, 0, len(mapVals))
+		for _, x := range mapVals {
 			if x != "true" {
 				if x != "false" {
 					f.err = errors.New(": values of form parameter " + paramName + " not a boolean")
-					slice = nil
+					*values = nil
 					return
 				}
 				res = append(res, false)
@@ -205,11 +235,10 @@ func (f *Form) Slice(slice interface{}, paramName string) {
 			}
 			res = append(res, true)
 		}
+		*values = res
 	default:
 		f.err = errors.New("slice type not supported")
-		slice = nil
 	}
-
 	return
 }
 
