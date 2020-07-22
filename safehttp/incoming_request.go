@@ -15,7 +15,7 @@
 package safehttp
 
 import (
-	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 )
@@ -33,40 +33,40 @@ func newIncomingRequest(req *http.Request) IncomingRequest {
 // QueryForm TODO
 func (r IncomingRequest) QueryForm() (*Form, error) {
 	if r.req.Method != "GET" {
-		return &Form{}, errors.New("got request method " + r.req.Method + ", want GET")
+		return nil, fmt.Errorf("got request method %s, want GET", r.req.Method)
 	}
 	err := r.req.ParseForm()
 	if err != nil {
-		return &Form{}, err
+		return nil, err
 	}
-	return &Form{values: r.req.Form, err: nil}, nil
+	return &Form{values: r.req.Form}, nil
 }
 
 // PostForm TODO
 func (r IncomingRequest) PostForm() (*Form, error) {
 	if r.req.Method != "POST" && r.req.Method != "PATCH" && r.req.Method != "PUT" {
-		return &Form{}, errors.New("got request method " + r.req.Method + ", want POST/PATCH/PUT")
+		return nil, fmt.Errorf("got request method %s, want POST/PATCH/PUT", r.req.Method)
 	}
 
 	if ct := r.req.Header.Get("Content-Type"); ct != "application/x-www-form-urlencoded" {
-		return &Form{}, errors.New("invalid method called for Content-Type:" + ct + ", want MultipartForm")
+		return nil, fmt.Errorf("invalid method called for Content-Type: %s, want MultipartForm", ct)
 	}
 	err := r.req.ParseForm()
 	if err != nil {
 		return &Form{}, err
 	}
-	return &Form{values: r.req.PostForm, err: nil}, nil
+	return &Form{values: r.req.PostForm}, nil
 }
 
 // MultipartForm TODO
 func (r IncomingRequest) MultipartForm(maxMemory int64) (*MultipartForm, error) {
 	const defaultMaxMemory = 32 << 20
 	if r.req.Method != "POST" && r.req.Method != "PATCH" && r.req.Method != "PUT" {
-		return &MultipartForm{}, errors.New("got request method " + r.req.Method + ", want POST/PATCH/PUT")
+		return nil, fmt.Errorf("got request method %s, want POST/PATCH/PUT", r.req.Method)
 	}
 
 	if ct := r.req.Header.Get("Content-Type"); !strings.HasPrefix(ct, "multipart/form-data") {
-		return &MultipartForm{}, errors.New("invalid method called for Content-Type:" + ct + ", want PostForm")
+		return nil, fmt.Errorf("invalid method called for Content-Type: %s, want PostForm", ct)
 	}
 	if maxMemory < 0 || maxMemory > defaultMaxMemory {
 		maxMemory = defaultMaxMemory
@@ -78,7 +78,7 @@ func (r IncomingRequest) MultipartForm(maxMemory int64) (*MultipartForm, error) 
 	mf := &MultipartForm{
 		Form: &Form{
 			values: r.req.MultipartForm.Value,
-			err:    nil},
+		},
 		file: r.req.MultipartForm.File}
 	return mf, nil
 }

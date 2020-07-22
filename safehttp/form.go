@@ -16,6 +16,7 @@ package safehttp
 
 import (
 	"errors"
+	"fmt"
 	"mime/multipart"
 	"strconv"
 )
@@ -41,7 +42,7 @@ func (f *Form) Int(paramName string, defaultValue int) int {
 	}
 	vals, ok := f.values[paramName]
 	if !ok {
-		f.err = errors.New("no value found for key " + paramName)
+		f.err = fmt.Errorf("no value found for key %q", paramName)
 		return defaultValue
 	}
 	paramVal, err := strconv.Atoi(vals[0])
@@ -59,7 +60,7 @@ func (f *Form) Uint(paramName string, defaultValue uint64) uint64 {
 	}
 	vals, ok := f.values[paramName]
 	if !ok {
-		f.err = errors.New("no value found for key " + paramName)
+		f.err = fmt.Errorf("no value found for key %q", paramName)
 		return defaultValue
 	}
 	paramVal, err := strconv.ParseUint(vals[0], 10, 0)
@@ -75,7 +76,7 @@ func (f *Form) String(paramName string, defaultValue string) string {
 	}
 	vals, ok := f.values[paramName]
 	if !ok {
-		f.err = errors.New("no value found for key " + paramName)
+		f.err = fmt.Errorf("no value found for key %q", paramName)
 		return defaultValue
 	}
 	return vals[0]
@@ -88,7 +89,7 @@ func (f *Form) Float64(paramName string, defaultValue float64) float64 {
 	}
 	vals, ok := f.values[paramName]
 	if !ok {
-		f.err = errors.New("no value found for key " + paramName)
+		f.err = fmt.Errorf("no value found for key %q", paramName)
 		return defaultValue
 	}
 	paramVal, err := strconv.ParseFloat(vals[0], 64)
@@ -106,12 +107,12 @@ func (f *Form) Bool(paramName string, defaultValue bool) bool {
 	}
 	vals, ok := f.values[paramName]
 	if !ok {
-		f.err = errors.New("no value found for key " + paramName)
+		f.err = fmt.Errorf("no value found for key %q", paramName)
 		return defaultValue
 	}
 	if vals[0] != "true" {
 		if vals[0] != "false" {
-			f.err = errors.New("values of form parameter " + paramName + " not a boolean")
+			f.err = fmt.Errorf("values of form parameter %q not a boolean", paramName)
 		}
 		return false
 	}
@@ -128,7 +129,7 @@ func (f *Form) Slice(slice interface{}, paramName string) {
 			return
 		}
 		if !ok {
-			f.err = errors.New("no value found for key " + paramName)
+			f.err = fmt.Errorf("no value found for key %q", paramName)
 			*values = nil
 		}
 		res := make([]string, 0, len(mapVals))
@@ -142,7 +143,7 @@ func (f *Form) Slice(slice interface{}, paramName string) {
 			return
 		}
 		if !ok {
-			f.err = errors.New("no value found for key " + paramName)
+			f.err = fmt.Errorf("no value found for key %q", paramName)
 			*values = nil
 		}
 		res := make([]int, 0, len(mapVals))
@@ -162,7 +163,7 @@ func (f *Form) Slice(slice interface{}, paramName string) {
 			return
 		}
 		if !ok {
-			f.err = errors.New("no value found for key " + paramName)
+			f.err = fmt.Errorf("no value found for key %q", paramName)
 			*values = nil
 		}
 		res := make([]uint64, 0, len(mapVals))
@@ -182,7 +183,7 @@ func (f *Form) Slice(slice interface{}, paramName string) {
 			return
 		}
 		if !ok {
-			f.err = errors.New("no value found for key " + paramName)
+			f.err = fmt.Errorf("no value found for key %q", paramName)
 			*values = nil
 		}
 		res := make([]float64, 0, len(mapVals))
@@ -202,14 +203,14 @@ func (f *Form) Slice(slice interface{}, paramName string) {
 			return
 		}
 		if !ok {
-			f.err = errors.New("no value found for key " + paramName)
+			f.err = fmt.Errorf("no value found for key %q ", paramName)
 			*values = nil
 		}
 		res := make([]bool, 0, len(mapVals))
 		for _, x := range mapVals {
 			if x != "true" {
 				if x != "false" {
-					f.err = errors.New(": values of form parameter " + paramName + " not a boolean")
+					f.err = fmt.Errorf("values of form parameter %q not a boolean", paramName)
 					*values = nil
 					return
 				}
@@ -229,3 +230,5 @@ func (f *Form) Slice(slice interface{}, paramName string) {
 func (f *Form) Error() error {
 	return f.err
 }
+
+// TODO(@mihalimara22): Create getter for the `file` field in MultipartForm
