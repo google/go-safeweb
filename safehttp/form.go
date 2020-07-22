@@ -24,7 +24,6 @@ import (
 type Form struct {
 	values map[string][]string
 	err    error
-	parsed bool
 }
 
 // MultipartForm TODO
@@ -37,9 +36,6 @@ type MultipartForm struct {
 func (f *Form) Int(paramName string, defaultValue int) int {
 	if f.err != nil {
 		return defaultValue
-	}
-	if !f.parsed {
-		panic("form has not been parsed")
 	}
 	vals, ok := f.values[paramName]
 	if !ok {
@@ -59,9 +55,6 @@ func (f *Form) Uint(paramName string, defaultValue uint64) uint64 {
 	if f.err != nil {
 		return defaultValue
 	}
-	if !f.parsed {
-		panic("form has not been parsed")
-	}
 	vals, ok := f.values[paramName]
 	if !ok {
 		f.err = errors.New("no value found for key " + paramName)
@@ -78,9 +71,6 @@ func (f *Form) String(paramName string, defaultValue string) string {
 	if f.err != nil {
 		return defaultValue
 	}
-	if !f.parsed {
-		panic("form has not been parsed")
-	}
 	vals, ok := f.values[paramName]
 	if !ok {
 		f.err = errors.New("no value found for key " + paramName)
@@ -93,9 +83,6 @@ func (f *Form) String(paramName string, defaultValue string) string {
 func (f *Form) Float64(paramName string, defaultValue float64) float64 {
 	if f.err != nil {
 		return defaultValue
-	}
-	if !f.parsed {
-		panic("form has not been parsed")
 	}
 	vals, ok := f.values[paramName]
 	if !ok {
@@ -115,9 +102,6 @@ func (f *Form) Bool(paramName string, defaultValue bool) bool {
 	if f.err != nil {
 		return defaultValue
 	}
-	if !f.parsed {
-		panic("form has not been parsed")
-	}
 	vals, ok := f.values[paramName]
 	if !ok {
 		f.err = errors.New("no value found for key " + paramName)
@@ -134,9 +118,6 @@ func (f *Form) Bool(paramName string, defaultValue bool) bool {
 
 // Slice TODO
 func (f *Form) Slice(slice interface{}, paramName string) {
-	if !f.parsed {
-		panic("form has not been parsed")
-	}
 	mapVals, ok := f.values[paramName]
 	switch values := slice.(type) {
 	case *[]string:
