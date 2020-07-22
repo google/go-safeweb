@@ -127,4 +127,69 @@ func TestValidInt(t *testing.T) {
 	}
 }
 
+func TestValidIntSlice(t *testing.T) {
+	multipartReqBody := "--123\r\n" +
+		"Content-Disposition: form-data; name=\"pizza\"\r\n" +
+		"\r\n" +
+		"10\r\n" +
+		"--123\r\n" +
+		"Content-Disposition: form-data; name=\"pizza\"\r\n" +
+		"\r\n" +
+		"4\r\n" +
+		"--123--\r\n"
+	getReq := httptest.NewRequest("GET", "/?pizza=10&pizza=4", nil)
+	postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=10&pizza=4"))
+	postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
+	multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+	tests := []struct {
+		name    string
+		req     *http.Request
+		resp    string
+		formVal []int
+	}{
+		{
+			name:    "valid int slice in GET request",
+			req:     getReq,
+			resp:    status200OK,
+			formVal: []int{10, 4},
+		},
+		{
+			name:    "valid int slice in POST non-multipart request",
+			req:     postReq,
+			resp:    status200OK,
+			formVal: []int{10, 4},
+		},
+		{
+			name:    "valid int slice in POST multipart request",
+			req:     multipartReq,
+			resp:    status200OK,
+			formVal: []int{10, 4},
+		},
+	}
+	for _, test := range tests {
+		m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
+			form, err := getParsedForm(ir)
+			if err != nil {
+				t.Errorf(`getParsedForm: got "%v", want nil`, err)
+			}
+			want := test.formVal
+			var got []int
+			form.Slice(&got, "pizza")
+			if err := form.Error(); err != nil {
+				t.Errorf(`form.Error: got "%v", want nil`, err)
+			}
+			if diff := cmp.Diff(want, got); diff != "" {
+				t.Errorf("form.Slice: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
+			}
+			return Result{}
+		}, &dispatcher{})
+		recorder := httptest.NewRecorder()
+		m.HandleRequest(recorder, test.req)
+		if respStatus := recorder.Result().Status; respStatus != status200OK {
+			t.Errorf("response status: got %s, want %s", respStatus, status200OK)
+		}
+	}
+}
+
 // TODO(@mihalimara22): Add more tests
