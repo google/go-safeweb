@@ -67,34 +67,39 @@ func getParsedForm(r *IncomingRequest) (*Form, error) {
 }
 
 func TestValidInt(t *testing.T) {
-	multipartReqBody := "--123\r\n" +
-		"Content-Disposition: form-data; name=\"pizza\"\r\n" +
-		"\r\n" +
-		"10\r\n" +
-		"--123--\r\n"
-	getReq := httptest.NewRequest("GET", "/?pizza=10", nil)
-	postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=10"))
-	postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
-	multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
 	tests := []struct {
 		name    string
 		req     *http.Request
 		formVal int
 	}{
 		{
-			name:    "valid int in GET request",
-			req:     getReq,
+			name: "valid int in GET request",
+			req: func() *http.Request {
+				return httptest.NewRequest("GET", "/?pizza=10", nil)
+			}(),
 			formVal: 10,
 		},
 		{
-			name:    "valid int in POST non-multipart request",
-			req:     postReq,
+			name: "valid int in POST non-multipart request",
+			req: func() *http.Request {
+				postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=10"))
+				postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+				return postReq
+			}(),
 			formVal: 10,
 		},
 		{
-			name:    "valid int in POST multipart request",
-			req:     multipartReq,
+			name: "valid int in POST multipart request",
+			req: func() *http.Request {
+				multipartReqBody := "--123\r\n" +
+					"Content-Disposition: form-data; name=\"pizza\"\r\n" +
+					"\r\n" +
+					"10\r\n" +
+					"--123--\r\n"
+				multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
+				multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+				return multipartReq
+			}(),
 			formVal: 10,
 		},
 	}
@@ -124,38 +129,43 @@ func TestValidInt(t *testing.T) {
 }
 
 func TestValidIntSlice(t *testing.T) {
-	multipartReqBody := "--123\r\n" +
-		"Content-Disposition: form-data; name=\"pizza\"\r\n" +
-		"\r\n" +
-		"10\r\n" +
-		"--123\r\n" +
-		"Content-Disposition: form-data; name=\"pizza\"\r\n" +
-		"\r\n" +
-		"4\r\n" +
-		"--123--\r\n"
-	getReq := httptest.NewRequest("GET", "/?pizza=10&pizza=4", nil)
-	postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=10&pizza=4"))
-	postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
-	multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
 	tests := []struct {
 		name    string
 		req     *http.Request
 		formVal []int
 	}{
 		{
-			name:    "valid int slice in GET request",
-			req:     getReq,
+			name: "valid int slice in GET request",
+			req: func() *http.Request {
+				return httptest.NewRequest("GET", "/?pizza=10&pizza=4", nil)
+			}(),
 			formVal: []int{10, 4},
 		},
 		{
-			name:    "valid int slice in POST non-multipart request",
-			req:     postReq,
+			name: "valid int slice in POST non-multipart request",
+			req: func() *http.Request {
+				postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=10&pizza=4"))
+				postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+				return postReq
+			}(),
 			formVal: []int{10, 4},
 		},
 		{
-			name:    "valid int slice in POST multipart request",
-			req:     multipartReq,
+			name: "valid int slice in POST multipart request",
+			req: func() *http.Request {
+				multipartReqBody := "--123\r\n" +
+					"Content-Disposition: form-data; name=\"pizza\"\r\n" +
+					"\r\n" +
+					"10\r\n" +
+					"--123\r\n" +
+					"Content-Disposition: form-data; name=\"pizza\"\r\n" +
+					"\r\n" +
+					"4\r\n" +
+					"--123--\r\n"
+				multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
+				multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+				return multipartReq
+			}(),
 			formVal: []int{10, 4},
 		},
 	}
