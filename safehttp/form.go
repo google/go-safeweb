@@ -26,9 +26,11 @@ type Form struct {
 	err    error
 }
 
-// MultipartForm TODO
+// MultipartForm extends the Form structure to define a POST, PATCH or PUT
+// request that is multipart. Its fields are only available after parsing the
+// form, through getter functions that specify the type.
 type MultipartForm struct {
-	form Form
+	*Form
 	file map[string][]*multipart.FileHeader
 }
 

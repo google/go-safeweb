@@ -76,10 +76,9 @@ func (r IncomingRequest) MultipartForm(maxMemory int64) (*MultipartForm, error) 
 		return &MultipartForm{}, err
 	}
 	mf := &MultipartForm{
-		form: Form{
+		Form: &Form{
 			values: r.req.MultipartForm.Value,
-			err:    nil,
-		},
+			err:    nil},
 		file: r.req.MultipartForm.File}
 	return mf, nil
 }
