@@ -63,7 +63,7 @@ func getParsedForm(r *IncomingRequest) (*Form, error) {
 		return f, err
 	}
 	mf, err := r.MultipartForm(32 << 20)
-	return mf.Form, err
+	return &mf.Form, err
 }
 
 func TestValidInt(t *testing.T) {
@@ -112,7 +112,7 @@ func TestValidInt(t *testing.T) {
 			}
 			want := test.formVal
 			got := form.Int("pizza", 0)
-			if err := form.Error(); err != nil {
+			if err := form.Err(); err != nil {
 				t.Errorf(`form.Error: got "%v", want nil`, err)
 			}
 			if diff := cmp.Diff(want, got); diff != "" {
@@ -178,7 +178,7 @@ func TestValidIntSlice(t *testing.T) {
 			want := test.formVal
 			var got []int
 			form.Slice(&got, "pizza")
-			if err := form.Error(); err != nil {
+			if err := form.Err(); err != nil {
 				t.Errorf(`form.Error: got "%v", want nil`, err)
 			}
 			if diff := cmp.Diff(want, got); diff != "" {

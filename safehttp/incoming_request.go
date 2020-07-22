@@ -18,67 +18,81 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"sync"
 )
 
 // IncomingRequest TODO
 type IncomingRequest struct {
-	req    *http.Request
-	Header Header
+	req       *http.Request
+	Header    Header
+	parseOnce sync.Once
 }
 
 func newIncomingRequest(req *http.Request) IncomingRequest {
 	return IncomingRequest{req: req, Header: newHeader(req.Header)}
 }
 
-// QueryForm TODO
-func (r IncomingRequest) QueryForm() (*Form, error) {
-	if r.req.Method != "GET" {
-		return nil, fmt.Errorf("got request method %s, want GET", r.req.Method)
-	}
-	err := r.req.ParseForm()
-	if err != nil {
-		return nil, err
-	}
-	return &Form{values: r.req.Form}, nil
+// QueryForm parses the query parameters provided in the request. It returns
+// the parsed parameters as a Form object, if no error occured, or the parsing error otherwise.
+func (r *IncomingRequest) QueryForm() (f *Form, err error) {
+	r.parseOnce.Do(func() {
+		if r.req.Method != "GET" {
+			f, err = nil, fmt.Errorf("got request method %s, want GET", r.req.Method)
+		}
+		if err := r.req.ParseForm(); err != nil {
+			f = nil
+		}
+	})
+	f, err = &Form{values: r.req.Form}, nil
+	return
 }
 
-// PostForm TODO
-func (r IncomingRequest) PostForm() (*Form, error) {
-	if r.req.Method != "POST" && r.req.Method != "PATCH" && r.req.Method != "PUT" {
-		return nil, fmt.Errorf("got request method %s, want POST/PATCH/PUT", r.req.Method)
-	}
+// PostForm parses the form parameters provided in the body of a POST, PATCH or
+// PUT request that does not have Content-Type: multipart/form-data. It returns
+// the parsed parameters as a Form object, if no error occured, or the parsing error otherwise.
+func (r *IncomingRequest) PostForm() (f *Form, err error) {
+	r.parseOnce.Do(func() {
+		if r.req.Method != "POST" && r.req.Method != "PATCH" && r.req.Method != "PUT" {
+			f, err = nil, fmt.Errorf("got request method %s, want POST/PATCH/PUT", r.req.Method)
+		}
 
-	if ct := r.req.Header.Get("Content-Type"); ct != "application/x-www-form-urlencoded" {
-		return nil, fmt.Errorf("invalid method called for Content-Type: %s, want MultipartForm", ct)
-	}
-	err := r.req.ParseForm()
-	if err != nil {
-		return &Form{}, err
-	}
-	return &Form{values: r.req.PostForm}, nil
+		if ct := r.req.Header.Get("Content-Type"); ct != "application/x-www-form-urlencoded" {
+			f, err = nil, fmt.Errorf("invalid method called for Content-Type: %s, want MultipartForm", ct)
+		}
+		if err := r.req.ParseForm(); err != nil {
+			f = &Form{}
+		}
+	})
+	f, err = &Form{values: r.req.PostForm}, nil
+	return
 }
 
-// MultipartForm TODO
-func (r IncomingRequest) MultipartForm(maxMemory int64) (*MultipartForm, error) {
-	const defaultMaxMemory = 32 << 20
-	if r.req.Method != "POST" && r.req.Method != "PATCH" && r.req.Method != "PUT" {
-		return nil, fmt.Errorf("got request method %s, want POST/PATCH/PUT", r.req.Method)
-	}
+// MultipartForm parses the form parameters provided in the body of a POST,
+// PATCH or PUT request that has Content-Type set tomultipart/form-data. It
+// returns a MultipartForm object containing the parsed form parameter and
+// files, if no error occured, or the parsing error otherwise.
+func (r *IncomingRequest) MultipartForm(maxMemory int64) (f *MultipartForm, err error) {
+	r.parseOnce.Do(func() {
+		const defaultMaxMemory = 32 << 20
+		if r.req.Method != "POST" && r.req.Method != "PATCH" && r.req.Method != "PUT" {
+			f, err = nil, fmt.Errorf("got request method %s, want POST/PATCH/PUT", r.req.Method)
+		}
 
-	if ct := r.req.Header.Get("Content-Type"); !strings.HasPrefix(ct, "multipart/form-data") {
-		return nil, fmt.Errorf("invalid method called for Content-Type: %s, want PostForm", ct)
-	}
-	if maxMemory < 0 || maxMemory > defaultMaxMemory {
-		maxMemory = defaultMaxMemory
-	}
-	err := r.req.ParseMultipartForm(maxMemory)
-	if err != nil {
-		return &MultipartForm{}, err
-	}
-	mf := &MultipartForm{
-		Form: &Form{
+		if ct := r.req.Header.Get("Content-Type"); !strings.HasPrefix(ct, "multipart/form-data") {
+			f, err = nil, fmt.Errorf("invalid method called for Content-Type: %s, want PostForm", ct)
+		}
+		if maxMemory < 0 || maxMemory > defaultMaxMemory {
+			maxMemory = defaultMaxMemory
+		}
+
+		if err := r.req.ParseMultipartForm(maxMemory); err != nil {
+			f = &MultipartForm{}
+		}
+	})
+	f, err = &MultipartForm{
+		Form: Form{
 			values: r.req.MultipartForm.Value,
 		},
-		file: r.req.MultipartForm.File}
-	return mf, nil
+		file: r.req.MultipartForm.File}, nil
+	return
 }

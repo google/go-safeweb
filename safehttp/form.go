@@ -15,34 +15,43 @@
 package safehttp
 
 import (
-	"errors"
 	"fmt"
 	"mime/multipart"
 	"strconv"
 )
 
-// Form TODO
+// Form contains parsed data either from URL's query or from
+// form parameters, part of the body of POST, PATCH or PUT requests that are not
+// multipart requests. The fields are only available after parsing the form,
+// through getter functions that specify the type. If parsing failed, Form will
+// be set to nil. Field err will only be set if
+// an error occurs when the user tries to access a parameter.
 type Form struct {
 	values map[string][]string
 	err    error
 }
 
 // MultipartForm extends the Form structure to define a POST, PATCH or PUT
-// request that is multipart. Its fields are only available after parsing the
-// form, through getter functions that specify the type.
+// request that has Content-Type: multipart/form-data. Its fields are only
+// available after parsing the form, through getter functions that specify the
+// type.
 type MultipartForm struct {
-	*Form
+	Form
 	file map[string][]*multipart.FileHeader
 }
 
-// Int TODO
-func (f *Form) Int(paramName string, defaultValue int) int {
+// Int checks whether key paramKey maps to any query or form parameter
+// values. In case it does, it will try to convert the first value to an integer and
+// return it. If the first value is not an integer or there are no values
+// associated with paramKey, it will return the default value and set the Form
+// error field.
+func (f *Form) Int(paramKey string, defaultValue int) int {
 	if f.err != nil {
 		return defaultValue
 	}
-	vals, ok := f.values[paramName]
+	vals, ok := f.values[paramKey]
 	if !ok {
-		f.err = fmt.Errorf("no value found for key %q", paramName)
+		f.err = fmt.Errorf("no value found for key %q", paramKey)
 		return defaultValue
 	}
 	paramVal, err := strconv.Atoi(vals[0])
@@ -53,14 +62,18 @@ func (f *Form) Int(paramName string, defaultValue int) int {
 	return paramVal
 }
 
-// Uint TODO
-func (f *Form) Uint(paramName string, defaultValue uint64) uint64 {
+// Uint checks whether key paramKey maps to any query or form parameter
+// values. In case it does, it will try to convert the first value to an unsigned integer and
+// return it. If the first value is not an unsigned integer or there are no values
+// associated with paramKey, it will return the default value and set the Form
+// error field.
+func (f *Form) Uint(paramKey string, defaultValue uint64) uint64 {
 	if f.err != nil {
 		return defaultValue
 	}
-	vals, ok := f.values[paramName]
+	vals, ok := f.values[paramKey]
 	if !ok {
-		f.err = fmt.Errorf("no value found for key %q", paramName)
+		f.err = fmt.Errorf("no value found for key %q", paramKey)
 		return defaultValue
 	}
 	paramVal, err := strconv.ParseUint(vals[0], 10, 0)
@@ -70,26 +83,34 @@ func (f *Form) Uint(paramName string, defaultValue uint64) uint64 {
 	}
 	return paramVal
 }
-func (f *Form) String(paramName string, defaultValue string) string {
+
+// String checks whether key paramKey maps to any query or form parameter
+// values. In case it does, it will return the first value. If it does not, it
+// will return the default value and set the Form error field.
+func (f *Form) String(paramKey string, defaultValue string) string {
 	if f.err != nil {
 		return defaultValue
 	}
-	vals, ok := f.values[paramName]
+	vals, ok := f.values[paramKey]
 	if !ok {
-		f.err = fmt.Errorf("no value found for key %q", paramName)
+		f.err = fmt.Errorf("no value found for key %q", paramKey)
 		return defaultValue
 	}
 	return vals[0]
 }
 
-// Float64 TODO
-func (f *Form) Float64(paramName string, defaultValue float64) float64 {
+// Float64 checks whether key paramKey maps to any query or form parameter
+// values. In case it does, it will try toconvert the first value to a float and
+// return it. If the first value is not a float or there are no values
+// associated with paramKey, it will return the default value and set the Form
+// error field.
+func (f *Form) Float64(paramKey string, defaultValue float64) float64 {
 	if f.err != nil {
 		return defaultValue
 	}
-	vals, ok := f.values[paramName]
+	vals, ok := f.values[paramKey]
 	if !ok {
-		f.err = fmt.Errorf("no value found for key %q", paramName)
+		f.err = fmt.Errorf("no value found for key %q", paramKey)
 		return defaultValue
 	}
 	paramVal, err := strconv.ParseFloat(vals[0], 64)
@@ -100,52 +121,71 @@ func (f *Form) Float64(paramName string, defaultValue float64) float64 {
 	return paramVal
 }
 
-// Bool TODO
-func (f *Form) Bool(paramName string, defaultValue bool) bool {
+// Bool checks whether key paramKey maps to any query  or form parameter
+// values. In case it does, it will try to convert the first value to a booleand
+// and
+// return it. If the first value is not a boolean or there are no values
+// associated with paramKey, it will return the default value and set the Form
+// error field.
+func (f *Form) Bool(paramKey string, defaultValue bool) bool {
 	if f.err != nil {
 		return defaultValue
 	}
-	vals, ok := f.values[paramName]
+	vals, ok := f.values[paramKey]
 	if !ok {
-		f.err = fmt.Errorf("no value found for key %q", paramName)
+		f.err = fmt.Errorf("no value found for key %q", paramKey)
 		return defaultValue
 	}
-	if vals[0] != "true" {
-		if vals[0] != "false" {
-			f.err = fmt.Errorf("values of form parameter %q not a boolean", paramName)
-		}
+	switch vals[0] {
+	case "true":
+		return true
+	case "false":
 		return false
+	default:
+		f.err = fmt.Errorf("values of form parameter %q not a boolean", paramKey)
 	}
-	return true
+	return false
 }
 
-// Slice TODO
-func (f *Form) Slice(slice interface{}, paramName string) {
-	mapVals, ok := f.values[paramName]
-	switch values := slice.(type) {
+// clearSlice is a helper functions that clears the slice slicePtr points to when an error occured
+func (f *Form) clearSlice(slicePtr interface{}) {
+	switch vs := slicePtr.(type) {
 	case *[]string:
-		if f.err != nil {
-			*values = nil
-			return
-		}
-		if !ok {
-			f.err = fmt.Errorf("no value found for key %q", paramName)
-			*values = nil
-		}
+		*vs = nil
+	case *[]int:
+		*vs = nil
+	case *[]float64:
+		*vs = nil
+	case *[]uint64:
+		*vs = nil
+	case *[]bool:
+	default:
+		f.err = fmt.Errorf("type not supported in Slice call: %T", vs)
+	}
+}
+
+// Slice checks whether key paramKey maps to any query or form parameters. If it
+// does, it will try to convert them to the type of slice elements slicePtr
+// points to. If there are no values associated with paramKey or type conversion
+// fails at any point, the Form error field will be set and slicePtr will point
+// to nil.
+func (f *Form) Slice(slicePtr interface{}, paramKey string) {
+	if f.err != nil {
+		f.clearSlice(slicePtr)
+	}
+	mapVals, ok := f.values[paramKey]
+	if !ok {
+		f.clearSlice(slicePtr)
+		f.err = fmt.Errorf("no value found for key %q", paramKey)
+	}
+	switch values := slicePtr.(type) {
+	case *[]string:
 		res := make([]string, 0, len(mapVals))
 		for _, x := range mapVals {
 			res = append(res, x)
 		}
 		*values = res
 	case *[]int:
-		if f.err != nil {
-			*values = nil
-			return
-		}
-		if !ok {
-			f.err = fmt.Errorf("no value found for key %q", paramName)
-			*values = nil
-		}
 		res := make([]int, 0, len(mapVals))
 		for _, x := range mapVals {
 			x, err := strconv.Atoi(x)
@@ -158,34 +198,19 @@ func (f *Form) Slice(slice interface{}, paramName string) {
 			*values = res
 		}
 	case *[]uint64:
-		if f.err != nil {
-			*values = nil
-			return
-		}
-		if !ok {
-			f.err = fmt.Errorf("no value found for key %q", paramName)
-			*values = nil
-		}
 		res := make([]uint64, 0, len(mapVals))
 		for _, x := range mapVals {
 			x, err := strconv.ParseUint(x, 10, 0)
 			if err != nil {
 				f.err = err
 				*values = nil
+				slicePtr = values
 				return
 			}
 			res = append(res, x)
 		}
 		*values = res
 	case *[]float64:
-		if f.err != nil {
-			*values = nil
-			return
-		}
-		if !ok {
-			f.err = fmt.Errorf("no value found for key %q", paramName)
-			*values = nil
-		}
 		res := make([]float64, 0, len(mapVals))
 		for _, x := range mapVals {
 			x, err := strconv.ParseFloat(x, 64)
@@ -198,37 +223,30 @@ func (f *Form) Slice(slice interface{}, paramName string) {
 		}
 		*values = res
 	case *[]bool:
-		if f.err != nil {
-			*values = nil
-			return
-		}
-		if !ok {
-			f.err = fmt.Errorf("no value found for key %q ", paramName)
-			*values = nil
-		}
 		res := make([]bool, 0, len(mapVals))
 		for _, x := range mapVals {
-			if x != "true" {
-				if x != "false" {
-					f.err = fmt.Errorf("values of form parameter %q not a boolean", paramName)
-					*values = nil
-					return
-				}
+			switch x {
+			case "true":
+				res = append(res, true)
+			case "false":
 				res = append(res, false)
-				continue
+			default:
+				f.err = fmt.Errorf("values of form parameter %q not a boolean", paramKey)
+				*values = nil
+				return
 			}
-			res = append(res, true)
 		}
 		*values = res
 	default:
-		f.err = errors.New("slice type not supported")
+		f.clearSlice(slicePtr)
 	}
 	return
 }
 
-// Error TODO
-func (f *Form) Error() error {
+// Err returns the value of the Form error field. This will be nil unless an
+// error occured while accessing a parsed form value.
+func (f *Form) Err() error {
 	return f.err
 }
 
-// TODO(@mihalimara22): Create getter for the `file` field in MultipartForm
+// TODO(@mihalimara22): Create getters and tests for the `file` field in MultipartForm
