@@ -31,27 +31,17 @@ type Form struct {
 	err    error
 }
 
-// MultipartForm extends the Form structure to define a POST, PATCH or PUT
-// request that has Content-Type: multipart/form-data. Its fields are only
-// available after parsing the form, through getter functions that specify the
-// type.
-type MultipartForm struct {
-	Form
-	file map[string][]*multipart.FileHeader
-}
-
 // Int checks whether key paramKey maps to any query or form parameter
-// values. In case it does, it will try to convert the first value to an integer and
-// return it. If the first value is not an integer or there are no values
-// associated with paramKey, it will return the default value and set the Form
-// error field.
+// values. In case it does, it will try to convert the first value to an integer
+// and return it. If there are no values associated with paramKey, it will
+// return the default value. If the first value is not an integer, it will
+// return the default value and set the Form error field.
 func (f *Form) Int(paramKey string, defaultValue int) int {
 	if f.err != nil {
 		return defaultValue
 	}
 	vals, ok := f.values[paramKey]
 	if !ok {
-		f.err = fmt.Errorf("no value found for key %q", paramKey)
 		return defaultValue
 	}
 	paramVal, err := strconv.Atoi(vals[0])
@@ -63,9 +53,10 @@ func (f *Form) Int(paramKey string, defaultValue int) int {
 }
 
 // Uint checks whether key paramKey maps to any query or form parameter
-// values. In case it does, it will try to convert the first value to an unsigned integer and
-// return it. If the first value is not an unsigned integer or there are no values
-// associated with paramKey, it will return the default value and set the Form
+// values. In case it does, it will try to convert the first value to an
+// unsigned integer and return it. If there are no values associated with
+// paramKey, it will return the default value. If the first value is not an
+// unsigned integer, it will return the default value and set the Form
 // error field.
 func (f *Form) Uint(paramKey string, defaultValue uint64) uint64 {
 	if f.err != nil {
@@ -73,7 +64,6 @@ func (f *Form) Uint(paramKey string, defaultValue uint64) uint64 {
 	}
 	vals, ok := f.values[paramKey]
 	if !ok {
-		f.err = fmt.Errorf("no value found for key %q", paramKey)
 		return defaultValue
 	}
 	paramVal, err := strconv.ParseUint(vals[0], 10, 0)
@@ -85,32 +75,30 @@ func (f *Form) Uint(paramKey string, defaultValue uint64) uint64 {
 }
 
 // String checks whether key paramKey maps to any query or form parameter
-// values. In case it does, it will return the first value. If it does not, it
-// will return the default value and set the Form error field.
+// values. In case it does, it will return the first value. If it doesn't, it
+// will return the default value.
 func (f *Form) String(paramKey string, defaultValue string) string {
 	if f.err != nil {
 		return defaultValue
 	}
 	vals, ok := f.values[paramKey]
 	if !ok {
-		f.err = fmt.Errorf("no value found for key %q", paramKey)
 		return defaultValue
 	}
 	return vals[0]
 }
 
 // Float64 checks whether key paramKey maps to any query or form parameter
-// values. In case it does, it will try toconvert the first value to a float and
-// return it. If the first value is not a float or there are no values
-// associated with paramKey, it will return the default value and set the Form
-// error field.
+// values. In case it does, it will try to convert the first value to a float
+// and return it. If there are no values associated with paramKey, it will
+// return the default value. If the first value is not a float, it will return
+// the default value and set the Form error field.
 func (f *Form) Float64(paramKey string, defaultValue float64) float64 {
 	if f.err != nil {
 		return defaultValue
 	}
 	vals, ok := f.values[paramKey]
 	if !ok {
-		f.err = fmt.Errorf("no value found for key %q", paramKey)
 		return defaultValue
 	}
 	paramVal, err := strconv.ParseFloat(vals[0], 64)
@@ -122,18 +110,16 @@ func (f *Form) Float64(paramKey string, defaultValue float64) float64 {
 }
 
 // Bool checks whether key paramKey maps to any query  or form parameter
-// values. In case it does, it will try to convert the first value to a booleand
-// and
-// return it. If the first value is not a boolean or there are no values
-// associated with paramKey, it will return the default value and set the Form
-// error field.
+// values. In case it does, it will try to convert the first value to a boolean
+// and return it. If there are no values associated with paramKey, it will
+// return the default value. If the first value is not a boolean, it will return
+// the default value and set the Form error field.
 func (f *Form) Bool(paramKey string, defaultValue bool) bool {
 	if f.err != nil {
 		return defaultValue
 	}
 	vals, ok := f.values[paramKey]
 	if !ok {
-		f.err = fmt.Errorf("no value found for key %q", paramKey)
 		return defaultValue
 	}
 	switch vals[0] {
@@ -167,17 +153,18 @@ func clearSlice(slicePtr interface{}) error {
 
 // Slice checks whether key paramKey maps to any query or form parameters. If it
 // does, it will try to convert them to the type of slice elements slicePtr
-// points to. If there are no values associated with paramKey or type conversion
-// fails at any point, the Form error field will be set and slicePtr will point
-// to nil.
+// points to. If there are no values associated with paramKey, it will clear the
+// slice. If type conversion fails at any point, the Form error field will be
+// set and the slice will be cleared.
 func (f *Form) Slice(slicePtr interface{}, paramKey string) {
 	if f.err != nil {
 		f.err = clearSlice(slicePtr)
+		return
 	}
 	mapVals, ok := f.values[paramKey]
 	if !ok {
-		clearSlice(slicePtr)
-		f.err = fmt.Errorf("no value found for key %q", paramKey)
+		f.err = clearSlice(slicePtr)
+		return
 	}
 	switch values := slicePtr.(type) {
 	case *[]string:
@@ -248,6 +235,15 @@ func (f *Form) Slice(slicePtr interface{}, paramKey string) {
 // error occured while accessing a parsed form value.
 func (f *Form) Err() error {
 	return f.err
+}
+
+// MultipartForm extends the Form structure to define a POST, PATCH or PUT
+// request that has Content-Type: multipart/form-data. Its fields are only
+// available after parsing the form, through getter functions that specify the
+// type.
+type MultipartForm struct {
+	Form
+	file map[string][]*multipart.FileHeader
 }
 
 // TODO(@mihalimara22): Create getters and tests for the `file` field in MultipartForm
