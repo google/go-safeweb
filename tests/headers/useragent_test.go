@@ -46,18 +46,6 @@ func TestUserAgent(t *testing.T) {
 			},
 		},
 		{
-			name: "Ordering",
-			request: []byte("GET / HTTP/1.1\r\n" +
-				"Host: localhost:8080\r\n" +
-				"User-Agent: BlahBlah\r\n" +
-				"User-Agent: FooFoo\r\n" +
-				"\r\n"),
-			want: testWant{
-				headers:   map[string][]string{"User-Agent": []string{"BlahBlah", "FooFoo"}},
-				useragent: "BlahBlah",
-			},
-		},
-		{
 			name: "CasingOrdering1",
 			request: []byte("GET / HTTP/1.1\r\n" +
 				"Host: localhost:8080\r\n" +
@@ -103,4 +91,58 @@ func TestUserAgent(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestUserAgentOrdering(t *testing.T) {
+	// It is not clear from the documentation of http.Request.UserAgent()
+	// that only the first User-Agent header is used and any other ones
+	// are ignored. This could potentially lead to security issues if two
+	// HTTP servers are chained that look at different headers.
+	//
+	// The desired behavior would instead be for http.Request.UserAgent() to
+	// return an error of some sort or an empty string when there are more
+	// than one User-Agent header.
+
+	request := []byte("GET / HTTP/1.1\r\n" +
+		"Host: localhost:8080\r\n" +
+		"User-Agent: BlahBlah\r\n" +
+		"User-Agent: FooFoo\r\n" +
+		"\r\n")
+
+	t.Run("Current behavior", func(t *testing.T) {
+		resp, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
+			wantHeaders := map[string][]string{"User-Agent": []string{"BlahBlah", "FooFoo"}}
+			if diff := cmp.Diff(wantHeaders, map[string][]string(r.Header)); diff != "" {
+				t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
+			}
+
+			if want := "BlahBlah"; r.UserAgent() != want {
+				t.Errorf("r.UserAgent() got: %q want: %q", r.UserAgent(), want)
+			}
+		})
+		if err != nil {
+			t.Fatalf("MakeRequest() got err: %v want: nil", err)
+		}
+
+		if got, want := extractStatus(resp), statusOK; got != want {
+			t.Errorf("status code got: %q want: %q", got, want)
+		}
+	})
+
+	t.Run("Desired behavior", func(t *testing.T) {
+		t.Skip()
+		_, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
+			wantHeaders := map[string][]string{"User-Agent": []string{"BlahBlah", "FooFoo"}}
+			if diff := cmp.Diff(wantHeaders, map[string][]string(r.Header)); diff != "" {
+				t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
+			}
+
+			if want := ""; r.UserAgent() != want {
+				t.Errorf("r.UserAgent() got: %q want: %q", r.UserAgent(), want)
+			}
+		})
+		if err != nil {
+			t.Fatalf("MakeRequest() got err: %v want: nil", err)
+		}
+	})
 }
