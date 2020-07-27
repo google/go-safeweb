@@ -170,8 +170,8 @@ func TestBasicAuthOrdering(t *testing.T) {
 	// are ignored. This could potentially lead to security issues if two
 	// HTTP servers that look at different headers are chained together.
 	//
-	// The desired behavior would be for http.Request.BasicAuth() to
-	// return ok as false when there is more than one Authorization header.
+	// The desired behavior would be to respond with 400 (Bad Request) when
+	// there is more than one Authorization header.
 
 	request := []byte("GET / HTTP/1.1\r\n" +
 		"Host: localhost:8080\r\n" +
@@ -213,20 +213,15 @@ func TestBasicAuthOrdering(t *testing.T) {
 
 	t.Run("Desired behavior", func(t *testing.T) {
 		t.Skip()
-		_, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
-			// Base64 encoding of "AAA:aaa" and then of "BBB:bbb" in that order.
-			wantHeaders := map[string][]string{"Authorization": []string{"basic QUFBOmFhYQ==", "basic QkJCOmJiYg=="}}
-			if diff := cmp.Diff(wantHeaders, map[string][]string(r.Header)); diff != "" {
-				t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
-			}
-
-			_, _, ok := r.BasicAuth()
-			if want := false; ok != want {
-				t.Errorf("_, _, ok := r.BasicAuth() got: %v want: %v", ok, want)
-			}
+		resp, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
+			t.Error("Expected handler to not be called!")
 		})
 		if err != nil {
 			t.Fatalf("MakeRequest() got err: %v want: nil", err)
+		}
+
+		if got, want := extractStatus(resp), statusBadRequest; got != want {
+			t.Errorf("status code got: %q want: %q", got, want)
 		}
 	})
 }
