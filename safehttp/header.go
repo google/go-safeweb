@@ -121,6 +121,8 @@ func (h Header) SetCookie(cookie *http.Cookie) {
 // writableHeader assumes that the given name already has been canonicalized
 // using textproto.CanonicalMIMEHeaderKey.
 func (h Header) writableHeader(name string) error {
+	// TODO(@mattiasgrenfeldt, @kele, @empijei): Think about how this should
+	// work during legacy conversions.
 	if name == "Set-Cookie" {
 		return errors.New("can't write to Set-Cookie header")
 	}
