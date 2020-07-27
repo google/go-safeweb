@@ -302,12 +302,12 @@ func TestTransferEncodingChunkSizeLength(t *testing.T) {
 }
 
 func TestMultipleTransferEncodingChunkedFirst(t *testing.T) {
-	// When faced with two Transfer-Encoding headers net/http
+	// When faced with two Transfer-Encoding headers, net/http
 	// currently only looks at the first one and ignores the
 	// rest.
 	//
-	// RFC 7230 doesn’t say anything specifically about
-	// having multiple TE headers. It only says that in general
+	// RFC 7230 doesn’t say anything specific about
+	// having multiple TE headers. It only says that, in general
 	// a recipient may combine the value of multiple headers
 	// with the same name:
 	// “ [...] A recipient MAY combine multiple header fields
@@ -323,8 +323,8 @@ func TestMultipleTransferEncodingChunkedFirst(t *testing.T) {
 	//
 	// net/http should probably reject requests with two TE headers
 	// just as it does with requests having two CL headers.
-	// I (grenfeldt@) see no legitimate reason for having two TE
-	// headers since the TE header already supports having multiple
+	// There is no legitimate reason for having two TE headers
+	// since the TE header already supports having multiple
 	// encodings in the same header delimited by commas.
 	//
 	// The desired behavior would therefore be to respond with
@@ -457,11 +457,9 @@ func TestTransferEncodingIdentity(t *testing.T) {
 }
 
 func TestTransferEncodingListIdentityFirst(t *testing.T) {
-	// In TestTransferEncodingIdentity we see that the
-	// identity transfer coding should not be supported
-	// at all. But in the current implementation, where
-	// identity is supported, there is a bug. Any transfer
-	// coding that you put after identity in the list of
+	// There is a bug in the handling of lists of transfer
+	// codings that contain the identity encoding. Any transfer
+	// coding that is put after identity in the list of
 	// transfer codings is ignored. Even if it doesn't
 	// exists.
 	//

@@ -94,13 +94,13 @@ func TestUserAgent(t *testing.T) {
 }
 
 func TestUserAgentOrdering(t *testing.T) {
-	// It is not clear from the documentation of http.Request.UserAgent()
-	// that only the first User-Agent header is used and any other ones
+	// The documentation of http.Request.UserAgent() doesn't clearly specify
+	// that only the first User-Agent header is used and that the other ones
 	// are ignored. This could potentially lead to security issues if two
-	// HTTP servers are chained that look at different headers.
+	// HTTP servers that look at different headers are chained together.
 	//
-	// The desired behavior would instead be for http.Request.UserAgent() to
-	// return an error of some sort or an empty string when there are more
+	// The desired behavior would be for http.Request.UserAgent() to
+	// return an error or an empty string when there are more
 	// than one User-Agent header.
 
 	request := []byte("GET / HTTP/1.1\r\n" +

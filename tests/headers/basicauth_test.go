@@ -165,13 +165,13 @@ func TestBasicAuth(t *testing.T) {
 }
 
 func TestBasicAuthOrdering(t *testing.T) {
-	// It is not clear from the documentation of http.Request.BasicAuth()
-	// that only the first Authorization header is used and any other ones
+	// The documentation of http.Request.BasicAuth() doesn't clearly specify
+	// that only the first Authorization header is used and that the other ones
 	// are ignored. This could potentially lead to security issues if two
-	// HTTP servers are chained that look at different headers.
+	// HTTP servers that look at different headers are chained together.
 	//
-	// The desired behavior would instead be for http.Request.BasicAuth() to
-	// return ok as false when there are more than one Authorization header.
+	// The desired behavior would be for http.Request.BasicAuth() to
+	// return ok as false when there is more than one Authorization header.
 
 	request := []byte("GET / HTTP/1.1\r\n" +
 		"Host: localhost:8080\r\n" +
