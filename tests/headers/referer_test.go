@@ -95,13 +95,13 @@ func TestReferer(t *testing.T) {
 }
 
 func TestRefererOrdering(t *testing.T) {
-	// It is not clear from the documentation of http.Request.Referer()
-	// that only the first Referer header is used and any other ones
+	// The documentation of http.Request.Referer() doesn't clearly specify
+	// that only the first Referer header is used and that the other ones
 	// are ignored. This could potentially lead to security issues if two
-	// HTTP servers are chained that look at different headers.
+	// HTTP servers that look at different headers are chained together.
 	//
-	// The desired behavior would instead be for http.Request.Referer() to
-	// return an error of some sort or an empty string when there are more
+	// The desired behavior would be for http.Request.Referer() to
+	// return an error or an empty string when there are more
 	// than one Referer header.
 
 	request := []byte("GET / HTTP/1.1\r\n" +

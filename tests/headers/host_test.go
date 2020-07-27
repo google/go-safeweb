@@ -106,9 +106,7 @@ func TestHostHeaderMultiple(t *testing.T) {
 }
 
 func TestAbsoluteFormURLInvalidSchema(t *testing.T) {
-	// (I (grenfeldt@) don't actually know whether this
-	// is intended behavior or not, but it looks wrong
-	// to me.) When sending a request using the absolute
+	// When sending a request using the absolute
 	// form as the request target, any schema is currently
 	// accepted.
 	//
