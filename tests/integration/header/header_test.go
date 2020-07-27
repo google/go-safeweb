@@ -16,6 +16,7 @@ package header
 
 import (
 	"bufio"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -42,6 +43,28 @@ func (dispatcher) ExecuteTemplate(rw http.ResponseWriter, t safehttp.Template, d
 	return nil
 }
 
+type responseWriter struct {
+	header http.Header
+	writer io.Writer
+	status int
+}
+
+func newResponseWriter(w io.Writer) *responseWriter {
+	return &responseWriter{header: http.Header{}, writer: w, status: http.StatusOK}
+}
+
+func (r responseWriter) Header() http.Header {
+	return r.header
+}
+
+func (r *responseWriter) WriteHeader(statusCode int) {
+	r.status = statusCode
+}
+
+func (r responseWriter) Write(data []byte) (int, error) {
+	return r.writer.Write(data)
+}
+
 func TestAccessIncomingHeaders(t *testing.T) {
 	m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		if got, want := r.Header.Get("A"), "B"; got != want {
@@ -57,9 +80,11 @@ func TestAccessIncomingHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("http.ReadRequest() got err: %v", err)
 	}
-	recorder := httptest.NewRecorder()
 
-	m.HandleRequest(recorder, req)
+	b := &strings.Builder{}
+	rw := newResponseWriter(b)
+
+	m.HandleRequest(rw, req)
 }
 
 func TestChangingResponseHeaders(t *testing.T) {
@@ -69,14 +94,14 @@ func TestChangingResponseHeaders(t *testing.T) {
 	}, &dispatcher{})
 
 	req := httptest.NewRequest("GET", "/", nil)
-	recorder := httptest.NewRecorder()
 
-	m.HandleRequest(recorder, req)
+	b := &strings.Builder{}
+	rw := newResponseWriter(b)
 
-	resp := recorder.Result()
+	m.HandleRequest(rw, req)
 
 	want := []string{"Pasta"}
-	if diff := cmp.Diff(want, resp.Header["Pizza"]); diff != "" {
+	if diff := cmp.Diff(want, rw.Header()["Pizza"]); diff != "" {
 		t.Errorf(`resp.Header["Pizza"] mismatch (-want +got):\n%s`, diff)
 	}
 }
