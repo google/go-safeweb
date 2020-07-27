@@ -71,22 +71,13 @@ func TestHeaderParsing(t *testing.T) {
 			want: map[string][]string{"A": []string{"X", "Y", "Z", "W"}},
 		},
 		{
-			name: "MultiLineHeaderSpace",
-			request: []byte("GET / HTTP/1.1\r\n" +
-				"Host: localhost:8080\r\n" +
-				"AAAA: aaaa aaa\r\n" +
-				" aaa aaa\r\n" +
-				"\r\n"),
-			want: http.Header{"Aaaa": []string{"aaaa aaa aaa aaa"}},
-		},
-		{
 			name: "MultiLineHeaderTab",
 			request: []byte("GET / HTTP/1.1\r\n" +
 				"Host: localhost:8080\r\n" +
 				"AAAA: aaaa aaa\r\n" +
 				"\taaa aaa\r\n" +
 				"\r\n"),
-			want: http.Header{"Aaaa": []string{"aaaa aaa aaa aaa"}},
+			want: map[string][]string{"Aaaa": []string{"aaaa aaa aaa aaa"}},
 		},
 		{
 			name: "MultiLineHeaderManyLines",
@@ -96,7 +87,7 @@ func TestHeaderParsing(t *testing.T) {
 				" aaa\r\n" +
 				" aaa\r\n" +
 				"\r\n"),
-			want: http.Header{"Aaaa": []string{"aaaa aaa aaa aaa"}},
+			want: map[string][]string{"Aaaa": []string{"aaaa aaa aaa aaa"}},
 		},
 		{
 			name: "UnicodeValue",
@@ -104,7 +95,7 @@ func TestHeaderParsing(t *testing.T) {
 				"Host: localhost:8080\r\n" +
 				"A: \xf0\x9f\xa5\xb3\r\n" +
 				"\r\n"),
-			want: http.Header{"A": []string{"\xf0\x9f\xa5\xb3"}},
+			want: map[string][]string{"A": []string{"\xf0\x9f\xa5\xb3"}},
 		},
 	}
 
@@ -251,4 +242,61 @@ func TestValues(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestMultiLineHeader(t *testing.T) {
+	// Multiline continuation has been deprecated as of RFC 7230.
+	// " Historically, HTTP header field values could be extended over
+	//   multiple lines by preceding each extra line with at least one space
+	//   or horizontal tab (obs-fold).  This specification deprecates such
+	//   line folding [...]
+	//    A server that receives an obs-fold in a request message that is not
+	//   within a message/http container MUST either reject the message by
+	//   sending a 400 (Bad Request), preferably with a representation
+	//   explaining that obsolete line folding is unacceptable, or replace
+	//   each received obs-fold with one or more SP octets prior to
+	//   interpreting the field value or forwarding the message downstream. "
+	// - RFC 7230 Section 3.2.4
+	//
+	// Currently obs-folds are replaced with spaces before the value of the
+	// header is interpreted. This is in line with the RFC. But it would
+	// be more robust and future proof to drop the support of multiline
+	// continuation entirely and instead respond with a 400 (Bad Request)
+	// like the RFC also suggests.
+
+	request := []byte("GET / HTTP/1.1\r\n" +
+		"Host: localhost:8080\r\n" +
+		"AAAA: aaaa aaa\r\n" +
+		" aaa aaa\r\n" +
+		"\r\n")
+
+	t.Run("Current behavior", func(t *testing.T) {
+		resp, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
+			want := map[string][]string{"Aaaa": []string{"aaaa aaa aaa aaa"}}
+			if diff := cmp.Diff(want, map[string][]string(r.Header)); diff != "" {
+				t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
+			}
+		})
+		if err != nil {
+			t.Fatalf("MakeRequest() got err: %v want: nil", err)
+		}
+
+		if got, want := extractStatus(resp), statusOK; got != want {
+			t.Errorf("status code got: %q want: %q", got, want)
+		}
+	})
+
+	t.Run("Desired behavior", func(t *testing.T) {
+		t.Skip()
+		resp, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
+			t.Error("Expected handler to not be called!")
+		})
+		if err != nil {
+			t.Fatalf("MakeRequest() got err: %v want: nil", err)
+		}
+
+		if got, want := extractStatus(resp), statusBadRequest; got != want {
+			t.Errorf("status code got: %q want: %q", got, want)
+		}
+	})
 }

@@ -98,23 +98,6 @@ func TestBasicAuth(t *testing.T) {
 			wantHeaders: map[string][]string{"Authorization": []string{"xasic UGl6emE6UGFzc3dvcmQ6UGFzc3dvcmQ="}},
 		},
 		{
-			name: "Ordering",
-			request: []byte("GET / HTTP/1.1\r\n" +
-				"Host: localhost:8080\r\n" +
-				// Base64 encoding of "AAA:aaa".
-				"Authorization: basic QUFBOmFhYQ==\r\n" +
-				// Base64 encoding of "BBB:bbb".
-				"Authorization: basic QkJCOmJiYg==\r\n" +
-				"\r\n"),
-			wantBasicAuth: basicAuth{
-				username: "AAA",
-				password: "aaa",
-				ok:       true,
-			},
-			// Base64 encoding of "AAA:aaa" and then of "BBB:bbb" in that order.
-			wantHeaders: map[string][]string{"Authorization": []string{"basic QUFBOmFhYQ==", "basic QkJCOmJiYg=="}},
-		},
-		{
 			name: "CasingOrdering1",
 			request: []byte("GET / HTTP/1.1\r\n" +
 				"Host: localhost:8080\r\n" +
@@ -179,4 +162,71 @@ func TestBasicAuth(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestBasicAuthOrdering(t *testing.T) {
+	// It is not clear from the documentation of http.Request.BasicAuth()
+	// that only the first Authorization header is used and any other ones
+	// are ignored. This could potentially lead to security issues if two
+	// HTTP servers are chained that look at different headers.
+	//
+	// The desired behavior would instead be for http.Request.BasicAuth() to
+	// return ok as false when there are more than one Authorization header.
+
+	request := []byte("GET / HTTP/1.1\r\n" +
+		"Host: localhost:8080\r\n" +
+		// Base64 encoding of "AAA:aaa".
+		"Authorization: basic QUFBOmFhYQ==\r\n" +
+		// Base64 encoding of "BBB:bbb".
+		"Authorization: basic QkJCOmJiYg==\r\n" +
+		"\r\n")
+
+	t.Run("Current behavior", func(t *testing.T) {
+		resp, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
+			// Base64 encoding of "AAA:aaa" and then of "BBB:bbb" in that order.
+			wantHeaders := map[string][]string{"Authorization": []string{"basic QUFBOmFhYQ==", "basic QkJCOmJiYg=="}}
+			if diff := cmp.Diff(wantHeaders, map[string][]string(r.Header)); diff != "" {
+				t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
+			}
+
+			username, password, ok := r.BasicAuth()
+			if want := true; ok != want {
+				t.Errorf("_, _, ok := r.BasicAuth() got: %v want: %v", ok, want)
+			}
+
+			if want := "AAA"; username != want {
+				t.Errorf("username, _, _ := r.BasicAuth() got: %q want: %q", username, want)
+			}
+
+			if want := "aaa"; password != want {
+				t.Errorf("_, password, _ := r.BasicAuth() got: %q want: %q", password, want)
+			}
+		})
+		if err != nil {
+			t.Fatalf("MakeRequest() got err: %v want: nil", err)
+		}
+
+		if got, want := extractStatus(resp), statusOK; got != want {
+			t.Errorf("status code got: %q want: %q", got, want)
+		}
+	})
+
+	t.Run("Desired behavior", func(t *testing.T) {
+		t.Skip()
+		_, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
+			// Base64 encoding of "AAA:aaa" and then of "BBB:bbb" in that order.
+			wantHeaders := map[string][]string{"Authorization": []string{"basic QUFBOmFhYQ==", "basic QkJCOmJiYg=="}}
+			if diff := cmp.Diff(wantHeaders, map[string][]string(r.Header)); diff != "" {
+				t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
+			}
+
+			_, _, ok := r.BasicAuth()
+			if want := false; ok != want {
+				t.Errorf("_, _, ok := r.BasicAuth() got: %v want: %v", ok, want)
+			}
+		})
+		if err != nil {
+			t.Fatalf("MakeRequest() got err: %v want: nil", err)
+		}
+	})
 }
