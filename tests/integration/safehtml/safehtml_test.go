@@ -15,9 +15,10 @@
 package safehtml_test
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/google/go-safeweb/safehttp"
@@ -46,26 +47,44 @@ func (dispatcher) ExecuteTemplate(rw http.ResponseWriter, t safehttp.Template, d
 	}
 }
 
+type responseWriter struct {
+	header http.Header
+	writer io.Writer
+	status int
+}
+
+func newResponseWriter(w io.Writer) *responseWriter {
+	return &responseWriter{header: http.Header{}, writer: w, status: http.StatusOK}
+}
+
+func (r responseWriter) Header() http.Header {
+	return r.header
+}
+
+func (r *responseWriter) WriteHeader(statusCode int) {
+	r.status = statusCode
+}
+
+func (r responseWriter) Write(data []byte) (int, error) {
+	return r.writer.Write(data)
+}
+
 func TestHandleRequestWrite(t *testing.T) {
 	m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, _ *safehttp.IncomingRequest) safehttp.Result {
 		return rw.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
 	}, &dispatcher{})
 
 	req := httptest.NewRequest("GET", "/", nil)
-	recorder := httptest.NewRecorder()
 
-	m.HandleRequest(recorder, req)
+	b := &strings.Builder{}
+	rw := newResponseWriter(b)
 
-	resp := recorder.Result()
+	m.HandleRequest(rw, req)
 
-	want := "&lt;h1&gt;Escaped, so not really a heading&lt;/h1&gt;"
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf("ioutil.ReadAll(resp.Body) got err: %v, want nil", err)
-	}
+	body := b.String()
 
-	if got := string(body); got != want {
-		t.Errorf("resp.Body: got = %q, want %q", got, want)
+	if want := "&lt;h1&gt;Escaped, so not really a heading&lt;/h1&gt;"; body != want {
+		t.Errorf("body got: %q want: %q", body, want)
 	}
 }
 
@@ -75,19 +94,15 @@ func TestHandleRequestWriteTemplate(t *testing.T) {
 	}, &dispatcher{})
 
 	req := httptest.NewRequest("GET", "/", nil)
-	recorder := httptest.NewRecorder()
 
-	m.HandleRequest(recorder, req)
+	b := &strings.Builder{}
+	rw := newResponseWriter(b)
 
-	resp := recorder.Result()
+	m.HandleRequest(rw, req)
 
-	want := "<h1>This is an actual heading, though.</h1>"
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf("ioutil.ReadAll(resp.Body) got err: %v, want nil", err)
-	}
+	body := b.String()
 
-	if got := string(body); got != want {
-		t.Errorf("resp.Body: got = %q, want %q", got, want)
+	if want := "<h1>This is an actual heading, though.</h1>"; body != want {
+		t.Errorf("body got: %q want: %q", body, want)
 	}
 }
