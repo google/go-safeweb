@@ -21,7 +21,7 @@ import (
 )
 
 // Form contains parsed data either from URL's query or form parameters, part of
-// the body of POST, PATCH or PUT requests that are not  multipart requests. The 
+// the body of POST, PATCH or PUT requests that are not  multipart requests. The
 // form values will only be available after parsing the form, and only through
 // the getter functions.
 type Form struct {
@@ -162,8 +162,8 @@ func (f *Form) Slice(slicePtr interface{}, paramKey string) {
 				return
 			}
 			res = append(res, x)
-			*values = res
 		}
+		*values = res
 	case *[]uint64:
 		res := make([]uint64, 0, len(mapVals))
 		for _, x := range mapVals {
@@ -171,7 +171,6 @@ func (f *Form) Slice(slicePtr interface{}, paramKey string) {
 			if err != nil {
 				f.err = err
 				*values = nil
-				slicePtr = values
 				return
 			}
 			res = append(res, x)
