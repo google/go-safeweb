@@ -86,6 +86,9 @@ func (r *IncomingRequest) PostForm() (f *Form, err error) {
 // a POST request with the Content-Type: multipart/form-data header.
 func (r *IncomingRequest) MultipartForm(maxMemory int64) (f *MultipartForm, err error) {
 	r.parseOnce.Do(func() {
+		// Ensures no more than 32 MB are stored in memory when a form file is
+		// passed as part of the request. If this is bigger than 32 MB, the rest
+		// will be stored on disk.
 		const defaultMaxMemory = 32 << 20
 		if r.req.Method != "POST" && r.req.Method != "PATCH" && r.req.Method != "PUT" {
 			f, err = nil, fmt.Errorf("got request method %s, want POST/PATCH/PUT", r.req.Method)
