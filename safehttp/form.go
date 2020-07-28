@@ -31,17 +31,17 @@ type Form struct {
 	err    error
 }
 
-// Int checks whether key paramKey maps to any query or form parameter
-// values. In case it does, it will try to convert the first value to an integer
-// and return it. If there are no values associated with paramKey, it will
-// return the default value. If the first value is not an integer, it will
+// Int64 checks whether key paramKey maps to any query or form parameter
+// values. In case it does, it will try to convert the first value to a 64-bit
+// integer and return it. If there are no values associated with paramKey, it
+// will return the default value. If the first value is not an integer, it will
 // return the default value and set the Form error field.
-func (f *Form) Int(paramKey string, defaultValue int) int {
+func (f *Form) Int64(paramKey string, defaultValue int64) int64 {
 	vals, ok := f.values[paramKey]
 	if !ok {
 		return defaultValue
 	}
-	paramVal, err := strconv.Atoi(vals[0])
+	paramVal, err := strconv.ParseInt(vals[0], 10, 64)
 	if err != nil {
 		f.err = err
 		return defaultValue
@@ -49,18 +49,18 @@ func (f *Form) Int(paramKey string, defaultValue int) int {
 	return paramVal
 }
 
-// Uint checks whether key paramKey maps to any query or form parameter
+// Uint64 checks whether key paramKey maps to any query or form parameter
 // values. In case it does, it will try to convert the first value to an
-// unsigned integer and return it. If there are no values associated with
+// 64-bit unsigned integer and return it. If there are no values associated with
 // paramKey, it will return the default value. If the first value is not an
 // unsigned integer, it will return the default value and set the Form
 // error field.
-func (f *Form) Uint(paramKey string, defaultValue uint64) uint64 {
+func (f *Form) Uint64(paramKey string, defaultValue uint64) uint64 {
 	vals, ok := f.values[paramKey]
 	if !ok {
 		return defaultValue
 	}
-	paramVal, err := strconv.ParseUint(vals[0], 10, 0)
+	paramVal, err := strconv.ParseUint(vals[0], 10, 64)
 	if err != nil {
 		f.err = err
 		return defaultValue
@@ -122,7 +122,7 @@ func clearSlice(slicePtr interface{}) error {
 	switch vs := slicePtr.(type) {
 	case *[]string:
 		*vs = nil
-	case *[]int:
+	case *[]int64:
 		*vs = nil
 	case *[]float64:
 		*vs = nil
@@ -154,10 +154,10 @@ func (f *Form) Slice(slicePtr interface{}, paramKey string) {
 			res = append(res, x)
 		}
 		*values = res
-	case *[]int:
-		res := make([]int, 0, len(mapVals))
+	case *[]int64:
+		res := make([]int64, 0, len(mapVals))
 		for _, x := range mapVals {
-			x, err := strconv.Atoi(x)
+			x, err := strconv.ParseInt(x, 10, 64)
 			if err != nil {
 				f.err = err
 				*values = nil
@@ -169,7 +169,7 @@ func (f *Form) Slice(slicePtr interface{}, paramKey string) {
 	case *[]uint64:
 		res := make([]uint64, 0, len(mapVals))
 		for _, x := range mapVals {
-			x, err := strconv.ParseUint(x, 10, 0)
+			x, err := strconv.ParseUint(x, 10, 64)
 			if err != nil {
 				f.err = err
 				*values = nil
