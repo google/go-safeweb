@@ -225,6 +225,7 @@ func (f *Form) Slice(slicePtr interface{}, paramKey string) {
 			}
 		}
 		*values = res
+
 	default:
 		f.err = clearSlice(slicePtr)
 	}
