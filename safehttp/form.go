@@ -37,9 +37,6 @@ type Form struct {
 // return the default value. If the first value is not an integer, it will
 // return the default value and set the Form error field.
 func (f *Form) Int(paramKey string, defaultValue int) int {
-	if f.err != nil {
-		return defaultValue
-	}
 	vals, ok := f.values[paramKey]
 	if !ok {
 		return defaultValue
@@ -59,9 +56,6 @@ func (f *Form) Int(paramKey string, defaultValue int) int {
 // unsigned integer, it will return the default value and set the Form
 // error field.
 func (f *Form) Uint(paramKey string, defaultValue uint64) uint64 {
-	if f.err != nil {
-		return defaultValue
-	}
 	vals, ok := f.values[paramKey]
 	if !ok {
 		return defaultValue
@@ -78,9 +72,6 @@ func (f *Form) Uint(paramKey string, defaultValue uint64) uint64 {
 // values. In case it does, it will return the first value. If it doesn't, it
 // will return the default value.
 func (f *Form) String(paramKey string, defaultValue string) string {
-	if f.err != nil {
-		return defaultValue
-	}
 	vals, ok := f.values[paramKey]
 	if !ok {
 		return defaultValue
@@ -94,9 +85,6 @@ func (f *Form) String(paramKey string, defaultValue string) string {
 // return the default value. If the first value is not a float, it will return
 // the default value and set the Form error field.
 func (f *Form) Float64(paramKey string, defaultValue float64) float64 {
-	if f.err != nil {
-		return defaultValue
-	}
 	vals, ok := f.values[paramKey]
 	if !ok {
 		return defaultValue
@@ -115,9 +103,6 @@ func (f *Form) Float64(paramKey string, defaultValue float64) float64 {
 // return the default value. If the first value is not a boolean, it will return
 // the default value and set the Form error field.
 func (f *Form) Bool(paramKey string, defaultValue bool) bool {
-	if f.err != nil {
-		return defaultValue
-	}
 	vals, ok := f.values[paramKey]
 	if !ok {
 		return defaultValue
@@ -157,10 +142,6 @@ func clearSlice(slicePtr interface{}) error {
 // slice. If type conversion fails at any point, the Form error field will be
 // set and the slice will be cleared.
 func (f *Form) Slice(slicePtr interface{}, paramKey string) {
-	if f.err != nil {
-		f.err = clearSlice(slicePtr)
-		return
-	}
 	mapVals, ok := f.values[paramKey]
 	if !ok {
 		f.err = clearSlice(slicePtr)
