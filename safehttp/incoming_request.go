@@ -33,7 +33,8 @@ func newIncomingRequest(req *http.Request) IncomingRequest {
 }
 
 // QueryForm parses the query parameters provided in the request. It returns
-// the parsed parameters as a Form object, if no error occured, or the parsing error otherwise.
+// the parsed query parameters as a Form object, if no error occurred. If a parsing 
+// error occurs it will return it, together with a nil Form.
 func (r *IncomingRequest) QueryForm() (f *Form, err error) {
 	r.parseOnce.Do(func() {
 		if r.req.Method != "GET" {
@@ -49,7 +50,10 @@ func (r *IncomingRequest) QueryForm() (f *Form, err error) {
 
 // PostForm parses the form parameters provided in the body of a POST, PATCH or
 // PUT request that does not have Content-Type: multipart/form-data. It returns
-// the parsed parameters as a Form object, if no error occured, or the parsing error otherwise.
+// the parsed form parameters as a Form object, if no error occurred. If a parsing 
+// error occurs it will return it, together with a nil Form. Unless we expect the 
+// header Content-Type: multipart/form-data in a POST request, this method should 
+// always be used for forms in POST requests.
 func (r *IncomingRequest) PostForm() (f *Form, err error) {
 	r.parseOnce.Do(func() {
 		if r.req.Method != "POST" && r.req.Method != "PATCH" && r.req.Method != "PUT" {
@@ -68,9 +72,11 @@ func (r *IncomingRequest) PostForm() (f *Form, err error) {
 }
 
 // MultipartForm parses the form parameters provided in the body of a POST,
-// PATCH or PUT request that has Content-Type set tomultipart/form-data. It
+// PATCH or PUT request that has Content-Type set to multipart/form-data. It
 // returns a MultipartForm object containing the parsed form parameter and
-// files, if no error occured, or the parsing error otherwise.
+// files, if no error occurred, or the parsing error together with a nil 
+// MultipartForm otherwise. This method should  only be used when the user expects 
+// a POST request with the Content-Type: multipart/form-data header.
 func (r *IncomingRequest) MultipartForm(maxMemory int64) (f *MultipartForm, err error) {
 	r.parseOnce.Do(func() {
 		const defaultMaxMemory = 32 << 20
