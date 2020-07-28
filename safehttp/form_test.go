@@ -71,7 +71,7 @@ func getParsedForm(r *IncomingRequest) (*Form, error) {
 	return &mf.Form, err
 }
 
-func TestValidInt(t *testing.T) {
+func TestFormValidInt(t *testing.T) {
 	maxIntToString := strconv.Itoa(math.MaxInt64)
 	tests := []struct {
 		name    string
@@ -134,7 +134,7 @@ func TestValidInt(t *testing.T) {
 	}
 }
 
-func TestInvalidInt(t *testing.T) {
+func TestFormInvalidInt(t *testing.T) {
 	tests := []struct {
 		name    string
 		reqs    *[]*http.Request
@@ -207,7 +207,7 @@ func TestInvalidInt(t *testing.T) {
 	}
 }
 
-func TestValidUint(t *testing.T) {
+func TestFormValidUint(t *testing.T) {
 	maxUintToString := strconv.FormatUint(math.MaxUint64, 10)
 	tests := []struct {
 		name    string
@@ -270,7 +270,7 @@ func TestValidUint(t *testing.T) {
 	}
 }
 
-func TestInvalidUint(t *testing.T) {
+func TestFormInvalidUint(t *testing.T) {
 	tests := []struct {
 		name    string
 		reqs    *[]*http.Request
@@ -341,7 +341,7 @@ func TestInvalidUint(t *testing.T) {
 	}
 }
 
-func TestValidString(t *testing.T) {
+func TestFormValidString(t *testing.T) {
 	tests := []struct {
 		name     string
 		reqs     *[]*http.Request
@@ -422,7 +422,7 @@ func TestValidString(t *testing.T) {
 	}
 }
 
-func TestValidFloat64(t *testing.T) {
+func TestFormValidFloat64(t *testing.T) {
 
 	maxFloatToString := strconv.FormatFloat(math.MaxFloat64, 'f', 6, 64)
 	negativeFloatToString := strconv.FormatFloat(-math.SmallestNonzeroFloat64, 'f', 324, 64)
@@ -504,7 +504,7 @@ func TestValidFloat64(t *testing.T) {
 	}
 }
 
-func TestInvalidFloat64(t *testing.T) {
+func TestFormInvalidFloat64(t *testing.T) {
 	tests := []struct {
 		name    string
 		reqs    *[]*http.Request
@@ -575,7 +575,7 @@ func TestInvalidFloat64(t *testing.T) {
 	}
 }
 
-func TestValidBool(t *testing.T) {
+func TestFormValidBool(t *testing.T) {
 	tests := []struct {
 		name     string
 		reqs     *[]*http.Request
@@ -654,7 +654,7 @@ func TestValidBool(t *testing.T) {
 	}
 }
 
-func TestInvalidBool(t *testing.T) {
+func TestFormInvalidBool(t *testing.T) {
 	tests := []struct {
 		name     string
 		reqs     *[]*http.Request
@@ -737,7 +737,7 @@ func TestInvalidBool(t *testing.T) {
 	}
 }
 
-func TestValidSlice(t *testing.T) {
+func TestFormValidSlice(t *testing.T) {
 	validSlices := []interface{}{
 		[]int{-8, 9, -100}, []uint64{8, 9, 10}, []string{"margeritta", "diavola", "calzone"}, []float64{1.3, 8.9, -4.1}, []bool{true, false, true},
 	}
@@ -873,7 +873,7 @@ func TestValidSlice(t *testing.T) {
 	}
 }
 
-func TestInvalidSlice(t *testing.T) {
+func TestFormInvalidSlice(t *testing.T) {
 	// Parsing behaviour of native types that are supported is not included as
 	// it was tested in previous tests.
 	tests := []struct {
@@ -980,5 +980,77 @@ func TestInvalidSlice(t *testing.T) {
 			}
 		}
 	}
+}
 
+func TestFormErrorHandling(t *testing.T) {
+	test := struct {
+		name string
+		reqs *[]*http.Request
+		errs []error
+	}{
+		name: "Erros occuring in requests",
+		reqs: func() *[]*http.Request {
+			getReq := httptest.NewRequest("GET", "/?pizzaInt=diavola&pizzaBool=true&pizzaUint=-13", nil)
+			postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizzaInt=diavola&pizzaBool=true&pizzaUint=-13"))
+			postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			multipartReqBody := "--123\r\n" +
+				"Content-Disposition: form-data; name=\"pizzaInt\"\r\n" +
+				"\r\n" +
+				"diavola\r\n" +
+				"--123\r\n" +
+				"Content-Disposition: form-data; name=\"pizzaBool\"\r\n" +
+				"\r\n" +
+				"true\r\n" +
+				"--123\r\n" +
+				"Content-Disposition: form-data; name=\"pizzaUint\"\r\n" +
+				"\r\n" +
+				"-13\r\n" +
+				"--123--\r\n"
+			multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
+			multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+			res := []*http.Request{getReq, postReq, multipartReq}
+			return &res
+		}(),
+		errs: []error{errors.New(`strconv.Atoi: parsing "diavola": invalid syntax`), errors.New(`strconv.ParseUint: parsing "-13": invalid syntax`)},
+	}
+
+	for _, req := range *test.reqs {
+		m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
+			form, err := getParsedForm(ir)
+			if err != nil {
+				t.Fatalf(`getParsedForm: got "%v", want nil`, err)
+			}
+			wantInt := 0
+			gotInt := form.Int("pizzaInt", 0)
+			if diff := cmp.Diff(wantInt, gotInt); diff != "" {
+				t.Errorf("form.Int: got %v, want %v, diff (-want +got): \n%s", gotInt, wantInt, diff)
+			}
+			if err = form.Err(); test.errs[0].Error() != err.Error() {
+				t.Errorf("form.Err: got %v, want %v", err, test.errs[0])
+			}
+			wantBool := true
+			gotBool := form.Bool("pizzaBool", false)
+			if diff := cmp.Diff(wantBool, gotBool); diff != "" {
+				t.Errorf("form.Bool: got %v, want %v, diff (-want +got): \n%s", gotBool, wantBool, diff)
+			}
+			// We expect the same error here becase calling form.Bool succeeds
+			if err = form.Err(); test.errs[0].Error() != err.Error() {
+				t.Errorf("form.Err: got %v, want %v", err, test.errs[0])
+			}
+			var wantUint uint64 = 0
+			gotUint := form.Uint("pizzaUint", 0)
+			if diff := cmp.Diff(wantUint, gotUint); diff != "" {
+				t.Errorf("form.Uint: got %v, want %v, diff (-want +got): \n%s", gotUint, wantUint, diff)
+			}
+			if err = form.Err(); test.errs[1].Error() != err.Error() {
+				t.Errorf("form.Err: got %v, want %v", err, test.errs[1])
+			}
+			return Result{}
+		}, &dispatcher{})
+		recorder := httptest.NewRecorder()
+		m.HandleRequest(recorder, req)
+		if respStatus := recorder.Result().Status; respStatus != status200OK {
+			t.Errorf("response status: got %s, want %s", respStatus, status200OK)
+		}
+	}
 }
