@@ -20,12 +20,10 @@ import (
 	"strconv"
 )
 
-// Form contains parsed data either from URL's query or from
-// form parameters, part of the body of POST, PATCH or PUT requests that are not
-// multipart requests. The fields are only available after parsing the form,
-// through getter functions that specify the type. If parsing failed, Form will
-// be set to nil. Field err will only be set if
-// an error occurs when the user tries to access a parameter.
+// Form contains parsed data either from URL's query or form parameters, part of
+// the body of POST, PATCH or PUT requests that are not  multipart requests. The 
+// form values will only be available after parsing the form, and only through
+// the getter functions.
 type Form struct {
 	values map[string][]string
 	err    error
@@ -214,7 +212,8 @@ func (f *Form) Slice(slicePtr interface{}, paramKey string) {
 }
 
 // Err returns the value of the Form error field. This will be nil unless an
-// error occured while accessing a parsed form value.
+// error occurred while accessing a parsed form value. Calling this method will
+// return the last error that occurred while parsing form values.
 func (f *Form) Err() error {
 	return f.err
 }
