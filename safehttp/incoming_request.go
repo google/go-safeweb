@@ -33,16 +33,19 @@ func newIncomingRequest(req *http.Request) IncomingRequest {
 }
 
 // QueryForm parses the query parameters provided in the request. It returns
-// the parsed query parameters as a Form object, if no error occurred. If a parsing 
+// the parsed query parameters as a Form object, if no error occurred. If a parsing
 // error occurs it will return it, together with a nil Form.
 func (r *IncomingRequest) QueryForm() (f *Form, err error) {
 	r.parseOnce.Do(func() {
 		if r.req.Method != "GET" {
 			f, err = nil, fmt.Errorf("got request method %s, want GET", r.req.Method)
+			return
 		}
 		if err := r.req.ParseForm(); err != nil {
 			f = nil
+			return
 		}
+		return
 	})
 	f, err = &Form{values: r.req.Form}, nil
 	return
@@ -50,22 +53,26 @@ func (r *IncomingRequest) QueryForm() (f *Form, err error) {
 
 // PostForm parses the form parameters provided in the body of a POST, PATCH or
 // PUT request that does not have Content-Type: multipart/form-data. It returns
-// the parsed form parameters as a Form object, if no error occurred. If a parsing 
-// error occurs it will return it, together with a nil Form. Unless we expect the 
-// header Content-Type: multipart/form-data in a POST request, this method should 
+// the parsed form parameters as a Form object, if no error occurred. If a parsing
+// error occurs it will return it, together with a nil Form. Unless we expect the
+// header Content-Type: multipart/form-data in a POST request, this method should
 // always be used for forms in POST requests.
 func (r *IncomingRequest) PostForm() (f *Form, err error) {
 	r.parseOnce.Do(func() {
 		if r.req.Method != "POST" && r.req.Method != "PATCH" && r.req.Method != "PUT" {
 			f, err = nil, fmt.Errorf("got request method %s, want POST/PATCH/PUT", r.req.Method)
+			return
 		}
 
 		if ct := r.req.Header.Get("Content-Type"); ct != "application/x-www-form-urlencoded" {
 			f, err = nil, fmt.Errorf("invalid method called for Content-Type: %s, want MultipartForm", ct)
+			return
 		}
 		if err := r.req.ParseForm(); err != nil {
-			f = &Form{}
+			f = nil
+			return
 		}
+		return
 	})
 	f, err = &Form{values: r.req.PostForm}, nil
 	return
@@ -74,18 +81,20 @@ func (r *IncomingRequest) PostForm() (f *Form, err error) {
 // MultipartForm parses the form parameters provided in the body of a POST,
 // PATCH or PUT request that has Content-Type set to multipart/form-data. It
 // returns a MultipartForm object containing the parsed form parameter and
-// files, if no error occurred, or the parsing error together with a nil 
-// MultipartForm otherwise. This method should  only be used when the user expects 
+// files, if no error occurred, or the parsing error together with a nil
+// MultipartForm otherwise. This method should  only be used when the user expects
 // a POST request with the Content-Type: multipart/form-data header.
 func (r *IncomingRequest) MultipartForm(maxMemory int64) (f *MultipartForm, err error) {
 	r.parseOnce.Do(func() {
 		const defaultMaxMemory = 32 << 20
 		if r.req.Method != "POST" && r.req.Method != "PATCH" && r.req.Method != "PUT" {
 			f, err = nil, fmt.Errorf("got request method %s, want POST/PATCH/PUT", r.req.Method)
+			return
 		}
 
 		if ct := r.req.Header.Get("Content-Type"); !strings.HasPrefix(ct, "multipart/form-data") {
 			f, err = nil, fmt.Errorf("invalid method called for Content-Type: %s, want PostForm", ct)
+			return
 		}
 		if maxMemory < 0 || maxMemory > defaultMaxMemory {
 			maxMemory = defaultMaxMemory
@@ -93,7 +102,9 @@ func (r *IncomingRequest) MultipartForm(maxMemory int64) (f *MultipartForm, err 
 
 		if err := r.req.ParseMultipartForm(maxMemory); err != nil {
 			f = &MultipartForm{}
+			return
 		}
+		return
 	})
 	f, err = &MultipartForm{
 		Form: Form{
