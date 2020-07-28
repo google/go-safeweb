@@ -72,11 +72,11 @@ func getParsedForm(r *IncomingRequest) (*Form, error) {
 }
 
 func TestFormValidInt(t *testing.T) {
-	maxIntToString := strconv.Itoa(math.MaxInt64)
+	maxIntToString := strconv.FormatInt(math.MaxInt64, 10)
 	tests := []struct {
 		name    string
 		req     *http.Request
-		formVal int
+		formVal int64
 	}{
 		{
 			name: "Valid int in GET request",
@@ -117,12 +117,12 @@ func TestFormValidInt(t *testing.T) {
 				t.Fatalf(`getParsedForm: got "%v", want nil`, err)
 			}
 			want := test.formVal
-			got := form.Int("pizza", 0)
+			got := form.Int64("pizza", 0)
 			if err := form.Err(); err != nil {
 				t.Errorf(`form.Error: got "%v", want nil`, err)
 			}
 			if diff := cmp.Diff(want, got); diff != "" {
-				t.Errorf("form.Int: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
+				t.Errorf("form.Int64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 			}
 			return Result{}
 		}, &dispatcher{})
@@ -139,7 +139,7 @@ func TestFormInvalidInt(t *testing.T) {
 		name    string
 		reqs    *[]*http.Request
 		err     error
-		formVal int
+		formVal int64
 	}{
 		{
 			name: "Overflow integer in request",
@@ -157,7 +157,7 @@ func TestFormInvalidInt(t *testing.T) {
 				res := []*http.Request{getReq, postReq, multipartReq}
 				return &res
 			}(),
-			err:     errors.New(`strconv.Atoi: parsing "9223372036854775810": value out of range`),
+			err:     errors.New(`strconv.ParseInt: parsing "9223372036854775810": value out of range`),
 			formVal: 0,
 		},
 		{
@@ -176,7 +176,7 @@ func TestFormInvalidInt(t *testing.T) {
 				res := []*http.Request{getReq, postReq, multipartReq}
 				return &res
 			}(),
-			err:     errors.New(`strconv.Atoi: parsing "diavola": invalid syntax`),
+			err:     errors.New(`strconv.ParseInt: parsing "diavola": invalid syntax`),
 			formVal: 0,
 		},
 	}
@@ -189,9 +189,9 @@ func TestFormInvalidInt(t *testing.T) {
 					t.Fatalf(`getParsedForm: got "%v", want nil`, err)
 				}
 				want := test.formVal
-				got := form.Int("pizza", 0)
+				got := form.Int64("pizza", 0)
 				if diff := cmp.Diff(want, got); diff != "" {
-					t.Errorf("form.Int: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
+					t.Errorf("form.Int64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 				}
 				if err = form.Err(); test.err.Error() != err.Error() {
 					t.Errorf("form.Err: got %v, want %v", err, test.err)
@@ -253,12 +253,12 @@ func TestFormValidUint(t *testing.T) {
 				t.Fatalf(`getParsedForm: got "%v", want nil`, err)
 			}
 			want := test.formVal
-			got := form.Uint("pizza", 0)
+			got := form.Uint64("pizza", 0)
 			if err := form.Err(); err != nil {
 				t.Errorf(`form.Error: got "%v", want nil`, err)
 			}
 			if diff := cmp.Diff(want, got); diff != "" {
-				t.Errorf("form.Uint: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
+				t.Errorf("form.Uint64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 			}
 			return Result{}
 		}, &dispatcher{})
@@ -323,9 +323,9 @@ func TestFormInvalidUint(t *testing.T) {
 					t.Fatalf(`getParsedForm: got "%v", want nil`, err)
 				}
 				want := test.formVal
-				got := form.Uint("pizza", 0)
+				got := form.Uint64("pizza", 0)
 				if diff := cmp.Diff(want, got); diff != "" {
-					t.Errorf("form.Uint: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
+					t.Errorf("form.Uint64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 				}
 				if err = form.Err(); test.err.Error() != err.Error() {
 					t.Errorf("form.Err: got %v, want %v", err, test.err)
@@ -739,7 +739,7 @@ func TestFormInvalidBool(t *testing.T) {
 
 func TestFormValidSlice(t *testing.T) {
 	validSlices := []interface{}{
-		[]int{-8, 9, -100}, []uint64{8, 9, 10}, []string{"margeritta", "diavola", "calzone"}, []float64{1.3, 8.9, -4.1}, []bool{true, false, true},
+		[]int64{-8, 9, -100}, []uint64{8, 9, 10}, []string{"margeritta", "diavola", "calzone"}, []float64{1.3, 8.9, -4.1}, []bool{true, false, true},
 	}
 	// Parsing behaviour of native types that are supported is not included as
 	// it was tested in previous tests.
@@ -814,8 +814,8 @@ func TestFormValidSlice(t *testing.T) {
 					t.Fatalf(`getParsedForm: got "%v", want nil`, err)
 				}
 				switch want := wantSlices[idx].(type) {
-				case []int:
-					var got []int
+				case []int64:
+					var got []int64
 					form.Slice(&got, "pizza")
 					if err := form.Err(); err != nil {
 						t.Errorf(`form.Error: got "%v", want nil`, err)
@@ -1011,7 +1011,7 @@ func TestFormErrorHandling(t *testing.T) {
 			res := []*http.Request{getReq, postReq, multipartReq}
 			return &res
 		}(),
-		errs: []error{errors.New(`strconv.Atoi: parsing "diavola": invalid syntax`), errors.New(`strconv.ParseUint: parsing "-13": invalid syntax`)},
+		errs: []error{errors.New(`strconv.ParseInt: parsing "diavola": invalid syntax`), errors.New(`strconv.ParseUint: parsing "-13": invalid syntax`)},
 	}
 
 	for _, req := range *test.reqs {
@@ -1020,10 +1020,10 @@ func TestFormErrorHandling(t *testing.T) {
 			if err != nil {
 				t.Fatalf(`getParsedForm: got "%v", want nil`, err)
 			}
-			wantInt := 0
-			gotInt := form.Int("pizzaInt", 0)
+			var wantInt int64 = 0
+			gotInt := form.Int64("pizzaInt", 0)
 			if diff := cmp.Diff(wantInt, gotInt); diff != "" {
-				t.Errorf("form.Int: got %v, want %v, diff (-want +got): \n%s", gotInt, wantInt, diff)
+				t.Errorf("form.Int64: got %v, want %v, diff (-want +got): \n%s", gotInt, wantInt, diff)
 			}
 			if err = form.Err(); test.errs[0].Error() != err.Error() {
 				t.Errorf("form.Err: got %v, want %v", err, test.errs[0])
@@ -1038,9 +1038,9 @@ func TestFormErrorHandling(t *testing.T) {
 				t.Errorf("form.Err: got %v, want %v", err, test.errs[0])
 			}
 			var wantUint uint64 = 0
-			gotUint := form.Uint("pizzaUint", 0)
+			gotUint := form.Uint64("pizzaUint", 0)
 			if diff := cmp.Diff(wantUint, gotUint); diff != "" {
-				t.Errorf("form.Uint: got %v, want %v, diff (-want +got): \n%s", gotUint, wantUint, diff)
+				t.Errorf("form.Uint64: got %v, want %v, diff (-want +got): \n%s", gotUint, wantUint, diff)
 			}
 			if err = form.Err(); test.errs[1].Error() != err.Error() {
 				t.Errorf("form.Err: got %v, want %v", err, test.errs[1])
