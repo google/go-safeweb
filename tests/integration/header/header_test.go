@@ -53,7 +53,7 @@ func newResponseWriter(w io.Writer) *responseWriter {
 	return &responseWriter{header: http.Header{}, writer: w, status: http.StatusOK}
 }
 
-func (r responseWriter) Header() http.Header {
+func (r *responseWriter) Header() http.Header {
 	return r.header
 }
 
@@ -61,7 +61,7 @@ func (r *responseWriter) WriteHeader(statusCode int) {
 	r.status = statusCode
 }
 
-func (r responseWriter) Write(data []byte) (int, error) {
+func (r *responseWriter) Write(data []byte) (int, error) {
 	return r.writer.Write(data)
 }
 
