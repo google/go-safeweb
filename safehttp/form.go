@@ -21,7 +21,7 @@ import (
 )
 
 // Form contains parsed data either from URL's query or form parameters, part of
-// the body of POST, PATCH or PUT requests that are not  multipart requests. The
+// the body of POST, PATCH or PUT requests that are not multipart requests. The
 // form values will only be available after parsing the form, and only through
 // the getter functions.
 type Form struct {
@@ -33,7 +33,7 @@ type Form struct {
 // values. In case it does, it will try to convert the first value to a 64-bit
 // integer and return it. If there are no values associated with paramKey, it
 // will return the default value. If the first value is not an integer, it will
-// return the default value and set the Form error field.
+// return the default value and Err() will return the parsing error.
 func (f *Form) Int64(paramKey string, defaultValue int64) int64 {
 	vals, ok := f.values[paramKey]
 	if !ok {
@@ -81,7 +81,7 @@ func (f *Form) String(paramKey string, defaultValue string) string {
 // values. In case it does, it will try to convert the first value to a float
 // and return it. If there are no values associated with paramKey, it will
 // return the default value. If the first value is not a float, it will return
-// the default value and set the Form error field.
+// the default value and Err() will return the parsing error.
 func (f *Form) Float64(paramKey string, defaultValue float64) float64 {
 	vals, ok := f.values[paramKey]
 	if !ok {
@@ -95,11 +95,11 @@ func (f *Form) Float64(paramKey string, defaultValue float64) float64 {
 	return paramVal
 }
 
-// Bool checks whether key paramKey maps to any query  or form parameter
+// Bool checks whether key paramKey maps to any query or form parameter
 // values. In case it does, it will try to convert the first value to a boolean
 // and return it. If there are no values associated with paramKey, it will
 // return the default value. If the first value is not a boolean, it will return
-// the default value and set the Form error field.
+// the default value and Err() will return the parsing error.
 func (f *Form) Bool(paramKey string, defaultValue bool) bool {
 	vals, ok := f.values[paramKey]
 	if !ok {
@@ -210,9 +210,9 @@ func (f *Form) Slice(slicePtr interface{}, paramKey string) {
 	return
 }
 
-// Err returns the value of the Form error field. This will be nil unless an
-// error occurred while accessing a parsed form value. Calling this method will
-// return the last error that occurred while parsing form values.
+// Err returns nil unless an error occurred while accessing a parsed form value.
+// Calling this method will return the last error that occurred while parsing
+// form values.
 func (f *Form) Err() error {
 	return f.err
 }
