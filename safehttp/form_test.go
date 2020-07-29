@@ -193,7 +193,7 @@ func TestFormInvalidInt(t *testing.T) {
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("form.Int64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 				}
-				if err = form.Err(); test.err.Error() != err.Error() {
+				if err := form.Err(); test.err.Error() != err.Error() {
 					t.Errorf("form.Err: got %v, want %v", err, test.err)
 				}
 				return Result{}
@@ -327,7 +327,7 @@ func TestFormInvalidUint(t *testing.T) {
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("form.Uint64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 				}
-				if err = form.Err(); test.err.Error() != err.Error() {
+				if err := form.Err(); test.err.Error() != err.Error() {
 					t.Errorf("form.Err: got %v, want %v", err, test.err)
 				}
 				return Result{}
@@ -408,7 +408,7 @@ func TestFormValidString(t *testing.T) {
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("form.String: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 				}
-				if err = form.Err(); err != nil {
+				if err := form.Err(); err != nil {
 					t.Errorf("form.Err: got %v, want nil", err)
 				}
 				return Result{}
@@ -490,7 +490,7 @@ func TestFormValidFloat64(t *testing.T) {
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("form.Float64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 				}
-				if err = form.Err(); err != nil {
+				if err := form.Err(); err != nil {
 					t.Errorf("form.Err: got %v, want nil", err)
 				}
 				return Result{}
@@ -561,7 +561,7 @@ func TestFormInvalidFloat64(t *testing.T) {
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("form.Float64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 				}
-				if err = form.Err(); test.err.Error() != err.Error() {
+				if err := form.Err(); test.err.Error() != err.Error() {
 					t.Errorf("form.Err: got %v, want %v", err, test.err)
 				}
 				return Result{}
@@ -640,7 +640,7 @@ func TestFormValidBool(t *testing.T) {
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("form.Bool: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 				}
-				if err = form.Err(); err != nil {
+				if err := form.Err(); err != nil {
 					t.Errorf("form.Err: got %v, want nil", err)
 				}
 				return Result{}
@@ -723,7 +723,7 @@ func TestFormInvalidBool(t *testing.T) {
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("form.Bool: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 				}
-				if err = form.Err(); test.err.Error() != err.Error() {
+				if err := form.Err(); test.err.Error() != err.Error() {
 					t.Errorf("form.Err: got %v, want %v", err, test.err)
 				}
 				return Result{}
@@ -958,7 +958,7 @@ func TestFormInvalidSlice(t *testing.T) {
 					if diff := cmp.Diff(test.want, got); diff != "" {
 						t.Errorf("form.Slice: got %v, want %v", got, test.want)
 					}
-					if err = form.Err(); test.err.Error() != err.Error() {
+					if err := form.Err(); test.err.Error() != err.Error() {
 						t.Errorf("form.Err: got %v, want %v", err, test.err)
 					}
 
@@ -967,7 +967,7 @@ func TestFormInvalidSlice(t *testing.T) {
 					if diff := cmp.Diff(test.want, got); diff != "" {
 						t.Errorf("form.Slice: got %v, want %v", got, test.want)
 					}
-					if err = form.Err(); test.err.Error() != err.Error() {
+					if err := form.Err(); test.err.Error() != err.Error() {
 						t.Errorf("form.Err: got %v, want %v", err, test.err)
 					}
 				}
@@ -1025,7 +1025,7 @@ func TestFormErrorHandling(t *testing.T) {
 			if diff := cmp.Diff(wantInt, gotInt); diff != "" {
 				t.Errorf("form.Int64: got %v, want %v, diff (-want +got): \n%s", gotInt, wantInt, diff)
 			}
-			if err = form.Err(); test.errs[0].Error() != err.Error() {
+			if err := form.Err(); test.errs[0].Error() != err.Error() {
 				t.Errorf("form.Err: got %v, want %v", err, test.errs[0])
 			}
 			wantBool := true
@@ -1034,7 +1034,7 @@ func TestFormErrorHandling(t *testing.T) {
 				t.Errorf("form.Bool: got %v, want %v, diff (-want +got): \n%s", gotBool, wantBool, diff)
 			}
 			// We expect the same error here becase calling form.Bool succeeds
-			if err = form.Err(); test.errs[0].Error() != err.Error() {
+			if err := form.Err(); test.errs[0].Error() != err.Error() {
 				t.Errorf("form.Err: got %v, want %v", err, test.errs[0])
 			}
 			var wantUint uint64 = 0
@@ -1042,7 +1042,7 @@ func TestFormErrorHandling(t *testing.T) {
 			if diff := cmp.Diff(wantUint, gotUint); diff != "" {
 				t.Errorf("form.Uint64: got %v, want %v, diff (-want +got): \n%s", gotUint, wantUint, diff)
 			}
-			if err = form.Err(); test.errs[1].Error() != err.Error() {
+			if err := form.Err(); test.errs[1].Error() != err.Error() {
 				t.Errorf("form.Err: got %v, want %v", err, test.errs[1])
 			}
 			return Result{}
