@@ -108,8 +108,8 @@ func (r *IncomingRequest) MultipartForm(maxMemory int64) (*MultipartForm, error)
 		return nil, err
 	}
 	return &MultipartForm{
-		Form: Form{
-			values: r.req.MultipartForm.Value,
-		},
-		file: r.req.MultipartForm.File}, nil
+			Form: Form{
+				values: r.req.MultipartForm.Value,
+			}},
+		nil
 }
