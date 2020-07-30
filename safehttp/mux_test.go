@@ -73,7 +73,7 @@ func TestValidHost(t *testing.T) {
 	h := HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 	})
-	mux.Handle("/", map[string]Handler{MethodGet: h})
+	mux.Handle("/", MethodGet, h)
 
 	req := httptest.NewRequest("GET", "/", nil)
 	req.Host = "foo.com"
@@ -93,7 +93,7 @@ func TestInvalidHost(t *testing.T) {
 	h := HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 	})
-	mux.Handle("/", map[string]Handler{MethodGet: h})
+	mux.Handle("/", MethodGet, h)
 
 	req := httptest.NewRequest("GET", "/", nil)
 	req.Host = "bar.com"
@@ -102,12 +102,12 @@ func TestInvalidHost(t *testing.T) {
 
 	mux.serveHTTP(rw, req)
 
-	if got, want := b.String(), ""; got != want {
+	if got, want := b.String(), "Not Found\n"; got != want {
 		t.Errorf("response body: got %q want %q", got, want)
 	}
 
-	if want := 403; rw.status != want {
-		t.Errorf("rw.status: got %q want %q", rw.status, want)
+	if want := 404; rw.status != want {
+		t.Errorf("rw.status: got %v want %v", rw.status, want)
 	}
 }
 
@@ -117,7 +117,7 @@ func TestInvalidMethod(t *testing.T) {
 	h := HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 	})
-	mux.Handle("/", map[string]Handler{MethodGet: h})
+	mux.Handle("/", MethodGet, h)
 
 	req := httptest.NewRequest("POST", "/", nil)
 	req.Host = "foo.com"
@@ -126,12 +126,12 @@ func TestInvalidMethod(t *testing.T) {
 
 	mux.serveHTTP(rw, req)
 
-	if got, want := b.String(), ""; got != want {
+	if got, want := b.String(), "Method Not Allowed\n"; got != want {
 		t.Errorf("response body: got %q want %q", got, want)
 	}
 
 	if want := 405; rw.status != want {
-		t.Errorf("rw.status: got %q want %q", rw.status, want)
+		t.Errorf("rw.status: got %v want %v", rw.status, want)
 	}
 }
 
@@ -142,7 +142,7 @@ func TestHandlerRegistered(t *testing.T) {
 	registeredHandler := HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 	})
-	mux.Handle("/bar", map[string]Handler{MethodGet: registeredHandler})
+	mux.Handle("/bar", MethodGet, registeredHandler)
 
 	req := httptest.NewRequest("GET", "/bar", nil)
 	req.Host = "foo.com"
@@ -172,7 +172,7 @@ func TestHandlerWrongMethod(t *testing.T) {
 	registeredHandler := HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 	})
-	mux.Handle("/bar", map[string]Handler{MethodGet: registeredHandler})
+	mux.Handle("/bar", MethodGet, registeredHandler)
 
 	req := httptest.NewRequest("POST", "/bar", nil)
 	req.Host = "foo.com"
@@ -190,7 +190,48 @@ func TestHandlerWrongMethod(t *testing.T) {
 	rw := newResponseWriter(d, fakeRW)
 	retrievedHandler.ServeHTTP(rw, &ir)
 
-	if want := 404; fakeRW.status != want {
-		t.Errorf("fakeRW.status: got %q want %q", fakeRW.status, want)
+	if got, want := b.String(), "404 page not found\n"; got != want {
+		t.Errorf("response body: got %q want %q", got, want)
 	}
+
+	if want := 404; fakeRW.status != want {
+		t.Errorf("fakeRW.status: got %v want %v", fakeRW.status, want)
+	}
+}
+
+func TestHandleTwoMethods(t *testing.T) {
+	d := fakeDispatcher{}
+	mux := NewServeMux(d, "foo.com")
+
+	registeredGetHandler := HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
+		return w.Write(safehtml.HTMLEscaped("<h1>Hello World! GET</h1>"))
+	})
+	registeredPostHandler := HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
+		return w.Write(safehtml.HTMLEscaped("<h1>Hello World! POST</h1>"))
+	})
+	mux.Handle("/bar", MethodGet, registeredGetHandler)
+	mux.Handle("/bar", MethodPost, registeredPostHandler)
+
+	postReq := httptest.NewRequest("POST", "/bar", nil)
+	postReq.Host = "foo.com"
+	b := &strings.Builder{}
+	rw := newFakeResponseWriter(b)
+
+	mux.serveHTTP(rw, postReq)
+
+	if got, want := b.String(), "&lt;h1&gt;Hello World! POST&lt;/h1&gt;"; got != want {
+		t.Errorf("response body: got %q want %q", got, want)
+	}
+
+	getReq := httptest.NewRequest("GET", "/bar", nil)
+	getReq.Host = "foo.com"
+	b = &strings.Builder{}
+	rw = newFakeResponseWriter(b)
+
+	mux.serveHTTP(rw, getReq)
+
+	if got, want := b.String(), "&lt;h1&gt;Hello World! GET&lt;/h1&gt;"; got != want {
+		t.Errorf("response body: got %q want %q", got, want)
+	}
+
 }
