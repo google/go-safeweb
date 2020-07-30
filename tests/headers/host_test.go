@@ -110,10 +110,10 @@ func TestAbsoluteFormURLInvalidSchema(t *testing.T) {
 	// form as the request target, any schema is currently
 	// accepted.
 	//
-	// The desired behavior would instead be that only
-	// http or https are accepted as schemas and that
-	// the server responds with a 400 (Bad Request) when
-	// it receives anything else.
+	// The desired behavior would instead be to only
+	// accept http or https as schemas and to respond
+	// with a 400 (Bad Request) when the server receives
+	// any other schema.
 
 	request := []byte("GET x://y.com/asdf HTTP/1.1\r\n" +
 		"Host: x.com\r\n" +
