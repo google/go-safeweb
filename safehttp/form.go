@@ -16,7 +16,6 @@ package safehttp
 
 import (
 	"fmt"
-	"mime/multipart"
 	"strconv"
 )
 
@@ -29,13 +28,13 @@ type Form struct {
 	err    error
 }
 
-// Int64 checks whether key paramKey maps to any query or form parameter
-// values. In case it does, it will try to convert the first value to a 64-bit
-// integer and return it. If there are no values associated with paramKey, it
+// Int64 checks whether key param maps to any query or form parameter
+// values. In case it does, it will try to convert the first value to a valid
+// int64 and return it. If there are no values associated with param, it
 // will return the default value. If the first value is not an integer, it will
 // return the default value and Err() will return the parsing error.
-func (f *Form) Int64(paramKey string, defaultValue int64) int64 {
-	vals, ok := f.values[paramKey]
+func (f *Form) Int64(param string, defaultValue int64) int64 {
+	vals, ok := f.values[param]
 	if !ok {
 		return defaultValue
 	}
@@ -47,14 +46,14 @@ func (f *Form) Int64(paramKey string, defaultValue int64) int64 {
 	return paramVal
 }
 
-// Uint64 checks whether key paramKey maps to any query or form parameter
-// values. In case it does, it will try to convert the first value to an
-// 64-bit unsigned integer and return it. If there are no values associated with
-// paramKey, it will return the default value. If the first value is not an
+// Uint64 checks whether key param maps to any query or form parameter
+// values. In case it does, it will try to convert the first valid
+// uint64 and return it. If there are no values associated with
+// param, it will return the default value. If the first value is not an
 // unsigned integer, it will return the default value and set the Form
 // error field.
-func (f *Form) Uint64(paramKey string, defaultValue uint64) uint64 {
-	vals, ok := f.values[paramKey]
+func (f *Form) Uint64(param string, defaultValue uint64) uint64 {
+	vals, ok := f.values[param]
 	if !ok {
 		return defaultValue
 	}
@@ -66,24 +65,24 @@ func (f *Form) Uint64(paramKey string, defaultValue uint64) uint64 {
 	return paramVal
 }
 
-// String checks whether key paramKey maps to any query or form parameter
+// String checks whether key param maps to any query or form parameter
 // values. In case it does, it will return the first value. If it doesn't, it
 // will return the default value.
-func (f *Form) String(paramKey string, defaultValue string) string {
-	vals, ok := f.values[paramKey]
+func (f *Form) String(param string, defaultValue string) string {
+	vals, ok := f.values[param]
 	if !ok {
 		return defaultValue
 	}
 	return vals[0]
 }
 
-// Float64 checks whether key paramKey maps to any query or form parameter
-// values. In case it does, it will try to convert the first value to a float
-// and return it. If there are no values associated with paramKey, it will
+// Float64 checks whether key param maps to any query or form parameter
+// values. In case it does, it will try to convert the first value to a valid
+// float64 and return it. If there are no values associated with param, it will
 // return the default value. If the first value is not a float, it will return
 // the default value and Err() will return the parsing error.
-func (f *Form) Float64(paramKey string, defaultValue float64) float64 {
-	vals, ok := f.values[paramKey]
+func (f *Form) Float64(param string, defaultValue float64) float64 {
+	vals, ok := f.values[param]
 	if !ok {
 		return defaultValue
 	}
@@ -95,13 +94,13 @@ func (f *Form) Float64(paramKey string, defaultValue float64) float64 {
 	return paramVal
 }
 
-// Bool checks whether key paramKey maps to any query or form parameter
-// values. In case it does, it will try to convert the first value to a boolean
-// and return it. If there are no values associated with paramKey, it will
+// Bool checks whether key param maps to any query or form parameter
+// values. In case it does, it will try to convert the first value to a valid
+// bool and return it. If there are no values associated with param, it will
 // return the default value. If the first value is not a boolean, it will return
 // the default value and Err() will return the parsing error.
-func (f *Form) Bool(paramKey string, defaultValue bool) bool {
-	vals, ok := f.values[paramKey]
+func (f *Form) Bool(param string, defaultValue bool) bool {
+	vals, ok := f.values[param]
 	if !ok {
 		return defaultValue
 	}
@@ -111,7 +110,7 @@ func (f *Form) Bool(paramKey string, defaultValue bool) bool {
 	case "false":
 		return false
 	default:
-		f.err = fmt.Errorf("values of form parameter %q not a boolean", paramKey)
+		f.err = fmt.Errorf("values of form parameter %q not a boolean", param)
 	}
 	return false
 }
@@ -134,13 +133,13 @@ func clearSlice(slicePtr interface{}) error {
 	return nil
 }
 
-// Slice checks whether key paramKey maps to any query or form parameters. If it
+// Slice checks whether key param maps to any query or form parameters. If it
 // does, it will try to convert them to the type of slice elements slicePtr
-// points to. If there are no values associated with paramKey, it will clear the
+// points to. If there are no values associated with param, it will clear the
 // slice. If type conversion fails at any point, the Form error field will be
 // set and the slice will be cleared.
-func (f *Form) Slice(slicePtr interface{}, paramKey string) {
-	mapVals, ok := f.values[paramKey]
+func (f *Form) Slice(slicePtr interface{}, param string) {
+	mapVals, ok := f.values[param]
 	if !ok {
 		f.err = clearSlice(slicePtr)
 		return
@@ -148,10 +147,7 @@ func (f *Form) Slice(slicePtr interface{}, paramKey string) {
 	switch values := slicePtr.(type) {
 	case *[]string:
 		res := make([]string, 0, len(mapVals))
-		for _, x := range mapVals {
-			res = append(res, x)
-		}
-		*values = res
+		*values = append(res, mapVals...)
 	case *[]int64:
 		res := make([]int64, 0, len(mapVals))
 		for _, x := range mapVals {
@@ -197,7 +193,7 @@ func (f *Form) Slice(slicePtr interface{}, paramKey string) {
 			case "false":
 				res = append(res, false)
 			default:
-				f.err = fmt.Errorf("values of form parameter %q not a boolean", paramKey)
+				f.err = fmt.Errorf("values of form parameter %q not a boolean", param)
 				*values = nil
 				return
 			}
@@ -223,7 +219,4 @@ func (f *Form) Err() error {
 // type.
 type MultipartForm struct {
 	Form
-	file map[string][]*multipart.FileHeader
 }
-
-// TODO(@mihalimara22): Create getters and tests for the `file` field in MultipartForm
