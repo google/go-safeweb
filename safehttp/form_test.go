@@ -348,7 +348,7 @@ func TestFormValidString(t *testing.T) {
 		formVals []string
 	}{
 		{
-			name: "Valid strings in GET request",
+			name: "Valid string in GET request",
 			reqs: func() *[]*http.Request {
 				reqs := []*http.Request{
 					httptest.NewRequest("GET", "/?pizza=diavola", nil),
@@ -360,7 +360,7 @@ func TestFormValidString(t *testing.T) {
 			formVals: []string{"diavola", "ăȚâȘî", "diavola"},
 		},
 		{
-			name: "Valid int in POST non-multipart request",
+			name: "Valid string in POST non-multipart request",
 			reqs: func() *[]*http.Request {
 				reqs := []*http.Request{
 					httptest.NewRequest("POST", "/", strings.NewReader("pizza=diavola")),
@@ -656,10 +656,10 @@ func TestFormValidBool(t *testing.T) {
 
 func TestFormInvalidBool(t *testing.T) {
 	tests := []struct {
-		name     string
-		reqs     *[]*http.Request
-		formVals []bool
-		err      error
+		name    string
+		reqs    *[]*http.Request
+		formVal bool
+		err     error
 	}{
 		{
 			name: "Invalid booleans in GET request",
@@ -670,8 +670,8 @@ func TestFormInvalidBool(t *testing.T) {
 				}
 				return &reqs
 			}(),
-			formVals: []bool{false, false},
-			err:      errors.New(`values of form parameter "pizza" not a boolean`),
+			formVal: false,
+			err:     errors.New(`values of form parameter "pizza" not a boolean`),
 		},
 		{
 			name: "Invalid booleans in POST non-multipart request",
@@ -685,8 +685,8 @@ func TestFormInvalidBool(t *testing.T) {
 				}
 				return &reqs
 			}(),
-			formVals: []bool{false, false},
-			err:      errors.New(`values of form parameter "pizza" not a boolean`),
+			formVal: false,
+			err:     errors.New(`values of form parameter "pizza" not a boolean`),
 		},
 		{
 			name: "Invalid booleans in POST multipart request",
@@ -706,19 +706,19 @@ func TestFormInvalidBool(t *testing.T) {
 				}
 				return &reqs
 			}(),
-			formVals: []bool{false, false},
-			err:      errors.New(`values of form parameter "pizza" not a boolean`),
+			formVal: false,
+			err:     errors.New(`values of form parameter "pizza" not a boolean`),
 		},
 	}
 
 	for _, test := range tests {
-		for idx, req := range *test.reqs {
+		for _, req := range *test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
 				form, err := getParsedForm(ir)
 				if err != nil {
 					t.Fatalf(`getParsedForm: got "%v", want nil`, err)
 				}
-				want := test.formVals[idx]
+				want := test.formVal
 				got := form.Bool("pizza", false)
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("form.Bool: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
@@ -745,12 +745,10 @@ func TestFormValidSlice(t *testing.T) {
 	// it was tested in previous tests.
 	tests := []struct {
 		name string
-		want *[]interface{}
 		reqs *[]*http.Request
 	}{
 		{
 			name: "Valid slices in GET requests",
-			want: &validSlices,
 			reqs: func() *[]*http.Request {
 				reqs := []*http.Request{
 					httptest.NewRequest("GET", "/?pizza=-8&pizza=9&pizza=-100", nil),
@@ -777,7 +775,6 @@ func TestFormValidSlice(t *testing.T) {
 				}
 				return &reqs
 			}(),
-			want: &validSlices,
 		},
 		{
 			name: "Valid slice in POST multipart request",
@@ -801,19 +798,17 @@ func TestFormValidSlice(t *testing.T) {
 				}
 				return &reqs
 			}(),
-			want: &validSlices,
 		},
 	}
 
 	for _, test := range tests {
-		wantSlices := *test.want
 		for idx, req := range *test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
 				form, err := getParsedForm(ir)
 				if err != nil {
 					t.Fatalf(`getParsedForm: got "%v", want nil`, err)
 				}
-				switch want := wantSlices[idx].(type) {
+				switch want := validSlices[idx].(type) {
 				case []int64:
 					var got []int64
 					form.Slice(&got, "pizza")
