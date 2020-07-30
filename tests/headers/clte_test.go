@@ -307,7 +307,7 @@ func TestMultipleTransferEncodingChunkedFirst(t *testing.T) {
 	// rest.
 	//
 	// RFC 7230 doesn’t say anything specific about
-	// having multiple TE headers. It only says that, in general
+	// having multiple TE headers. It only says that, in general,
 	// a recipient may combine the value of multiple headers
 	// with the same name:
 	// “ [...] A recipient MAY combine multiple header fields
@@ -457,8 +457,8 @@ func TestTransferEncodingIdentity(t *testing.T) {
 }
 
 func TestTransferEncodingListIdentityFirst(t *testing.T) {
-	// There is a bug in the handling of lists of transfer
-	// codings that contain the identity encoding. Any transfer
+	// There is a bug in the handling of Transfer-Encoding lists
+	// that contain the identity encoding. Any transfer
 	// coding that is put after identity in the list of
 	// transfer codings is ignored. Even if it doesn't
 	// exists.

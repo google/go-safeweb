@@ -166,7 +166,7 @@ func TestBasicAuth(t *testing.T) {
 
 func TestBasicAuthOrdering(t *testing.T) {
 	// The documentation of http.Request.BasicAuth() doesn't clearly specify
-	// that only the first Authorization header is used and that the other ones
+	// that only the first Authorization header is used and the other ones
 	// are ignored. This could potentially lead to security issues if two
 	// HTTP servers that look at different headers are chained together.
 	//
