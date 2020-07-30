@@ -27,7 +27,14 @@ const (
 	MethodPost = "POST"
 )
 
-// ServeMux TODO
+// ServeMux is a safe HTTP request multiplexer that wraps http.ServeMux.
+// It matches the URL of each incoming request against a list of registered
+// patterns and calls the handler for the pattern that most closely matches the
+// URL.
+//
+// The multiplexer contains a list of allowed domains that will be matched
+// against each incoming request. A different handler can be specified for every
+// HTTP method supported at a registered pattern.
 type ServeMux struct {
 	mux        *http.ServeMux
 	domains    map[string]bool
@@ -38,37 +45,47 @@ type ServeMux struct {
 	handlers map[string]combinedHandler
 }
 
-// NewServeMux returns a safe multiplex containing the list of allowed domains
-// and dispatcher provided by the user.
+// NewServeMux allocates and returns a new ServeMux
 func NewServeMux(dispatcher Dispatcher, domains ...string) *ServeMux {
 	d := map[string]bool{}
 	for _, host := range domains {
 		d[host] = true
 	}
-	return &ServeMux{mux: http.NewServeMux(), domains: d, dispatcher: dispatcher, handlers: map[string]combinedHandler{}}
+	return &ServeMux{
+		mux:        http.NewServeMux(),
+		domains:    d,
+		dispatcher: dispatcher,
+		handlers:   map[string]combinedHandler{},
+	}
 }
 
-// Handle registers a handler for the given pattern and method. The options
-// are applied to the middleware. If another handler is already registered
-// for the same pattern and method, Handle panics.
-func (m *ServeMux) Handle(pattern string, h map[string]Handler) {
-	ch := combinedHandler{h: h}
-	m.handlers[pattern] = ch
-	m.mux.Handle(pattern, ch.combine(m.domains, m.dispatcher))
+// Handle registers a handler for the given pattern and method. If another
+// handler is already registered for the same pattern and method, Handle panics.
+func (m *ServeMux) Handle(pattern string, method string, h Handler) {
+	ch, ok := m.handlers[pattern]
+	if !ok {
+		ch := combinedHandler{h: make(map[string]Handler)}
+		ch.h[method] = h
+
+		m.handlers[pattern] = ch
+		m.mux.Handle(pattern, ch.createHandler(m.domains, m.dispatcher))
+		return
+	}
+
+	if _, err := ch.lookup(method); err == nil {
+		panic("method already registered")
+	}
+	ch.h[method] = h
 }
 
-// HandleFunc registers a handler for the given pattern and method. The options
-// are applied to the middleware. If another handler is already registered
-// for the same pattern and method, HandleFunc panics.
-func (m *ServeMux) HandleFunc(pattern string, h map[string]HandleFunc) {
+// HandleFunc registers a handler for the given pattern and method.If another
+// handler is already registered for the same pattern and method, HandleFunc
+// panics.
+func (m *ServeMux) HandleFunc(pattern string, method string, h HandleFunc) {
 	if h == nil {
 		return
 	}
-	newH := make(map[string]Handler)
-	for key, val := range h {
-		newH[key] = HandlerFunc(val)
-	}
-	m.Handle(pattern, newH)
+	m.Handle(pattern, method, HandlerFunc(h))
 }
 
 // NotFound registers a handler which will be called when an unhandled
@@ -134,18 +151,19 @@ func (c *combinedHandler) lookup(httpMethod string) (Handler, error) {
 	return h, nil
 }
 
-// combine creates a combined handler to be registered with http.ServeMux.Handle
-// which calls the correct safe handler based on the request method.
-func (c combinedHandler) combine(domains map[string]bool, d Dispatcher) http.Handler {
+// createHandler creates a combined handler to be registered with
+// http.ServeMux.// Handle which calls the correct safe handler based on the
+// request method.
+func (c combinedHandler) createHandler(domains map[string]bool, d Dispatcher) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !domains[r.Host] {
-			w.WriteHeader(http.StatusForbidden)
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 			return
 		}
 
 		h, ok := c.h[r.Method]
 		if !ok {
-			w.WriteHeader(http.StatusMethodNotAllowed)
+			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 			return
 		}
 
