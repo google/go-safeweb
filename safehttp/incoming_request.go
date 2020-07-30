@@ -35,20 +35,19 @@ func newIncomingRequest(req *http.Request) IncomingRequest {
 // QueryForm parses the query parameters provided in the request. It returns
 // the parsed query parameters as a Form object, if no error occurred. If a parsing
 // error occurs it will return it, together with a nil Form.
-func (r *IncomingRequest) QueryForm() (f *Form, err error) {
+func (r *IncomingRequest) QueryForm() (*Form, error) {
+	var err error
 	r.parseOnce.Do(func() {
 		if r.req.Method != "GET" {
-			f, err = nil, fmt.Errorf("got request method %s, want GET", r.req.Method)
+			err = fmt.Errorf("got request method %s, want GET", r.req.Method)
 			return
 		}
-		if err := r.req.ParseForm(); err != nil {
-			f = nil
-			return
-		}
-		return
+		err = r.req.ParseForm()
 	})
-	f, err = &Form{values: r.req.Form}, nil
-	return
+	if err != nil {
+		return nil, err
+	}
+	return &Form{values: r.req.Form}, nil
 }
 
 // PostForm parses the form parameters provided in the body of a POST, PATCH or
@@ -57,25 +56,24 @@ func (r *IncomingRequest) QueryForm() (f *Form, err error) {
 // error occurs it will return it, together with a nil Form. Unless we expect the
 // header Content-Type: multipart/form-data in a POST request, this method should
 // always be used for forms in POST requests.
-func (r *IncomingRequest) PostForm() (f *Form, err error) {
+func (r *IncomingRequest) PostForm() (*Form, error) {
+	var err error
 	r.parseOnce.Do(func() {
 		if r.req.Method != "POST" && r.req.Method != "PATCH" && r.req.Method != "PUT" {
-			f, err = nil, fmt.Errorf("got request method %s, want POST/PATCH/PUT", r.req.Method)
+			err = fmt.Errorf("got request method %s, want POST/PATCH/PUT", r.req.Method)
 			return
 		}
 
 		if ct := r.req.Header.Get("Content-Type"); ct != "application/x-www-form-urlencoded" {
-			f, err = nil, fmt.Errorf("invalid method called for Content-Type: %s, want MultipartForm", ct)
+			err = fmt.Errorf("invalid method called for Content-Type: %s, want MultipartForm", ct)
 			return
 		}
-		if err := r.req.ParseForm(); err != nil {
-			f = nil
-			return
-		}
-		return
+		err = r.req.ParseForm()
 	})
-	f, err = &Form{values: r.req.PostForm}, nil
-	return
+	if err != nil {
+		return nil, err
+	}
+	return &Form{values: r.req.PostForm}, nil
 }
 
 // MultipartForm parses the form parameters provided in the body of a POST,
@@ -84,35 +82,34 @@ func (r *IncomingRequest) PostForm() (f *Form, err error) {
 // files, if no error occurred, or the parsing error together with a nil
 // MultipartForm otherwise. This method should  only be used when the user expects
 // a POST request with the Content-Type: multipart/form-data header.
-func (r *IncomingRequest) MultipartForm(maxMemory int64) (f *MultipartForm, err error) {
+func (r *IncomingRequest) MultipartForm(maxMemory int64) (*MultipartForm, error) {
+	var err error
 	r.parseOnce.Do(func() {
 		// Ensures no more than 32 MB are stored in memory when a form file is
 		// passed as part of the request. If this is bigger than 32 MB, the rest
 		// will be stored on disk.
 		const defaultMaxMemory = 32 << 20
 		if r.req.Method != "POST" && r.req.Method != "PATCH" && r.req.Method != "PUT" {
-			f, err = nil, fmt.Errorf("got request method %s, want POST/PATCH/PUT", r.req.Method)
+			err = fmt.Errorf("got request method %s, want POST/PATCH/PUT", r.req.Method)
 			return
 		}
 
 		if ct := r.req.Header.Get("Content-Type"); !strings.HasPrefix(ct, "multipart/form-data") {
-			f, err = nil, fmt.Errorf("invalid method called for Content-Type: %s, want PostForm", ct)
+			err = fmt.Errorf("invalid method called for Content-Type: %s, want PostForm", ct)
 			return
 		}
 		if maxMemory < 0 || maxMemory > defaultMaxMemory {
 			maxMemory = defaultMaxMemory
 		}
 
-		if err := r.req.ParseMultipartForm(maxMemory); err != nil {
-			f = &MultipartForm{}
-			return
-		}
-		return
+		err = r.req.ParseMultipartForm(maxMemory)
 	})
-	f, err = &MultipartForm{
+	if err != nil {
+		return nil, err
+	}
+	return &MultipartForm{
 		Form: Form{
 			values: r.req.MultipartForm.Value,
 		},
 		file: r.req.MultipartForm.File}, nil
-	return
 }
