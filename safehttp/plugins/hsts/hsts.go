@@ -64,13 +64,18 @@ func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) 
 }
 
 // EnablePreload enables the preload directive.
-// See https://hstspreload.org/ for more info.
+// This should only be enabled if this site should be
+// added to the browser HSTS preload list which is supported
+// by all major browsers. See https://hstspreload.org/ for
+// more info.
 func (p *Plugin) EnablePreload() {
 	p.preload = true
 }
 
 // DisableIncludeSubDomains disables the includeSubDomains
-// directive.
+// directive. When includeSubDomains is enabled, all subdomains
+// of the domain where this service is hosted will also be added
+// to the browsers HSTS list. This method disables this feature.
 func (p *Plugin) DisableIncludeSubDomains() {
 	p.includeSubDomains = false
 }
