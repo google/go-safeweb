@@ -88,19 +88,16 @@ func TestFormValidInt(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		var (
-			mf   *MultipartForm
-			form *Form
-			err  error
-		)
 		m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
+			var form *Form
 			if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+				var err error
 				form, err = ir.PostForm()
 				if err != nil {
 					t.Fatalf(`ir.PostForm: got %v, want nil`, err)
 				}
 			} else {
-				mf, err = ir.MultipartForm(32 << 20)
+				mf, err := ir.MultipartForm(32 << 20)
 				form = &mf.Form
 				if err != nil {
 					t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
@@ -181,18 +178,15 @@ func TestFormInvalidInt(t *testing.T) {
 	for _, test := range tests {
 		for _, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				var (
-					mf   *MultipartForm
-					form *Form
-					err  error
-				)
+				var form *Form
 				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+					var err error
 					form, err = ir.PostForm()
 					if err != nil {
 						t.Fatalf(`ir.PostForm: got %v, want nil`, err)
 					}
 				} else {
-					mf, err = ir.MultipartForm(32 << 20)
+					mf, err := ir.MultipartForm(32 << 20)
 					form = &mf.Form
 					if err != nil {
 						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
@@ -251,18 +245,15 @@ func TestFormValidUint(t *testing.T) {
 
 	for _, test := range tests {
 		m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-			var (
-				mf   *MultipartForm
-				form *Form
-				err  error
-			)
+			var form *Form
 			if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+				var err error
 				form, err = ir.PostForm()
 				if err != nil {
 					t.Fatalf(`ir.PostForm: got %v, want nil`, err)
 				}
 			} else {
-				mf, err = ir.MultipartForm(32 << 20)
+				mf, err := ir.MultipartForm(32 << 20)
 				form = &mf.Form
 				if err != nil {
 					t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
@@ -340,18 +331,15 @@ func TestFormInvalidUint(t *testing.T) {
 	for _, test := range tests {
 		for _, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				var (
-					mf   *MultipartForm
-					form *Form
-					err  error
-				)
+				var form *Form
 				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+					var err error
 					form, err = ir.PostForm()
 					if err != nil {
 						t.Fatalf(`ir.PostForm: got %v, want nil`, err)
 					}
 				} else {
-					mf, err = ir.MultipartForm(32 << 20)
+					mf, err := ir.MultipartForm(32 << 20)
 					form = &mf.Form
 					if err != nil {
 						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
@@ -422,18 +410,15 @@ func TestFormValidString(t *testing.T) {
 	for _, test := range tests {
 		for idx, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				var (
-					mf   *MultipartForm
-					form *Form
-					err  error
-				)
+				var form *Form
 				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+					var err error
 					form, err = ir.PostForm()
 					if err != nil {
 						t.Fatalf(`ir.PostForm: got %v, want nil`, err)
 					}
 				} else {
-					mf, err = ir.MultipartForm(32 << 20)
+					mf, err := ir.MultipartForm(32 << 20)
 					form = &mf.Form
 					if err != nil {
 						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
@@ -506,18 +491,15 @@ func TestFormValidFloat64(t *testing.T) {
 	for _, test := range tests {
 		for idx, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				var (
-					mf   *MultipartForm
-					form *Form
-					err  error
-				)
+				var form *Form
 				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+					var err error
 					form, err = ir.PostForm()
 					if err != nil {
 						t.Fatalf(`ir.PostForm: got %v, want nil`, err)
 					}
 				} else {
-					mf, err = ir.MultipartForm(32 << 20)
+					mf, err := ir.MultipartForm(32 << 20)
 					form = &mf.Form
 					if err != nil {
 						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
@@ -596,18 +578,15 @@ func TestFormInvalidFloat64(t *testing.T) {
 	for _, test := range tests {
 		for _, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				var (
-					mf   *MultipartForm
-					form *Form
-					err  error
-				)
+				var form *Form
 				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+					var err error
 					form, err = ir.PostForm()
 					if err != nil {
 						t.Fatalf(`ir.PostForm: got %v, want nil`, err)
 					}
 				} else {
-					mf, err = ir.MultipartForm(32 << 20)
+					mf, err := ir.MultipartForm(32 << 20)
 					form = &mf.Form
 					if err != nil {
 						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
@@ -677,18 +656,15 @@ func TestFormValidBool(t *testing.T) {
 	for _, test := range tests {
 		for idx, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				var (
-					mf   *MultipartForm
-					form *Form
-					err  error
-				)
+				var form *Form
 				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+					var err error
 					form, err = ir.PostForm()
 					if err != nil {
 						t.Fatalf(`ir.PostForm: got %v, want nil`, err)
 					}
 				} else {
-					mf, err = ir.MultipartForm(32 << 20)
+					mf, err := ir.MultipartForm(32 << 20)
 					form = &mf.Form
 					if err != nil {
 						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
@@ -761,18 +737,15 @@ func TestFormInvalidBool(t *testing.T) {
 	for _, test := range tests {
 		for _, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				var (
-					mf   *MultipartForm
-					form *Form
-					err  error
-				)
+				var form *Form
 				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+					var err error
 					form, err = ir.PostForm()
 					if err != nil {
 						t.Fatalf(`ir.PostForm: got %v, want nil`, err)
 					}
 				} else {
-					mf, err = ir.MultipartForm(32 << 20)
+					mf, err := ir.MultipartForm(32 << 20)
 					form = &mf.Form
 					if err != nil {
 						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
@@ -851,18 +824,15 @@ func TestFormValidSlice(t *testing.T) {
 	for _, test := range tests {
 		for idx, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				var (
-					mf   *MultipartForm
-					form *Form
-					err  error
-				)
+				var form *Form
 				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+					var err error
 					form, err = ir.PostForm()
 					if err != nil {
 						t.Fatalf(`ir.PostForm: got %v, want nil`, err)
 					}
 				} else {
-					mf, err = ir.MultipartForm(32 << 20)
+					mf, err := ir.MultipartForm(32 << 20)
 					form = &mf.Form
 					if err != nil {
 						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
@@ -1009,18 +979,15 @@ func TestFormInvalidSlice(t *testing.T) {
 	for _, test := range tests {
 		for _, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				var (
-					mf   *MultipartForm
-					form *Form
-					err  error
-				)
+				var form *Form
 				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+					var err error
 					form, err = ir.PostForm()
 					if err != nil {
 						t.Fatalf(`ir.PostForm: got %v, want nil`, err)
 					}
 				} else {
-					mf, err = ir.MultipartForm(32 << 20)
+					mf, err := ir.MultipartForm(32 << 20)
 					form = &mf.Form
 					if err != nil {
 						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
@@ -1093,18 +1060,15 @@ func TestFormErrorHandling(t *testing.T) {
 
 	for _, req := range test.reqs {
 		m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-			var (
-				mf   *MultipartForm
-				form *Form
-				err  error
-			)
+			var form *Form
 			if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+				var err error
 				form, err = ir.PostForm()
 				if err != nil {
 					t.Fatalf(`ir.PostForm: got %v, want nil`, err)
 				}
 			} else {
-				mf, err = ir.MultipartForm(32 << 20)
+				mf, err := ir.MultipartForm(32 << 20)
 				form = &mf.Form
 				if err != nil {
 					t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
