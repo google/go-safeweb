@@ -31,7 +31,7 @@ type Plugin struct {
 // NewPlugin creates a new HSTS plugin with safe defaults.
 func NewPlugin() Plugin {
 	return Plugin{
-		maxAge:            63072000, // Two years in seconds.
+		maxAge:            63072000, // two years in seconds
 		includeSubDomains: true,
 		preload:           false,
 	}
