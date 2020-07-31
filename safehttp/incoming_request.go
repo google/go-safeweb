@@ -28,8 +28,8 @@ type IncomingRequest struct {
 	parseOnce sync.Once
 }
 
-func newIncomingRequest(req *http.Request) IncomingRequest {
-	return IncomingRequest{req: req, Header: newHeader(req.Header)}
+func newIncomingRequest(req *http.Request) *IncomingRequest {
+	return &IncomingRequest{req: req, Header: newHeader(req.Header)}
 }
 
 // PostForm parses the form parameters provided in the body of a POST, PATCH or
