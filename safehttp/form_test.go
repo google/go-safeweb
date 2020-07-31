@@ -29,11 +29,6 @@ import (
 	"testing"
 )
 
-const (
-	status200OK     = "200 OK"
-	status400BadReq = "400 Bad Request"
-)
-
 type dispatcher struct{}
 
 func (d *dispatcher) Write(rw http.ResponseWriter, resp Response) error {
@@ -98,25 +93,24 @@ func TestFormValidInt(t *testing.T) {
 				}
 			} else {
 				mf, err := ir.MultipartForm(32 << 20)
-				form = &mf.Form
 				if err != nil {
 					t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
 				}
+				form = &mf.Form
 			}
-			want := test.want
 			got := form.Int64("pizza", 0)
 			if err := form.Err(); err != nil {
 				t.Errorf(`form.Error: got %v, want nil`, err)
 			}
-			if diff := cmp.Diff(want, got); diff != "" {
-				t.Errorf("form.Int64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
+			if diff := cmp.Diff(test.want, got); diff != "" {
+				t.Errorf("form.Int64: got %v, want %v, diff (-want +got): \n%s", got, test.want, diff)
 			}
 			return Result{}
 		}, &dispatcher{})
 		recorder := httptest.NewRecorder()
 		m.HandleRequest(recorder, test.req)
-		if respStatus := recorder.Result().Status; respStatus != status200OK {
-			t.Errorf("response status: got %s, want %s", respStatus, status200OK)
+		if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
+			t.Errorf("response status: got %v, want %v", respStatus, want)
 		}
 	}
 }
@@ -187,15 +181,14 @@ func TestFormInvalidInt(t *testing.T) {
 					}
 				} else {
 					mf, err := ir.MultipartForm(32 << 20)
-					form = &mf.Form
 					if err != nil {
 						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
 					}
+					form = &mf.Form
 				}
-				want := test.want
 				got := form.Int64("pizza", 0)
-				if diff := cmp.Diff(want, got); diff != "" {
-					t.Errorf("form.Int64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
+				if diff := cmp.Diff(test.want, got); diff != "" {
+					t.Errorf("form.Int64: got %v, want %v, diff (-want +got): \n%s", got, test.want, diff)
 				}
 				if form.Err() == nil {
 					t.Errorf("form.Err: got nil, want %v", test.err)
@@ -204,8 +197,8 @@ func TestFormInvalidInt(t *testing.T) {
 			}, &dispatcher{})
 			recorder := httptest.NewRecorder()
 			m.HandleRequest(recorder, req)
-			if respStatus := recorder.Result().Status; respStatus != status200OK {
-				t.Errorf("response status: got %s, want %s", respStatus, status200OK)
+			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
+				t.Errorf("response status: got %v, want %v", respStatus, want)
 			}
 		}
 	}
@@ -254,25 +247,24 @@ func TestFormValidUint(t *testing.T) {
 				}
 			} else {
 				mf, err := ir.MultipartForm(32 << 20)
-				form = &mf.Form
 				if err != nil {
 					t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
 				}
+				form = &mf.Form
 			}
-			want := test.want
 			got := form.Uint64("pizza", 0)
 			if err := form.Err(); err != nil {
 				t.Errorf(`form.Error: got %v, want nil`, err)
 			}
-			if diff := cmp.Diff(want, got); diff != "" {
-				t.Errorf("form.Uint64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
+			if diff := cmp.Diff(test.want, got); diff != "" {
+				t.Errorf("form.Uint64: got %v, want %v, diff (-want +got): \n%s", got, test.want, diff)
 			}
 			return Result{}
 		}, &dispatcher{})
 		recorder := httptest.NewRecorder()
 		m.HandleRequest(recorder, test.req)
-		if respStatus := recorder.Result().Status; respStatus != status200OK {
-			t.Errorf("response status: got %s, want %s", respStatus, status200OK)
+		if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
+			t.Errorf("response status: got %v, want %v", respStatus, want)
 		}
 	}
 }
@@ -304,7 +296,8 @@ func TestFormInvalidUint(t *testing.T) {
 				}(),
 			},
 			err:  errors.New(`strconv.ParseUint: parsing "-1": invalid syntax`),
-			want: 0},
+			want: 0,
+		},
 		{
 			name: "Overflow unsigned integer",
 			reqs: []*http.Request{
@@ -340,15 +333,14 @@ func TestFormInvalidUint(t *testing.T) {
 					}
 				} else {
 					mf, err := ir.MultipartForm(32 << 20)
-					form = &mf.Form
 					if err != nil {
 						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
 					}
+					form = &mf.Form
 				}
-				want := test.want
 				got := form.Uint64("pizza", 0)
-				if diff := cmp.Diff(want, got); diff != "" {
-					t.Errorf("form.Uint64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
+				if diff := cmp.Diff(test.want, got); diff != "" {
+					t.Errorf("form.Uint64: got %v, want %v, diff (-want +got): \n%s", got, test.want, diff)
 				}
 				if form.Err() == nil {
 					t.Errorf("form.Err: got nil, want %v", test.err)
@@ -357,8 +349,8 @@ func TestFormInvalidUint(t *testing.T) {
 			}, &dispatcher{})
 			recorder := httptest.NewRecorder()
 			m.HandleRequest(recorder, req)
-			if respStatus := recorder.Result().Status; respStatus != status200OK {
-				t.Errorf("response status: got %s, want %s", respStatus, status200OK)
+			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
+				t.Errorf("response status: got %v, want %v", respStatus, want)
 			}
 		}
 	}
@@ -419,10 +411,10 @@ func TestFormValidString(t *testing.T) {
 					}
 				} else {
 					mf, err := ir.MultipartForm(32 << 20)
-					form = &mf.Form
 					if err != nil {
 						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
 					}
+					form = &mf.Form
 				}
 				want := test.want[idx]
 				got := form.String("pizza", "")
@@ -436,15 +428,14 @@ func TestFormValidString(t *testing.T) {
 			}, &dispatcher{})
 			recorder := httptest.NewRecorder()
 			m.HandleRequest(recorder, req)
-			if respStatus := recorder.Result().Status; respStatus != status200OK {
-				t.Errorf("response status: got %s, want %s", respStatus, status200OK)
+			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
+				t.Errorf("response status: got %v, want %v", respStatus, want)
 			}
 		}
 	}
 }
 
 func TestFormValidFloat64(t *testing.T) {
-
 	stringMaxFloat := strconv.FormatFloat(math.MaxFloat64, 'f', 6, 64)
 	stringNegativeFloat := strconv.FormatFloat(-math.SmallestNonzeroFloat64, 'f', 324, 64)
 	tests := []struct {
@@ -500,10 +491,10 @@ func TestFormValidFloat64(t *testing.T) {
 					}
 				} else {
 					mf, err := ir.MultipartForm(32 << 20)
-					form = &mf.Form
 					if err != nil {
 						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
 					}
+					form = &mf.Form
 				}
 				want := test.want[idx]
 				got := form.Float64("pizza", 0.0)
@@ -517,8 +508,8 @@ func TestFormValidFloat64(t *testing.T) {
 			}, &dispatcher{})
 			recorder := httptest.NewRecorder()
 			m.HandleRequest(recorder, req)
-			if respStatus := recorder.Result().Status; respStatus != status200OK {
-				t.Errorf("response status: got %s, want %s", respStatus, status200OK)
+			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
+				t.Errorf("response status: got %v, want %v", respStatus, want)
 			}
 		}
 	}
@@ -587,15 +578,14 @@ func TestFormInvalidFloat64(t *testing.T) {
 					}
 				} else {
 					mf, err := ir.MultipartForm(32 << 20)
-					form = &mf.Form
 					if err != nil {
 						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
 					}
+					form = &mf.Form
 				}
-				want := test.want
 				got := form.Float64("pizza", 0.0)
-				if diff := cmp.Diff(want, got); diff != "" {
-					t.Errorf("form.Float64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
+				if diff := cmp.Diff(test.want, got); diff != "" {
+					t.Errorf("form.Float64: got %v, want %v, diff (-want +got): \n%s", got, test.want, diff)
 				}
 				if form.Err() == nil {
 					t.Errorf("form.Err: got nil, want %v", test.err)
@@ -604,8 +594,8 @@ func TestFormInvalidFloat64(t *testing.T) {
 			}, &dispatcher{})
 			recorder := httptest.NewRecorder()
 			m.HandleRequest(recorder, req)
-			if respStatus := recorder.Result().Status; respStatus != status200OK {
-				t.Errorf("response status: got %s, want %s", respStatus, status200OK)
+			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
+				t.Errorf("response status: got %v, want %v", respStatus, want)
 			}
 		}
 	}
@@ -665,10 +655,10 @@ func TestFormValidBool(t *testing.T) {
 					}
 				} else {
 					mf, err := ir.MultipartForm(32 << 20)
-					form = &mf.Form
 					if err != nil {
 						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
 					}
+					form = &mf.Form
 				}
 				want := test.want[idx]
 				got := form.Bool("pizza", false)
@@ -682,8 +672,8 @@ func TestFormValidBool(t *testing.T) {
 			}, &dispatcher{})
 			recorder := httptest.NewRecorder()
 			m.HandleRequest(recorder, req)
-			if respStatus := recorder.Result().Status; respStatus != status200OK {
-				t.Errorf("response status: got %s, want %s", respStatus, status200OK)
+			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
+				t.Errorf("response status: got %v, want %v", respStatus, want)
 			}
 		}
 	}
@@ -746,15 +736,14 @@ func TestFormInvalidBool(t *testing.T) {
 					}
 				} else {
 					mf, err := ir.MultipartForm(32 << 20)
-					form = &mf.Form
 					if err != nil {
 						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
 					}
+					form = &mf.Form
 				}
-				want := test.want
 				got := form.Bool("pizza", false)
-				if diff := cmp.Diff(want, got); diff != "" {
-					t.Errorf("form.Bool: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
+				if diff := cmp.Diff(test.want, got); diff != "" {
+					t.Errorf("form.Bool: got %v, want %v, diff (-want +got): \n%s", got, test.want, diff)
 				}
 				if form.Err() == nil {
 					t.Errorf("form.Err: got nil, want %v", test.err)
@@ -763,8 +752,8 @@ func TestFormInvalidBool(t *testing.T) {
 			}, &dispatcher{})
 			recorder := httptest.NewRecorder()
 			m.HandleRequest(recorder, req)
-			if respStatus := recorder.Result().Status; respStatus != status200OK {
-				t.Errorf("response status: got %s, want %s", respStatus, status200OK)
+			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
+				t.Errorf("response status: got %v, want %v", respStatus, want)
 			}
 		}
 	}
@@ -833,10 +822,10 @@ func TestFormValidSlice(t *testing.T) {
 					}
 				} else {
 					mf, err := ir.MultipartForm(32 << 20)
-					form = &mf.Form
 					if err != nil {
 						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
 					}
+					form = &mf.Form
 				}
 				switch want := validSlices[idx].(type) {
 				case []int64:
@@ -891,8 +880,8 @@ func TestFormValidSlice(t *testing.T) {
 			}, &dispatcher{})
 			recorder := httptest.NewRecorder()
 			m.HandleRequest(recorder, req)
-			if respStatus := recorder.Result().Status; respStatus != status200OK {
-				t.Errorf("response status: got %s, want %s", respStatus, status200OK)
+			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
+				t.Errorf("response status: got %v, want %v", respStatus, want)
 			}
 		}
 	}
@@ -988,10 +977,10 @@ func TestFormInvalidSlice(t *testing.T) {
 					}
 				} else {
 					mf, err := ir.MultipartForm(32 << 20)
-					form = &mf.Form
 					if err != nil {
 						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
 					}
+					form = &mf.Form
 				}
 				switch got := test.got.(type) {
 				case []int8:
@@ -1002,7 +991,6 @@ func TestFormInvalidSlice(t *testing.T) {
 					if form.Err() == nil {
 						t.Errorf("form.Err: got nil, want %v", test.err)
 					}
-
 				case []bool:
 					form.Slice("pizza", &got)
 					if diff := cmp.Diff(test.want, got); diff != "" {
@@ -1016,8 +1004,8 @@ func TestFormInvalidSlice(t *testing.T) {
 			}, &dispatcher{})
 			recorder := httptest.NewRecorder()
 			m.HandleRequest(recorder, req)
-			if respStatus := recorder.Result().Status; respStatus != status200OK {
-				t.Errorf("response status: got %s, want %s", respStatus, status200OK)
+			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
+				t.Errorf("response status: got %v, want %v", respStatus, want)
 			}
 		}
 	}
@@ -1069,10 +1057,10 @@ func TestFormErrorHandling(t *testing.T) {
 				}
 			} else {
 				mf, err := ir.MultipartForm(32 << 20)
-				form = &mf.Form
 				if err != nil {
 					t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
 				}
+				form = &mf.Form
 			}
 			var wantInt int64 = 0
 			gotInt := form.Int64("pizzaInt", 0)
@@ -1103,8 +1091,8 @@ func TestFormErrorHandling(t *testing.T) {
 		}, &dispatcher{})
 		recorder := httptest.NewRecorder()
 		m.HandleRequest(recorder, req)
-		if respStatus := recorder.Result().Status; respStatus != status200OK {
-			t.Errorf("response status: got %s, want %s", respStatus, status200OK)
+		if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
+			t.Errorf("response status: got %v, want %v", respStatus, want)
 		}
 	}
 }

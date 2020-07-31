@@ -47,7 +47,7 @@ func (r *IncomingRequest) PostForm() (*Form, error) {
 		}
 
 		if ct := r.req.Header.Get("Content-Type"); ct != "application/x-www-form-urlencoded" {
-			err = fmt.Errorf("invalid method called for Content-Type: %s, want MultipartForm", ct)
+			err = fmt.Errorf("invalid method called for Content-Type: %s", ct)
 			return
 		}
 		err = r.req.ParseForm()
@@ -64,9 +64,9 @@ func (r *IncomingRequest) PostForm() (*Form, error) {
 // files, if no error occurred, or the parsing error together with a nil
 // MultipartForm otherwise. When a form file is passed as part of a request,
 // maxMemory determines the upper limit of how much of the file can be stored in
-// main memory. If the file is bigger than 32 MB, the remaining part is going to
-// be stored on disk. This method should  only be used when the user expects
-// a POST request with the Content-Type: multipart/form-data header.
+// main memory. If the file is bigger than maxMemory, capped at 32 MB, the
+// remaining part is going to  be stored on disk. This method should  only be
+// used when the user expects a POST request with the Content-Type: multipart/form-data header.
 func (r *IncomingRequest) MultipartForm(maxMemory int64) (*MultipartForm, error) {
 	var err error
 	r.parseOnce.Do(func() {
@@ -80,7 +80,7 @@ func (r *IncomingRequest) MultipartForm(maxMemory int64) (*MultipartForm, error)
 		}
 
 		if ct := r.req.Header.Get("Content-Type"); !strings.HasPrefix(ct, "multipart/form-data") {
-			err = fmt.Errorf("invalid method called for Content-Type: %s, want PostForm", ct)
+			err = fmt.Errorf("invalid method called for Content-Type: %s", ct)
 			return
 		}
 		if maxMemory < 0 || maxMemory > defaultMaxMemory {
