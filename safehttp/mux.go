@@ -65,9 +65,9 @@ func (m *ServeMux) Handle(pattern string, method string, h Handler) {
 	ch, ok := m.handlers[pattern]
 	if !ok {
 		ch := combinedHandler{
-			h: make(map[string]Handler),
+			h:       make(map[string]Handler),
 			domains: m.domains,
-			d: m.dispatcher,
+			d:       m.dispatcher,
 		}
 		ch.h[method] = h
 
@@ -80,26 +80,6 @@ func (m *ServeMux) Handle(pattern string, method string, h Handler) {
 		panic("method already registered")
 	}
 	ch.h[method] = h
-}
-
-// HandleFunc registers a handler for the given pattern and method.If another
-// handler is already registered for the same pattern and method, HandleFunc
-// panics.
-func (m *ServeMux) HandleFunc(pattern string, method string, h HandleFunc) {
-	if h == nil {
-		return
-	}
-	m.Handle(pattern, method, HandlerFunc(h))
-}
-
-// NotFound is not yet implemented.
-func (*ServeMux) NotFound(h Handler) {
-	panic("not implemented")
-}
-
-// NotFoundFunc is not yet implemented.
-func (*ServeMux) NotFoundFunc(h HandleFunc) {
-	panic("not implemented")
 }
 
 // ServeHTTP dispatches the request to the handler whose method matches the
