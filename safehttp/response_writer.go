@@ -58,6 +58,13 @@ func (w *ResponseWriter) ServerError(code StatusCode, resp Response) Result {
 	return Result{}
 }
 
+// Redirect responds with a redirect to the given url.
+// The type of redirect is specified via the status code.
+func (w *ResponseWriter) Redirect(r *IncomingRequest, url string, code StatusCode) Result {
+	http.Redirect(w.rw, r.req, url, int(code))
+	return Result{}
+}
+
 // Header returns the collection of headers that will be set
 // on the response. Headers must be set before writing a
 // response (e.g. Write, WriteTemplate).
