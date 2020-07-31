@@ -32,7 +32,7 @@ type Form struct {
 // values. In case it does, it will try to convert the first value to a valid
 // int64 and return it. If there are no values associated with param, it
 // will return the defaultValue value. If the first value is not an integer, it will
-// return the defaultValue value and Err() will return the parsing error.
+// return the defaultValue value and calling Err() will return the parsing error.
 func (f *Form) Int64(param string, defaultValue int64) int64 {
 	vals, ok := f.values[param]
 	if !ok {
@@ -50,8 +50,7 @@ func (f *Form) Int64(param string, defaultValue int64) int64 {
 // values. In case it does, it will try to convert the first valid
 // uint64 and return it. If there are no values associated with
 // param, it will return the defaultValue value. If the first value is not an
-// unsigned integer, it will return the defaultValue value and set the Form
-// error field.
+// unsigned integer, it will return the defaultValue value and calling Err() will return the parsing error.
 func (f *Form) Uint64(param string, defaultValue uint64) uint64 {
 	vals, ok := f.values[param]
 	if !ok {
@@ -79,8 +78,9 @@ func (f *Form) String(param string, defaultValue string) string {
 // Float64 checks whether key param maps to any form parameter
 // values. In case it does, it will try to convert the first value to a valid
 // float64 and return it. If there are no values associated with param, it will
-// return the defaultValue value. If the first value is not a float, it will return
-// the defaultValue value and Err() will return the parsing error.
+// return the defaultValue value. If the first value is not a float, it will
+// return the defaultValue value and calling Err() will return the parsing
+// error.
 func (f *Form) Float64(param string, defaultValue float64) float64 {
 	vals, ok := f.values[param]
 	if !ok {
@@ -97,8 +97,9 @@ func (f *Form) Float64(param string, defaultValue float64) float64 {
 // Bool checks whether key param maps to any form parameter
 // values. In case it does, it will try to convert the first value to a valid
 // bool and return it. If there are no values associated with param, it will
-// return the defaultValue value. If the first value is not a boolean, it will return
-// the defaultValue value and Err() will return the parsing error.
+// return the defaultValue value. If the first value is not a boolean, it will
+// return the defaultValue value and calling Err() will return the parsing
+// error.
 func (f *Form) Bool(param string, defaultValue bool) bool {
 	vals, ok := f.values[param]
 	if !ok {
@@ -112,7 +113,7 @@ func (f *Form) Bool(param string, defaultValue bool) bool {
 	default:
 		f.err = fmt.Errorf("values of form parameter %q not a boolean", param)
 	}
-	return false
+	return defaultValue
 }
 
 func clearSlice(slicePtr interface{}) error {
@@ -136,8 +137,8 @@ func clearSlice(slicePtr interface{}) error {
 // Slice checks whether key param maps to any form parameters. If it
 // does, it will try to convert them to the type of slice elements slicePtr
 // points to. If there are no values associated with param, it will clear the
-// slice. If type conversion fails at any point, the Form error field will be
-// set and the slice will be cleared.
+// slice. If type conversion fails at any point, the slice will be cleared and
+// calling Err() will return the parsing error.
 func (f *Form) Slice(param string, slicePtr interface{}) {
 	mapVals, ok := f.values[param]
 	if !ok {
@@ -199,11 +200,9 @@ func (f *Form) Slice(param string, slicePtr interface{}) {
 			}
 		}
 		*values = res
-
 	default:
 		f.err = clearSlice(slicePtr)
 	}
-	return
 }
 
 // Err returns nil unless an error occurred while accessing a parsed form value.
