@@ -219,4 +219,5 @@ func (f *Form) Err() error {
 // type.
 type MultipartForm struct {
 	Form
+	// TODO(mihalimara22): add support for form files in the MultipartForm
 }
