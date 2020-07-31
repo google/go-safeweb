@@ -14,10 +14,6 @@
 
 package safehttp
 
-import (
-	"net/http"
-)
-
 // HandleFunc TODO
 type HandleFunc func(ResponseWriter, *IncomingRequest) Result
 
@@ -32,11 +28,4 @@ type HandlerFunc func(ResponseWriter, *IncomingRequest) Result
 // ServeHTTP calls f(w, r).
 func (f HandlerFunc) ServeHTTP(w ResponseWriter, r *IncomingRequest) Result {
 	return f(w, r)
-}
-
-func safeHandler(h http.Handler) Handler {
-	return HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
-		h.ServeHTTP(w.rw, r.req)
-		return Result{}
-	})
 }
