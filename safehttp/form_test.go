@@ -153,19 +153,24 @@ func TestFormInvalidInt(t *testing.T) {
 		},
 		{
 			name: "Not an integer in request",
-			reqs: func() []*http.Request {
-				postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=diavola"))
-				postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-				multipartReqBody := "--123\r\n" +
-					"Content-Disposition: form-data; name=\"pizza\"\r\n" +
-					"\r\n" +
-					"diavola\r\n" +
-					"--123--\r\n"
-				multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
-				multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
-				res := []*http.Request{postReq, multipartReq}
-				return res
-			}(),
+			reqs: []*http.Request{
+				func() *http.Request {
+					postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=diavola"))
+					postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+					return postReq
+
+				}(),
+				func() *http.Request {
+					multipartReqBody := "--123\r\n" +
+						"Content-Disposition: form-data; name=\"pizza\"\r\n" +
+						"\r\n" +
+						"diavola\r\n" +
+						"--123--\r\n"
+					multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
+					multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+					return multipartReq
+				}(),
+			},
 			err:  errors.New(`strconv.ParseInt: parsing "diavola": invalid syntax`),
 			want: 0,
 		},
@@ -262,36 +267,44 @@ func TestFormInvalidUint(t *testing.T) {
 	}{
 		{
 			name: "Not an unsigned integer",
-			reqs: func() []*http.Request {
-				postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=-1"))
-				postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-				multipartReqBody := "--123\r\n" +
-					"Content-Disposition: form-data; name=\"pizza\"\r\n" +
-					"\r\n" +
-					"-1\r\n" +
-					"--123--\r\n"
-				multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
-				multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
-				res := []*http.Request{postReq, multipartReq}
-				return res
-			}(),
+			reqs: []*http.Request{
+				func() *http.Request {
+					postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=-1"))
+					postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+					return postReq
+				}(),
+				func() *http.Request {
+					multipartReqBody := "--123\r\n" +
+						"Content-Disposition: form-data; name=\"pizza\"\r\n" +
+						"\r\n" +
+						"-1\r\n" +
+						"--123--\r\n"
+					multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
+					multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+					return multipartReq
+				}(),
+			},
 			err:  errors.New(`strconv.ParseUint: parsing "-1": invalid syntax`),
 			want: 0},
 		{
 			name: "Overflow unsigned integer",
-			reqs: func() []*http.Request {
-				postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=18446744073709551630"))
-				postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-				multipartReqBody := "--123\r\n" +
-					"Content-Disposition: form-data; name=\"pizza\"\r\n" +
-					"\r\n" +
-					"18446744073709551630\r\n" +
-					"--123--\r\n"
-				multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
-				multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
-				res := []*http.Request{postReq, multipartReq}
-				return res
-			}(),
+			reqs: []*http.Request{
+				func() *http.Request {
+					postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=18446744073709551630"))
+					postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+					return postReq
+				}(),
+				func() *http.Request {
+					multipartReqBody := "--123\r\n" +
+						"Content-Disposition: form-data; name=\"pizza\"\r\n" +
+						"\r\n" +
+						"18446744073709551630\r\n" +
+						"--123--\r\n"
+					multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
+					multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+					return multipartReq
+				}(),
+			},
 			err:  errors.New(`strconv.ParseUint: parsing "18446744073709551630": value out of range`),
 			want: 0,
 		},
@@ -471,36 +484,44 @@ func TestFormInvalidFloat64(t *testing.T) {
 	}{
 		{
 			name: "Not a float64 in request",
-			reqs: func() []*http.Request {
-				postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=diavola"))
-				postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-				multipartReqBody := "--123\r\n" +
-					"Content-Disposition: form-data; name=\"pizza\"\r\n" +
-					"\r\n" +
-					"diavola\r\n" +
-					"--123--\r\n"
-				multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
-				multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
-				res := []*http.Request{postReq, multipartReq}
-				return res
-			}(),
+			reqs: []*http.Request{
+				func() *http.Request {
+					postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=diavola"))
+					postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+					return postReq
+				}(),
+				func() *http.Request {
+					multipartReqBody := "--123\r\n" +
+						"Content-Disposition: form-data; name=\"pizza\"\r\n" +
+						"\r\n" +
+						"diavola\r\n" +
+						"--123--\r\n"
+					multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
+					multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+					return multipartReq
+				}(),
+			},
 			err:  errors.New(`strconv.ParseFloat: parsing "diavola": invalid syntax`),
 			want: 0.0},
 		{
 			name: "Overflow float64 in request",
-			reqs: func() []*http.Request {
-				postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=1.797693134862315708145274237317043567981e309"))
-				postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-				multipartReqBody := "--123\r\n" +
-					"Content-Disposition: form-data; name=\"pizza\"\r\n" +
-					"\r\n" +
-					"1.797693134862315708145274237317043567981e309\r\n" +
-					"--123--\r\n"
-				multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
-				multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
-				res := []*http.Request{postReq, multipartReq}
-				return res
-			}(),
+			reqs: []*http.Request{
+				func() *http.Request {
+					postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=1.797693134862315708145274237317043567981e309"))
+					postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+					return postReq
+				}(),
+				func() *http.Request {
+					multipartReqBody := "--123\r\n" +
+						"Content-Disposition: form-data; name=\"pizza\"\r\n" +
+						"\r\n" +
+						"1.797693134862315708145274237317043567981e309\r\n" +
+						"--123--\r\n"
+					multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
+					multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+					return multipartReq
+				}(),
+			},
 			err:  errors.New(`strconv.ParseFloat: parsing "1.797693134862315708145274237317043567981e309": value out of range`),
 			want: 0.0,
 		},
@@ -800,23 +821,27 @@ func TestFormInvalidSlice(t *testing.T) {
 	}{
 		{
 			name: "Request with multiple types in slice",
-			reqs: func() []*http.Request {
-				postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=true&pizza=1.3"))
-				postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-				multipartReqBody := "--123\r\n" +
-					"Content-Disposition: form-data; name=\"pizza\"\r\n" +
-					"\r\n" +
-					"true\r\n" +
-					"--123\r\n" +
-					"Content-Disposition: form-data; name=\"pizza\"\r\n" +
-					"\r\n" +
-					"1.3\r\n" +
-					"--123--\r\n"
-				multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
-				multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
-				res := []*http.Request{postReq, multipartReq}
-				return res
-			}(),
+			reqs: []*http.Request{
+				func() *http.Request {
+					postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=true&pizza=1.3"))
+					postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+					return postReq
+				}(),
+				func() *http.Request {
+					multipartReqBody := "--123\r\n" +
+						"Content-Disposition: form-data; name=\"pizza\"\r\n" +
+						"\r\n" +
+						"true\r\n" +
+						"--123\r\n" +
+						"Content-Disposition: form-data; name=\"pizza\"\r\n" +
+						"\r\n" +
+						"1.3\r\n" +
+						"--123--\r\n"
+					multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
+					multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+					return multipartReq
+				}(),
+			},
 			err: errors.New(`values of form parameter "pizza" not a boolean`),
 			got: func() interface{} {
 				var got []bool
@@ -829,23 +854,27 @@ func TestFormInvalidSlice(t *testing.T) {
 		},
 		{
 			name: "Unsupported slice type",
-			reqs: func() []*http.Request {
-				postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=true&pizza=1.3"))
-				postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-				multipartReqBody := "--123\r\n" +
-					"Content-Disposition: form-data; name=\"pizza\"\r\n" +
-					"\r\n" +
-					"true\r\n" +
-					"--123\r\n" +
-					"Content-Disposition: form-data; name=\"pizza\"\r\n" +
-					"\r\n" +
-					"1.3\r\n" +
-					"--123--\r\n"
-				multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
-				multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
-				res := []*http.Request{postReq, multipartReq}
-				return res
-			}(),
+			reqs: []*http.Request{
+				func() *http.Request {
+					postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=true&pizza=1.3"))
+					postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+					return postReq
+				}(),
+				func() *http.Request {
+					multipartReqBody := "--123\r\n" +
+						"Content-Disposition: form-data; name=\"pizza\"\r\n" +
+						"\r\n" +
+						"true\r\n" +
+						"--123\r\n" +
+						"Content-Disposition: form-data; name=\"pizza\"\r\n" +
+						"\r\n" +
+						"1.3\r\n" +
+						"--123--\r\n"
+					multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
+					multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+					return multipartReq
+				}(),
+			},
 			err: errors.New(`type not supported in Slice call: *[]int8`),
 			got: func() interface{} {
 				var got []int8
@@ -902,27 +931,31 @@ func TestFormErrorHandling(t *testing.T) {
 		errs []error
 	}{
 		name: "Erros occuring in requests",
-		reqs: func() []*http.Request {
-			postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizzaInt=diavola&pizzaBool=true&pizzaUint=-13"))
-			postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-			multipartReqBody := "--123\r\n" +
-				"Content-Disposition: form-data; name=\"pizzaInt\"\r\n" +
-				"\r\n" +
-				"diavola\r\n" +
-				"--123\r\n" +
-				"Content-Disposition: form-data; name=\"pizzaBool\"\r\n" +
-				"\r\n" +
-				"true\r\n" +
-				"--123\r\n" +
-				"Content-Disposition: form-data; name=\"pizzaUint\"\r\n" +
-				"\r\n" +
-				"-13\r\n" +
-				"--123--\r\n"
-			multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
-			multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
-			res := []*http.Request{postReq, multipartReq}
-			return res
-		}(),
+		reqs: []*http.Request{
+			func() *http.Request {
+				postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizzaInt=diavola&pizzaBool=true&pizzaUint=-13"))
+				postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+				return postReq
+			}(),
+			func() *http.Request {
+				multipartReqBody := "--123\r\n" +
+					"Content-Disposition: form-data; name=\"pizzaInt\"\r\n" +
+					"\r\n" +
+					"diavola\r\n" +
+					"--123\r\n" +
+					"Content-Disposition: form-data; name=\"pizzaBool\"\r\n" +
+					"\r\n" +
+					"true\r\n" +
+					"--123\r\n" +
+					"Content-Disposition: form-data; name=\"pizzaUint\"\r\n" +
+					"\r\n" +
+					"-13\r\n" +
+					"--123--\r\n"
+				multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
+				multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+				return multipartReq
+			}(),
+		},
 		errs: []error{errors.New(`strconv.ParseInt: parsing "diavola": invalid syntax`), errors.New(`strconv.ParseUint: parsing "-13": invalid syntax`)},
 	}
 
