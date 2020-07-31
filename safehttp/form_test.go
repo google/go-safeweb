@@ -55,17 +55,6 @@ func (d *dispatcher) ExecuteTemplate(rw http.ResponseWriter, t Template, data in
 	}
 }
 
-// A helper function that returns a parsed Form or an empty Form and any errors
-// that occured during parsing
-func getParsedForm(r *IncomingRequest) (*Form, error) {
-	if !strings.HasPrefix(r.req.Header.Get("Content-Type"), "multipart/form-data") {
-		f, err := r.PostForm()
-		return f, err
-	}
-	mf, err := r.MultipartForm(32 << 20)
-	return &mf.Form, err
-}
-
 func TestFormValidInt(t *testing.T) {
 	stringMaxInt := strconv.FormatInt(math.MaxInt64, 10)
 	tests := []struct {
@@ -99,14 +88,27 @@ func TestFormValidInt(t *testing.T) {
 	}
 
 	for _, test := range tests {
+		var (
+			mf   *MultipartForm
+			form *Form
+			err  error
+		)
 		m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-			form, err := getParsedForm(ir)
-			if err != nil {
-				t.Fatalf(`getParsedForm: got %v, want nil`, err)
+			if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+				form, err = ir.PostForm()
+				if err != nil {
+					t.Fatalf(`ir.PostForm: got %v, want nil`, err)
+				}
+			} else {
+				mf, err = ir.MultipartForm(32 << 20)
+				form = &mf.Form
+				if err != nil {
+					t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
+				}
 			}
 			want := test.want
 			got := form.Int64("pizza", 0)
-			if form.Err() != nil {
+			if err := form.Err(); err != nil {
 				t.Errorf(`form.Error: got %v, want nil`, err)
 			}
 			if diff := cmp.Diff(want, got); diff != "" {
@@ -179,9 +181,22 @@ func TestFormInvalidInt(t *testing.T) {
 	for _, test := range tests {
 		for _, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				form, err := getParsedForm(ir)
-				if err != nil {
-					t.Fatalf(`getParsedForm: got %v, want nil`, err)
+				var (
+					mf   *MultipartForm
+					form *Form
+					err  error
+				)
+				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+					form, err = ir.PostForm()
+					if err != nil {
+						t.Fatalf(`ir.PostForm: got %v, want nil`, err)
+					}
+				} else {
+					mf, err = ir.MultipartForm(32 << 20)
+					form = &mf.Form
+					if err != nil {
+						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
+					}
 				}
 				want := test.want
 				got := form.Int64("pizza", 0)
@@ -189,7 +204,7 @@ func TestFormInvalidInt(t *testing.T) {
 					t.Errorf("form.Int64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 				}
 				if form.Err() == nil {
-					t.Errorf("form.Err: got %v, want %v", err, test.err)
+					t.Errorf("form.Err: got nil, want %v", test.err)
 				}
 				return Result{}
 			}, &dispatcher{})
@@ -236,13 +251,26 @@ func TestFormValidUint(t *testing.T) {
 
 	for _, test := range tests {
 		m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-			form, err := getParsedForm(ir)
-			if err != nil {
-				t.Fatalf(`getParsedForm: got %v, want nil`, err)
+			var (
+				mf   *MultipartForm
+				form *Form
+				err  error
+			)
+			if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+				form, err = ir.PostForm()
+				if err != nil {
+					t.Fatalf(`ir.PostForm: got %v, want nil`, err)
+				}
+			} else {
+				mf, err = ir.MultipartForm(32 << 20)
+				form = &mf.Form
+				if err != nil {
+					t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
+				}
 			}
 			want := test.want
 			got := form.Uint64("pizza", 0)
-			if form.Err() != nil {
+			if err := form.Err(); err != nil {
 				t.Errorf(`form.Error: got %v, want nil`, err)
 			}
 			if diff := cmp.Diff(want, got); diff != "" {
@@ -312,9 +340,22 @@ func TestFormInvalidUint(t *testing.T) {
 	for _, test := range tests {
 		for _, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				form, err := getParsedForm(ir)
-				if err != nil {
-					t.Fatalf(`getParsedForm: got %v, want nil`, err)
+				var (
+					mf   *MultipartForm
+					form *Form
+					err  error
+				)
+				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+					form, err = ir.PostForm()
+					if err != nil {
+						t.Fatalf(`ir.PostForm: got %v, want nil`, err)
+					}
+				} else {
+					mf, err = ir.MultipartForm(32 << 20)
+					form = &mf.Form
+					if err != nil {
+						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
+					}
 				}
 				want := test.want
 				got := form.Uint64("pizza", 0)
@@ -322,7 +363,7 @@ func TestFormInvalidUint(t *testing.T) {
 					t.Errorf("form.Uint64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 				}
 				if form.Err() == nil {
-					t.Errorf("form.Err: got %v, want %v", err, test.err)
+					t.Errorf("form.Err: got nil, want %v", test.err)
 				}
 				return Result{}
 			}, &dispatcher{})
@@ -381,16 +422,29 @@ func TestFormValidString(t *testing.T) {
 	for _, test := range tests {
 		for idx, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				form, err := getParsedForm(ir)
-				if err != nil {
-					t.Fatalf(`getParsedForm: got %v, want nil`, err)
+				var (
+					mf   *MultipartForm
+					form *Form
+					err  error
+				)
+				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+					form, err = ir.PostForm()
+					if err != nil {
+						t.Fatalf(`ir.PostForm: got %v, want nil`, err)
+					}
+				} else {
+					mf, err = ir.MultipartForm(32 << 20)
+					form = &mf.Form
+					if err != nil {
+						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
+					}
 				}
 				want := test.want[idx]
 				got := form.String("pizza", "")
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("form.String: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 				}
-				if form.Err() != nil {
+				if err := form.Err(); err != nil {
 					t.Errorf("form.Err: got %v, want nil", err)
 				}
 				return Result{}
@@ -452,16 +506,29 @@ func TestFormValidFloat64(t *testing.T) {
 	for _, test := range tests {
 		for idx, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				form, err := getParsedForm(ir)
-				if err != nil {
-					t.Fatalf(`getParsedForm: got %v, want nil`, err)
+				var (
+					mf   *MultipartForm
+					form *Form
+					err  error
+				)
+				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+					form, err = ir.PostForm()
+					if err != nil {
+						t.Fatalf(`ir.PostForm: got %v, want nil`, err)
+					}
+				} else {
+					mf, err = ir.MultipartForm(32 << 20)
+					form = &mf.Form
+					if err != nil {
+						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
+					}
 				}
 				want := test.want[idx]
 				got := form.Float64("pizza", 0.0)
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("form.Float64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 				}
-				if form.Err() != nil {
+				if err := form.Err(); err != nil {
 					t.Errorf("form.Err: got %v, want nil", err)
 				}
 				return Result{}
@@ -529,9 +596,22 @@ func TestFormInvalidFloat64(t *testing.T) {
 	for _, test := range tests {
 		for _, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				form, err := getParsedForm(ir)
-				if err != nil {
-					t.Fatalf(`getParsedForm: got %v, want nil`, err)
+				var (
+					mf   *MultipartForm
+					form *Form
+					err  error
+				)
+				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+					form, err = ir.PostForm()
+					if err != nil {
+						t.Fatalf(`ir.PostForm: got %v, want nil`, err)
+					}
+				} else {
+					mf, err = ir.MultipartForm(32 << 20)
+					form = &mf.Form
+					if err != nil {
+						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
+					}
 				}
 				want := test.want
 				got := form.Float64("pizza", 0.0)
@@ -539,7 +619,7 @@ func TestFormInvalidFloat64(t *testing.T) {
 					t.Errorf("form.Float64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 				}
 				if form.Err() == nil {
-					t.Errorf("form.Err: got %v, want %v", err, test.err)
+					t.Errorf("form.Err: got nil, want %v", test.err)
 				}
 				return Result{}
 			}, &dispatcher{})
@@ -597,16 +677,29 @@ func TestFormValidBool(t *testing.T) {
 	for _, test := range tests {
 		for idx, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				form, err := getParsedForm(ir)
-				if err != nil {
-					t.Fatalf(`getParsedForm: got %v, want nil`, err)
+				var (
+					mf   *MultipartForm
+					form *Form
+					err  error
+				)
+				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+					form, err = ir.PostForm()
+					if err != nil {
+						t.Fatalf(`ir.PostForm: got %v, want nil`, err)
+					}
+				} else {
+					mf, err = ir.MultipartForm(32 << 20)
+					form = &mf.Form
+					if err != nil {
+						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
+					}
 				}
 				want := test.want[idx]
 				got := form.Bool("pizza", false)
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("form.Bool: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 				}
-				if form.Err() != nil {
+				if err := form.Err(); err != nil {
 					t.Errorf("form.Err: got %v, want nil", err)
 				}
 				return Result{}
@@ -668,9 +761,22 @@ func TestFormInvalidBool(t *testing.T) {
 	for _, test := range tests {
 		for _, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				form, err := getParsedForm(ir)
-				if err != nil {
-					t.Fatalf(`getParsedForm: got %v, want nil`, err)
+				var (
+					mf   *MultipartForm
+					form *Form
+					err  error
+				)
+				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+					form, err = ir.PostForm()
+					if err != nil {
+						t.Fatalf(`ir.PostForm: got %v, want nil`, err)
+					}
+				} else {
+					mf, err = ir.MultipartForm(32 << 20)
+					form = &mf.Form
+					if err != nil {
+						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
+					}
 				}
 				want := test.want
 				got := form.Bool("pizza", false)
@@ -678,7 +784,7 @@ func TestFormInvalidBool(t *testing.T) {
 					t.Errorf("form.Bool: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 				}
 				if form.Err() == nil {
-					t.Errorf("form.Err: got %v, want %v", err, test.err)
+					t.Errorf("form.Err: got nil, want %v", test.err)
 				}
 				return Result{}
 			}, &dispatcher{})
@@ -745,15 +851,28 @@ func TestFormValidSlice(t *testing.T) {
 	for _, test := range tests {
 		for idx, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				form, err := getParsedForm(ir)
-				if err != nil {
-					t.Fatalf(`getParsedForm: got %v, want nil`, err)
+				var (
+					mf   *MultipartForm
+					form *Form
+					err  error
+				)
+				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+					form, err = ir.PostForm()
+					if err != nil {
+						t.Fatalf(`ir.PostForm: got %v, want nil`, err)
+					}
+				} else {
+					mf, err = ir.MultipartForm(32 << 20)
+					form = &mf.Form
+					if err != nil {
+						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
+					}
 				}
 				switch want := validSlices[idx].(type) {
 				case []int64:
 					var got []int64
 					form.Slice("pizza", &got)
-					if form.Err() != nil {
+					if err := form.Err(); err != nil {
 						t.Errorf(`form.Error: got %v, want nil`, err)
 					}
 					if diff := cmp.Diff(want, got); diff != "" {
@@ -762,7 +881,7 @@ func TestFormValidSlice(t *testing.T) {
 				case []string:
 					var got []string
 					form.Slice("pizza", &got)
-					if form.Err() != nil {
+					if err := form.Err(); err != nil {
 						t.Errorf(`form.Error: got %v, want nil`, err)
 					}
 					if diff := cmp.Diff(want, got); diff != "" {
@@ -771,7 +890,7 @@ func TestFormValidSlice(t *testing.T) {
 				case []uint64:
 					var got []uint64
 					form.Slice("pizza", &got)
-					if form.Err() != nil {
+					if err := form.Err(); err != nil {
 						t.Errorf(`form.Error: got %v, want nil`, err)
 					}
 					if diff := cmp.Diff(want, got); diff != "" {
@@ -780,7 +899,7 @@ func TestFormValidSlice(t *testing.T) {
 				case []float64:
 					var got []float64
 					form.Slice("pizza", &got)
-					if form.Err() != nil {
+					if err := form.Err(); err != nil {
 						t.Errorf(`form.Error: got %v, want nil`, err)
 					}
 					if diff := cmp.Diff(want, got); diff != "" {
@@ -789,7 +908,7 @@ func TestFormValidSlice(t *testing.T) {
 				case []bool:
 					var got []bool
 					form.Slice("pizza", &got)
-					if form.Err() != nil {
+					if err := form.Err(); err != nil {
 						t.Errorf(`form.Error: got %v, want nil`, err)
 					}
 					if diff := cmp.Diff(want, got); diff != "" {
@@ -890,9 +1009,22 @@ func TestFormInvalidSlice(t *testing.T) {
 	for _, test := range tests {
 		for _, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				form, err := getParsedForm(ir)
-				if err != nil {
-					t.Fatalf(`getParsedForm: got %v, want nil`, err)
+				var (
+					mf   *MultipartForm
+					form *Form
+					err  error
+				)
+				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+					form, err = ir.PostForm()
+					if err != nil {
+						t.Fatalf(`ir.PostForm: got %v, want nil`, err)
+					}
+				} else {
+					mf, err = ir.MultipartForm(32 << 20)
+					form = &mf.Form
+					if err != nil {
+						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
+					}
 				}
 				switch got := test.got.(type) {
 				case []int8:
@@ -901,7 +1033,7 @@ func TestFormInvalidSlice(t *testing.T) {
 						t.Errorf("form.Slice: got %v, want %v", got, test.want)
 					}
 					if form.Err() == nil {
-						t.Errorf("form.Err: got %v, want %v", err, test.err)
+						t.Errorf("form.Err: got nil, want %v", test.err)
 					}
 
 				case []bool:
@@ -910,7 +1042,7 @@ func TestFormInvalidSlice(t *testing.T) {
 						t.Errorf("form.Slice: got %v, want %v", got, test.want)
 					}
 					if form.Err() == nil {
-						t.Errorf("form.Err: got %v, want %v", err, test.err)
+						t.Errorf("form.Err: got nil, want %v", test.err)
 					}
 				}
 				return Result{}
@@ -961,17 +1093,30 @@ func TestFormErrorHandling(t *testing.T) {
 
 	for _, req := range test.reqs {
 		m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-			form, err := getParsedForm(ir)
-			if err != nil {
-				t.Fatalf(`getParsedForm: got %v, want nil`, err)
+			var (
+				mf   *MultipartForm
+				form *Form
+				err  error
+			)
+			if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+				form, err = ir.PostForm()
+				if err != nil {
+					t.Fatalf(`ir.PostForm: got %v, want nil`, err)
+				}
+			} else {
+				mf, err = ir.MultipartForm(32 << 20)
+				form = &mf.Form
+				if err != nil {
+					t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
+				}
 			}
 			var wantInt int64 = 0
 			gotInt := form.Int64("pizzaInt", 0)
 			if diff := cmp.Diff(wantInt, gotInt); diff != "" {
 				t.Errorf("form.Int64: got %v, want %v, diff (-want +got): \n%s", gotInt, wantInt, diff)
 			}
-			if err := form.Err(); test.errs[0].Error() != err.Error() {
-				t.Errorf("form.Err: got %v, want %v", err, test.errs[0])
+			if form.Err() == nil {
+				t.Errorf("form.Err: got nil, want %v", test.errs[0])
 			}
 			wantBool := true
 			gotBool := form.Bool("pizzaBool", false)
@@ -979,16 +1124,16 @@ func TestFormErrorHandling(t *testing.T) {
 				t.Errorf("form.Bool: got %v, want %v, diff (-want +got): \n%s", gotBool, wantBool, diff)
 			}
 			// We expect the same error here becase calling form.Bool succeeds
-			if err := form.Err(); test.errs[0].Error() != err.Error() {
-				t.Errorf("form.Err: got %v, want %v", err, test.errs[0])
+			if form.Err() == nil {
+				t.Errorf("form.Err: got nil, want %v", test.errs[0])
 			}
 			var wantUint uint64 = 0
 			gotUint := form.Uint64("pizzaUint", 0)
 			if diff := cmp.Diff(wantUint, gotUint); diff != "" {
 				t.Errorf("form.Uint64: got %v, want %v, diff (-want +got): \n%s", gotUint, wantUint, diff)
 			}
-			if err := form.Err(); test.errs[1].Error() != err.Error() {
-				t.Errorf("form.Err: got %v, want %v", err, test.errs[1])
+			if form.Err() == nil {
+				t.Errorf("form.Err: got nil, want %v", test.errs[1])
 			}
 			return Result{}
 		}, &dispatcher{})
