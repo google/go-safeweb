@@ -78,9 +78,12 @@ func (r *IncomingRequest) PostForm() (*Form, error) {
 
 // MultipartForm parses the form parameters provided in the body of a POST,
 // PATCH or PUT request that has Content-Type set to multipart/form-data. It
-// returns a MultipartForm object containing the parsed form parameter and
+// returns a MultipartForm object containing the parsed form parameters and
 // files, if no error occurred, or the parsing error together with a nil
-// MultipartForm otherwise. This method should  only be used when the user expects
+// MultipartForm otherwise. When a form file is passed as part of a request,
+// maxMemory determines the upper limit of how much of the file can be stored in
+// main memory. If the file is bigger than 32 MB, the remaining part is going to
+// be stored on disk. This method should  only be used when the user expects
 // a POST request with the Content-Type: multipart/form-data header.
 func (r *IncomingRequest) MultipartForm(maxMemory int64) (*MultipartForm, error) {
 	var err error
