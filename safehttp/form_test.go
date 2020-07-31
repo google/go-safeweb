@@ -72,27 +72,27 @@ func getParsedForm(r *IncomingRequest) (*Form, error) {
 }
 
 func TestFormValidInt(t *testing.T) {
-	maxIntToString := strconv.FormatInt(math.MaxInt64, 10)
+	stringMaxInt := strconv.FormatInt(math.MaxInt64, 10)
 	tests := []struct {
-		name    string
-		req     *http.Request
-		formVal int64
+		name string
+		req  *http.Request
+		want int64
 	}{
 		{
 			name: "Valid int in GET request",
 			req: func() *http.Request {
-				return httptest.NewRequest("GET", "/?pizza="+maxIntToString, nil)
+				return httptest.NewRequest("GET", "/?pizza="+stringMaxInt, nil)
 			}(),
-			formVal: math.MaxInt64,
+			want: math.MaxInt64,
 		},
 		{
 			name: "Valid int in POST non-multipart request",
 			req: func() *http.Request {
-				postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza="+maxIntToString))
+				postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza="+stringMaxInt))
 				postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 				return postReq
 			}(),
-			formVal: math.MaxInt64,
+			want: math.MaxInt64,
 		},
 		{
 			name: "Valid int in POST multipart request",
@@ -100,13 +100,13 @@ func TestFormValidInt(t *testing.T) {
 				multipartReqBody := "--123\r\n" +
 					"Content-Disposition: form-data; name=\"pizza\"\r\n" +
 					"\r\n" +
-					maxIntToString + "\r\n" +
+					stringMaxInt + "\r\n" +
 					"--123--\r\n"
 				multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
 				multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
 				return multipartReq
 			}(),
-			formVal: math.MaxInt64,
+			want: math.MaxInt64,
 		},
 	}
 
@@ -114,12 +114,12 @@ func TestFormValidInt(t *testing.T) {
 		m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
 			form, err := getParsedForm(ir)
 			if err != nil {
-				t.Fatalf(`getParsedForm: got "%v", want nil`, err)
+				t.Fatalf(`getParsedForm: got %v, want nil`, err)
 			}
-			want := test.formVal
+			want := test.want
 			got := form.Int64("pizza", 0)
-			if err := form.Err(); err != nil {
-				t.Errorf(`form.Error: got "%v", want nil`, err)
+			if form.Err() != nil {
+				t.Errorf(`form.Error: got %v, want nil`, err)
 			}
 			if diff := cmp.Diff(want, got); diff != "" {
 				t.Errorf("form.Int64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
@@ -136,33 +136,37 @@ func TestFormValidInt(t *testing.T) {
 
 func TestFormInvalidInt(t *testing.T) {
 	tests := []struct {
-		name    string
-		reqs    *[]*http.Request
-		err     error
-		formVal int64
+		name string
+		reqs []*http.Request
+		err  error
+		want int64
 	}{
 		{
 			name: "Overflow integer in request",
-			reqs: func() *[]*http.Request {
-				getReq := httptest.NewRequest("GET", "/?pizza=9223372036854775810", nil)
-				postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=9223372036854775810"))
-				postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-				multipartReqBody := "--123\r\n" +
-					"Content-Disposition: form-data; name=\"pizza\"\r\n" +
-					"\r\n" +
-					"9223372036854775810\r\n" +
-					"--123--\r\n"
-				multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
-				multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
-				res := []*http.Request{getReq, postReq, multipartReq}
-				return &res
-			}(),
-			err:     errors.New(`strconv.ParseInt: parsing "9223372036854775810": value out of range`),
-			formVal: 0,
+			reqs: []*http.Request{
+				httptest.NewRequest("GET", "/?pizza=9223372036854775810", nil),
+				func() *http.Request {
+					postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=9223372036854775810"))
+					postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+					return postReq
+				}(),
+				func() *http.Request {
+					multipartReqBody := "--123\r\n" +
+						"Content-Disposition: form-data; name=\"pizza\"\r\n" +
+						"\r\n" +
+						"9223372036854775810\r\n" +
+						"--123--\r\n"
+					multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
+					multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+					return multipartReq
+				}(),
+			},
+			err:  errors.New(`strconv.ParseInt: parsing "9223372036854775810": value out of range`),
+			want: 0,
 		},
 		{
 			name: "Not an integer in request",
-			reqs: func() *[]*http.Request {
+			reqs: func() []*http.Request {
 				getReq := httptest.NewRequest("GET", "/?pizza=diavola", nil)
 				postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=diavola"))
 				postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -174,26 +178,26 @@ func TestFormInvalidInt(t *testing.T) {
 				multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
 				multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
 				res := []*http.Request{getReq, postReq, multipartReq}
-				return &res
+				return res
 			}(),
-			err:     errors.New(`strconv.ParseInt: parsing "diavola": invalid syntax`),
-			formVal: 0,
+			err:  errors.New(`strconv.ParseInt: parsing "diavola": invalid syntax`),
+			want: 0,
 		},
 	}
 
 	for _, test := range tests {
-		for _, req := range *test.reqs {
+		for _, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
 				form, err := getParsedForm(ir)
 				if err != nil {
-					t.Fatalf(`getParsedForm: got "%v", want nil`, err)
+					t.Fatalf(`getParsedForm: got %v, want nil`, err)
 				}
-				want := test.formVal
+				want := test.want
 				got := form.Int64("pizza", 0)
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("form.Int64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 				}
-				if err := form.Err(); test.err.Error() != err.Error() {
+				if form.Err() == nil {
 					t.Errorf("form.Err: got %v, want %v", err, test.err)
 				}
 				return Result{}
@@ -208,27 +212,27 @@ func TestFormInvalidInt(t *testing.T) {
 }
 
 func TestFormValidUint(t *testing.T) {
-	maxUintToString := strconv.FormatUint(math.MaxUint64, 10)
+	stringMaxUint := strconv.FormatUint(math.MaxUint64, 10)
 	tests := []struct {
-		name    string
-		req     *http.Request
-		formVal uint64
+		name string
+		req  *http.Request
+		want uint64
 	}{
 		{
 			name: "Valid unsigned integer in GET request",
 			req: func() *http.Request {
-				return httptest.NewRequest("GET", "/?pizza="+maxUintToString, nil)
+				return httptest.NewRequest("GET", "/?pizza="+stringMaxUint, nil)
 			}(),
-			formVal: math.MaxUint64,
+			want: math.MaxUint64,
 		},
 		{
 			name: "Valid unsigned integer in POST non-multipart request",
 			req: func() *http.Request {
-				postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza="+maxUintToString))
+				postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza="+stringMaxUint))
 				postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 				return postReq
 			}(),
-			formVal: math.MaxUint64,
+			want: math.MaxUint64,
 		},
 		{
 			name: "Valid unsigned integer in POST multipart request",
@@ -236,13 +240,13 @@ func TestFormValidUint(t *testing.T) {
 				multipartReqBody := "--123\r\n" +
 					"Content-Disposition: form-data; name=\"pizza\"\r\n" +
 					"\r\n" +
-					maxUintToString + "\r\n" +
+					stringMaxUint + "\r\n" +
 					"--123--\r\n"
 				multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
 				multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
 				return multipartReq
 			}(),
-			formVal: math.MaxUint64,
+			want: math.MaxUint64,
 		},
 	}
 
@@ -250,12 +254,12 @@ func TestFormValidUint(t *testing.T) {
 		m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
 			form, err := getParsedForm(ir)
 			if err != nil {
-				t.Fatalf(`getParsedForm: got "%v", want nil`, err)
+				t.Fatalf(`getParsedForm: got %v, want nil`, err)
 			}
-			want := test.formVal
+			want := test.want
 			got := form.Uint64("pizza", 0)
-			if err := form.Err(); err != nil {
-				t.Errorf(`form.Error: got "%v", want nil`, err)
+			if form.Err() != nil {
+				t.Errorf(`form.Error: got %v, want nil`, err)
 			}
 			if diff := cmp.Diff(want, got); diff != "" {
 				t.Errorf("form.Uint64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
@@ -272,14 +276,14 @@ func TestFormValidUint(t *testing.T) {
 
 func TestFormInvalidUint(t *testing.T) {
 	tests := []struct {
-		name    string
-		reqs    *[]*http.Request
-		err     error
-		formVal uint64
+		name string
+		reqs []*http.Request
+		err  error
+		want uint64
 	}{
 		{
 			name: "Not an unsigned integer",
-			reqs: func() *[]*http.Request {
+			reqs: func() []*http.Request {
 				getReq := httptest.NewRequest("GET", "/?pizza=-1", nil)
 				postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=-1"))
 				postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -291,13 +295,13 @@ func TestFormInvalidUint(t *testing.T) {
 				multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
 				multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
 				res := []*http.Request{getReq, postReq, multipartReq}
-				return &res
+				return res
 			}(),
-			err:     errors.New(`strconv.ParseUint: parsing "-1": invalid syntax`),
-			formVal: 0},
+			err:  errors.New(`strconv.ParseUint: parsing "-1": invalid syntax`),
+			want: 0},
 		{
 			name: "Overflow unsigned integer",
-			reqs: func() *[]*http.Request {
+			reqs: func() []*http.Request {
 				getReq := httptest.NewRequest("GET", "/?pizza=18446744073709551630", nil)
 				postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=18446744073709551630"))
 				postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -309,25 +313,25 @@ func TestFormInvalidUint(t *testing.T) {
 				multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
 				multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
 				res := []*http.Request{getReq, postReq, multipartReq}
-				return &res
+				return res
 			}(),
-			err:     errors.New(`strconv.ParseUint: parsing "18446744073709551630": value out of range`),
-			formVal: 0,
+			err:  errors.New(`strconv.ParseUint: parsing "18446744073709551630": value out of range`),
+			want: 0,
 		},
 	}
 	for _, test := range tests {
-		for _, req := range *test.reqs {
+		for _, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
 				form, err := getParsedForm(ir)
 				if err != nil {
-					t.Fatalf(`getParsedForm: got "%v", want nil`, err)
+					t.Fatalf(`getParsedForm: got %v, want nil`, err)
 				}
-				want := test.formVal
+				want := test.want
 				got := form.Uint64("pizza", 0)
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("form.Uint64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 				}
-				if err := form.Err(); test.err.Error() != err.Error() {
+				if form.Err() == nil {
 					t.Errorf("form.Err: got %v, want %v", err, test.err)
 				}
 				return Result{}
@@ -343,25 +347,25 @@ func TestFormInvalidUint(t *testing.T) {
 
 func TestFormValidString(t *testing.T) {
 	tests := []struct {
-		name     string
-		reqs     *[]*http.Request
-		formVals []string
+		name string
+		reqs []*http.Request
+		want []string
 	}{
 		{
 			name: "Valid string in GET request",
-			reqs: func() *[]*http.Request {
+			reqs: func() []*http.Request {
 				reqs := []*http.Request{
 					httptest.NewRequest("GET", "/?pizza=diavola", nil),
 					httptest.NewRequest("GET", "/?pizza=ăȚâȘî", nil),
 					httptest.NewRequest("GET", "/?pizza=\x64\x69\x61\x76\x6f\x6c\x61", nil),
 				}
-				return &reqs
+				return reqs
 			}(),
-			formVals: []string{"diavola", "ăȚâȘî", "diavola"},
+			want: []string{"diavola", "ăȚâȘî", "diavola"},
 		},
 		{
 			name: "Valid string in POST non-multipart request",
-			reqs: func() *[]*http.Request {
+			reqs: func() []*http.Request {
 				reqs := []*http.Request{
 					httptest.NewRequest("POST", "/", strings.NewReader("pizza=diavola")),
 					httptest.NewRequest("POST", "/", strings.NewReader("pizza=ăȚâȘî")),
@@ -370,13 +374,13 @@ func TestFormValidString(t *testing.T) {
 				for _, req := range reqs {
 					req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 				}
-				return &reqs
+				return reqs
 			}(),
-			formVals: []string{"diavola", "ăȚâȘî", "diavola"},
+			want: []string{"diavola", "ăȚâȘî", "diavola"},
 		},
 		{
 			name: "Valid string in POST multipart request",
-			reqs: func() *[]*http.Request {
+			reqs: func() []*http.Request {
 				slice := []string{"diavola", "ăȚâȘî", "diavola"}
 				var reqs []*http.Request
 				for _, val := range slice {
@@ -390,25 +394,25 @@ func TestFormValidString(t *testing.T) {
 					reqs = append(reqs, multipartReq)
 
 				}
-				return &reqs
+				return reqs
 			}(),
-			formVals: []string{"diavola", "ăȚâȘî", "diavola"},
+			want: []string{"diavola", "ăȚâȘî", "diavola"},
 		},
 	}
 
 	for _, test := range tests {
-		for idx, req := range *test.reqs {
+		for idx, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
 				form, err := getParsedForm(ir)
 				if err != nil {
-					t.Fatalf(`getParsedForm: got "%v", want nil`, err)
+					t.Fatalf(`getParsedForm: got %v, want nil`, err)
 				}
-				want := test.formVals[idx]
+				want := test.want[idx]
 				got := form.String("pizza", "")
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("form.String: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 				}
-				if err := form.Err(); err != nil {
+				if form.Err() != nil {
 					t.Errorf("form.Err: got %v, want nil", err)
 				}
 				return Result{}
@@ -424,42 +428,42 @@ func TestFormValidString(t *testing.T) {
 
 func TestFormValidFloat64(t *testing.T) {
 
-	maxFloatToString := strconv.FormatFloat(math.MaxFloat64, 'f', 6, 64)
-	negativeFloatToString := strconv.FormatFloat(-math.SmallestNonzeroFloat64, 'f', 324, 64)
+	stringMaxFloat := strconv.FormatFloat(math.MaxFloat64, 'f', 6, 64)
+	stringNegativeFloat := strconv.FormatFloat(-math.SmallestNonzeroFloat64, 'f', 324, 64)
 	tests := []struct {
-		name     string
-		reqs     *[]*http.Request
-		formVals []float64
+		name string
+		reqs []*http.Request
+		want []float64
 	}{
 		{
 			name: "Valid floats in GET request",
-			reqs: func() *[]*http.Request {
+			reqs: func() []*http.Request {
 				reqs := []*http.Request{
-					httptest.NewRequest("GET", "/?pizza="+maxFloatToString, nil),
-					httptest.NewRequest("GET", "/?pizza="+negativeFloatToString, nil),
+					httptest.NewRequest("GET", "/?pizza="+stringMaxFloat, nil),
+					httptest.NewRequest("GET", "/?pizza="+stringNegativeFloat, nil),
 				}
-				return &reqs
+				return reqs
 			}(),
-			formVals: []float64{math.MaxFloat64, -math.SmallestNonzeroFloat64},
+			want: []float64{math.MaxFloat64, -math.SmallestNonzeroFloat64},
 		},
 		{
 			name: "Valid floats in POST non-multipart request",
-			reqs: func() *[]*http.Request {
+			reqs: func() []*http.Request {
 				reqs := []*http.Request{
-					httptest.NewRequest("POST", "/", strings.NewReader("pizza="+maxFloatToString)),
-					httptest.NewRequest("POST", "/", strings.NewReader("pizza="+negativeFloatToString)),
+					httptest.NewRequest("POST", "/", strings.NewReader("pizza="+stringMaxFloat)),
+					httptest.NewRequest("POST", "/", strings.NewReader("pizza="+stringNegativeFloat)),
 				}
 				for _, req := range reqs {
 					req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 				}
-				return &reqs
+				return reqs
 			}(),
-			formVals: []float64{math.MaxFloat64, -math.SmallestNonzeroFloat64},
+			want: []float64{math.MaxFloat64, -math.SmallestNonzeroFloat64},
 		},
 		{
 			name: "Valid floats in POST multipart request",
-			reqs: func() *[]*http.Request {
-				slice := []string{maxFloatToString, negativeFloatToString}
+			reqs: func() []*http.Request {
+				slice := []string{stringMaxFloat, stringNegativeFloat}
 				var reqs []*http.Request
 				for _, val := range slice {
 					multipartReqBody := "--123\r\n" +
@@ -472,25 +476,25 @@ func TestFormValidFloat64(t *testing.T) {
 					reqs = append(reqs, multipartReq)
 
 				}
-				return &reqs
+				return reqs
 			}(),
-			formVals: []float64{math.MaxFloat64, -math.SmallestNonzeroFloat64},
+			want: []float64{math.MaxFloat64, -math.SmallestNonzeroFloat64},
 		},
 	}
 
 	for _, test := range tests {
-		for idx, req := range *test.reqs {
+		for idx, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
 				form, err := getParsedForm(ir)
 				if err != nil {
-					t.Fatalf(`getParsedForm: got "%v", want nil`, err)
+					t.Fatalf(`getParsedForm: got %v, want nil`, err)
 				}
-				want := test.formVals[idx]
+				want := test.want[idx]
 				got := form.Float64("pizza", 0.0)
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("form.Float64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 				}
-				if err := form.Err(); err != nil {
+				if form.Err() != nil {
 					t.Errorf("form.Err: got %v, want nil", err)
 				}
 				return Result{}
@@ -506,14 +510,14 @@ func TestFormValidFloat64(t *testing.T) {
 
 func TestFormInvalidFloat64(t *testing.T) {
 	tests := []struct {
-		name    string
-		reqs    *[]*http.Request
-		err     error
-		formVal float64
+		name string
+		reqs []*http.Request
+		err  error
+		want float64
 	}{
 		{
 			name: "Not a float64 in request",
-			reqs: func() *[]*http.Request {
+			reqs: func() []*http.Request {
 				getReq := httptest.NewRequest("GET", "/?pizza=diavola", nil)
 				postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=diavola"))
 				postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -525,13 +529,13 @@ func TestFormInvalidFloat64(t *testing.T) {
 				multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
 				multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
 				res := []*http.Request{getReq, postReq, multipartReq}
-				return &res
+				return res
 			}(),
-			err:     errors.New(`strconv.ParseFloat: parsing "diavola": invalid syntax`),
-			formVal: 0.0},
+			err:  errors.New(`strconv.ParseFloat: parsing "diavola": invalid syntax`),
+			want: 0.0},
 		{
 			name: "Overflow float64 in request",
-			reqs: func() *[]*http.Request {
+			reqs: func() []*http.Request {
 				getReq := httptest.NewRequest("GET", "/?pizza=1.797693134862315708145274237317043567981e309", nil)
 				postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=1.797693134862315708145274237317043567981e309"))
 				postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -543,25 +547,25 @@ func TestFormInvalidFloat64(t *testing.T) {
 				multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
 				multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
 				res := []*http.Request{getReq, postReq, multipartReq}
-				return &res
+				return res
 			}(),
-			err:     errors.New(`strconv.ParseFloat: parsing "1.797693134862315708145274237317043567981e309": value out of range`),
-			formVal: 0.0,
+			err:  errors.New(`strconv.ParseFloat: parsing "1.797693134862315708145274237317043567981e309": value out of range`),
+			want: 0.0,
 		},
 	}
 	for _, test := range tests {
-		for _, req := range *test.reqs {
+		for _, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
 				form, err := getParsedForm(ir)
 				if err != nil {
-					t.Fatalf(`getParsedForm: got "%v", want nil`, err)
+					t.Fatalf(`getParsedForm: got %v, want nil`, err)
 				}
-				want := test.formVal
+				want := test.want
 				got := form.Float64("pizza", 0.0)
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("form.Float64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 				}
-				if err := form.Err(); test.err.Error() != err.Error() {
+				if form.Err() == nil {
 					t.Errorf("form.Err: got %v, want %v", err, test.err)
 				}
 				return Result{}
@@ -577,24 +581,24 @@ func TestFormInvalidFloat64(t *testing.T) {
 
 func TestFormValidBool(t *testing.T) {
 	tests := []struct {
-		name     string
-		reqs     *[]*http.Request
-		formVals []bool
+		name string
+		reqs []*http.Request
+		want []bool
 	}{
 		{
 			name: "Valid booleans in GET request",
-			reqs: func() *[]*http.Request {
+			reqs: func() []*http.Request {
 				reqs := []*http.Request{
 					httptest.NewRequest("GET", "/?pizza=true", nil),
 					httptest.NewRequest("GET", "/?pizza=false", nil),
 				}
-				return &reqs
+				return reqs
 			}(),
-			formVals: []bool{true, false},
+			want: []bool{true, false},
 		},
 		{
 			name: "Valid booleans in POST non-multipart request",
-			reqs: func() *[]*http.Request {
+			reqs: func() []*http.Request {
 				reqs := []*http.Request{
 					httptest.NewRequest("POST", "/", strings.NewReader("pizza=true")),
 					httptest.NewRequest("POST", "/", strings.NewReader("pizza=false")),
@@ -602,13 +606,13 @@ func TestFormValidBool(t *testing.T) {
 				for _, req := range reqs {
 					req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 				}
-				return &reqs
+				return reqs
 			}(),
-			formVals: []bool{true, false},
+			want: []bool{true, false},
 		},
 		{
 			name: "Valid booleans in POST multipart request",
-			reqs: func() *[]*http.Request {
+			reqs: func() []*http.Request {
 				slice := []bool{true, false}
 				var reqs []*http.Request
 				for _, val := range slice {
@@ -622,25 +626,25 @@ func TestFormValidBool(t *testing.T) {
 					reqs = append(reqs, multipartReq)
 
 				}
-				return &reqs
+				return reqs
 			}(),
-			formVals: []bool{true, false},
+			want: []bool{true, false},
 		},
 	}
 
 	for _, test := range tests {
-		for idx, req := range *test.reqs {
+		for idx, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
 				form, err := getParsedForm(ir)
 				if err != nil {
-					t.Fatalf(`getParsedForm: got "%v", want nil`, err)
+					t.Fatalf(`getParsedForm: got %v, want nil`, err)
 				}
-				want := test.formVals[idx]
+				want := test.want[idx]
 				got := form.Bool("pizza", false)
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("form.Bool: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 				}
-				if err := form.Err(); err != nil {
+				if form.Err() != nil {
 					t.Errorf("form.Err: got %v, want nil", err)
 				}
 				return Result{}
@@ -656,26 +660,26 @@ func TestFormValidBool(t *testing.T) {
 
 func TestFormInvalidBool(t *testing.T) {
 	tests := []struct {
-		name    string
-		reqs    *[]*http.Request
-		formVal bool
-		err     error
+		name string
+		reqs []*http.Request
+		want bool
+		err  error
 	}{
 		{
 			name: "Invalid booleans in GET request",
-			reqs: func() *[]*http.Request {
+			reqs: func() []*http.Request {
 				reqs := []*http.Request{
 					httptest.NewRequest("GET", "/?pizza=TruE", nil),
 					httptest.NewRequest("GET", "/?pizza=potato", nil),
 				}
-				return &reqs
+				return reqs
 			}(),
-			formVal: false,
-			err:     errors.New(`values of form parameter "pizza" not a boolean`),
+			want: false,
+			err:  errors.New(`values of form parameter "pizza" not a boolean`),
 		},
 		{
 			name: "Invalid booleans in POST non-multipart request",
-			reqs: func() *[]*http.Request {
+			reqs: func() []*http.Request {
 				reqs := []*http.Request{
 					httptest.NewRequest("POST", "/", strings.NewReader("pizza=TruE")),
 					httptest.NewRequest("POST", "/", strings.NewReader("pizza=potato")),
@@ -683,14 +687,14 @@ func TestFormInvalidBool(t *testing.T) {
 				for _, req := range reqs {
 					req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 				}
-				return &reqs
+				return reqs
 			}(),
-			formVal: false,
-			err:     errors.New(`values of form parameter "pizza" not a boolean`),
+			want: false,
+			err:  errors.New(`values of form parameter "pizza" not a boolean`),
 		},
 		{
 			name: "Invalid booleans in POST multipart request",
-			reqs: func() *[]*http.Request {
+			reqs: func() []*http.Request {
 				slice := []string{"TruE", "potato"}
 				var reqs []*http.Request
 				for _, val := range slice {
@@ -704,26 +708,26 @@ func TestFormInvalidBool(t *testing.T) {
 					reqs = append(reqs, multipartReq)
 
 				}
-				return &reqs
+				return reqs
 			}(),
-			formVal: false,
-			err:     errors.New(`values of form parameter "pizza" not a boolean`),
+			want: false,
+			err:  errors.New(`values of form parameter "pizza" not a boolean`),
 		},
 	}
 
 	for _, test := range tests {
-		for _, req := range *test.reqs {
+		for _, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
 				form, err := getParsedForm(ir)
 				if err != nil {
-					t.Fatalf(`getParsedForm: got "%v", want nil`, err)
+					t.Fatalf(`getParsedForm: got %v, want nil`, err)
 				}
-				want := test.formVal
+				want := test.want
 				got := form.Bool("pizza", false)
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("form.Bool: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 				}
-				if err := form.Err(); test.err.Error() != err.Error() {
+				if form.Err() == nil {
 					t.Errorf("form.Err: got %v, want %v", err, test.err)
 				}
 				return Result{}
@@ -745,11 +749,11 @@ func TestFormValidSlice(t *testing.T) {
 	// it was tested in previous tests.
 	tests := []struct {
 		name string
-		reqs *[]*http.Request
+		reqs []*http.Request
 	}{
 		{
 			name: "Valid slices in GET requests",
-			reqs: func() *[]*http.Request {
+			reqs: func() []*http.Request {
 				reqs := []*http.Request{
 					httptest.NewRequest("GET", "/?pizza=-8&pizza=9&pizza=-100", nil),
 					httptest.NewRequest("GET", "/?pizza=8&pizza=9&pizza=10", nil),
@@ -757,12 +761,12 @@ func TestFormValidSlice(t *testing.T) {
 					httptest.NewRequest("GET", "/?pizza=1.3&pizza=8.9&pizza=-4.1", nil),
 					httptest.NewRequest("GET", "/?pizza=true&pizza=false&pizza=true", nil),
 				}
-				return &reqs
+				return reqs
 			}(),
 		},
 		{
 			name: "Valid slices in POST non-multipart request",
-			reqs: func() *[]*http.Request {
+			reqs: func() []*http.Request {
 				reqs := []*http.Request{
 					httptest.NewRequest("POST", "/", strings.NewReader("pizza=-8&pizza=9&pizza=-100")),
 					httptest.NewRequest("POST", "/", strings.NewReader("pizza=8&pizza=9&pizza=10")),
@@ -773,12 +777,12 @@ func TestFormValidSlice(t *testing.T) {
 				for _, req := range reqs {
 					req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 				}
-				return &reqs
+				return reqs
 			}(),
 		},
 		{
 			name: "Valid slice in POST multipart request",
-			reqs: func() *[]*http.Request {
+			reqs: func() []*http.Request {
 				m := &validSlices
 				multipartReqBody := ""
 				var reqs []*http.Request
@@ -796,60 +800,60 @@ func TestFormValidSlice(t *testing.T) {
 					reqs = append(reqs, multipartReq)
 					multipartReqBody = ""
 				}
-				return &reqs
+				return reqs
 			}(),
 		},
 	}
 
 	for _, test := range tests {
-		for idx, req := range *test.reqs {
+		for idx, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
 				form, err := getParsedForm(ir)
 				if err != nil {
-					t.Fatalf(`getParsedForm: got "%v", want nil`, err)
+					t.Fatalf(`getParsedForm: got %v, want nil`, err)
 				}
 				switch want := validSlices[idx].(type) {
 				case []int64:
 					var got []int64
-					form.Slice(&got, "pizza")
-					if err := form.Err(); err != nil {
-						t.Errorf(`form.Error: got "%v", want nil`, err)
+					form.Slice("pizza", &got)
+					if form.Err() != nil {
+						t.Errorf(`form.Error: got %v, want nil`, err)
 					}
 					if diff := cmp.Diff(want, got); diff != "" {
 						t.Errorf("form.Slice: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 					}
 				case []string:
 					var got []string
-					form.Slice(&got, "pizza")
-					if err := form.Err(); err != nil {
-						t.Errorf(`form.Error: got "%v", want nil`, err)
+					form.Slice("pizza", &got)
+					if form.Err() != nil {
+						t.Errorf(`form.Error: got %v, want nil`, err)
 					}
 					if diff := cmp.Diff(want, got); diff != "" {
 						t.Errorf("form.Slice: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 					}
 				case []uint64:
 					var got []uint64
-					form.Slice(&got, "pizza")
-					if err := form.Err(); err != nil {
-						t.Errorf(`form.Error: got "%v", want nil`, err)
+					form.Slice("pizza", &got)
+					if form.Err() != nil {
+						t.Errorf(`form.Error: got %v, want nil`, err)
 					}
 					if diff := cmp.Diff(want, got); diff != "" {
 						t.Errorf("form.Slice: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 					}
 				case []float64:
 					var got []float64
-					form.Slice(&got, "pizza")
-					if err := form.Err(); err != nil {
-						t.Errorf(`form.Error: got "%v", want nil`, err)
+					form.Slice("pizza", &got)
+					if form.Err() != nil {
+						t.Errorf(`form.Error: got %v, want nil`, err)
 					}
 					if diff := cmp.Diff(want, got); diff != "" {
 						t.Errorf("form.Slice: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
 					}
 				case []bool:
 					var got []bool
-					form.Slice(&got, "pizza")
-					if err := form.Err(); err != nil {
-						t.Errorf(`form.Error: got "%v", want nil`, err)
+					form.Slice("pizza", &got)
+					if form.Err() != nil {
+						t.Errorf(`form.Error: got %v, want nil`, err)
 					}
 					if diff := cmp.Diff(want, got); diff != "" {
 						t.Errorf("form.Slice: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
@@ -873,14 +877,14 @@ func TestFormInvalidSlice(t *testing.T) {
 	// it was tested in previous tests.
 	tests := []struct {
 		name string
-		reqs *[]*http.Request
+		reqs []*http.Request
 		err  error
 		got  interface{}
 		want interface{}
 	}{
 		{
 			name: "Request with multiple types in slice",
-			reqs: func() *[]*http.Request {
+			reqs: func() []*http.Request {
 				getReq := httptest.NewRequest("GET", "/?pizza=true&pizza=1.3", nil)
 				postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=true&pizza=1.3"))
 				postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -896,7 +900,7 @@ func TestFormInvalidSlice(t *testing.T) {
 				multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
 				multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
 				res := []*http.Request{getReq, postReq, multipartReq}
-				return &res
+				return res
 			}(),
 			err: errors.New(`values of form parameter "pizza" not a boolean`),
 			got: func() interface{} {
@@ -910,7 +914,7 @@ func TestFormInvalidSlice(t *testing.T) {
 		},
 		{
 			name: "Unsupported slice type",
-			reqs: func() *[]*http.Request {
+			reqs: func() []*http.Request {
 				getReq := httptest.NewRequest("GET", "/?pizza=true&pizza=1.3", nil)
 				postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizza=true&pizza=1.3"))
 				postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -926,7 +930,7 @@ func TestFormInvalidSlice(t *testing.T) {
 				multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
 				multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
 				res := []*http.Request{getReq, postReq, multipartReq}
-				return &res
+				return res
 			}(),
 			err: errors.New(`type not supported in Slice call: *[]int8`),
 			got: func() interface{} {
@@ -941,28 +945,28 @@ func TestFormInvalidSlice(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		for _, req := range *test.reqs {
+		for _, req := range test.reqs {
 			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
 				form, err := getParsedForm(ir)
 				if err != nil {
-					t.Fatalf(`getParsedForm: got "%v", want nil`, err)
+					t.Fatalf(`getParsedForm: got %v, want nil`, err)
 				}
 				switch got := test.got.(type) {
 				case []int8:
-					form.Slice(&got, "pizza")
+					form.Slice("pizza", &got)
 					if diff := cmp.Diff(test.want, got); diff != "" {
 						t.Errorf("form.Slice: got %v, want %v", got, test.want)
 					}
-					if err := form.Err(); test.err.Error() != err.Error() {
+					if form.Err() == nil {
 						t.Errorf("form.Err: got %v, want %v", err, test.err)
 					}
 
 				case []bool:
-					form.Slice(&got, "pizza")
+					form.Slice("pizza", &got)
 					if diff := cmp.Diff(test.want, got); diff != "" {
 						t.Errorf("form.Slice: got %v, want %v", got, test.want)
 					}
-					if err := form.Err(); test.err.Error() != err.Error() {
+					if form.Err() == nil {
 						t.Errorf("form.Err: got %v, want %v", err, test.err)
 					}
 				}
@@ -980,11 +984,11 @@ func TestFormInvalidSlice(t *testing.T) {
 func TestFormErrorHandling(t *testing.T) {
 	test := struct {
 		name string
-		reqs *[]*http.Request
+		reqs []*http.Request
 		errs []error
 	}{
 		name: "Erros occuring in requests",
-		reqs: func() *[]*http.Request {
+		reqs: func() []*http.Request {
 			getReq := httptest.NewRequest("GET", "/?pizzaInt=diavola&pizzaBool=true&pizzaUint=-13", nil)
 			postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizzaInt=diavola&pizzaBool=true&pizzaUint=-13"))
 			postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -1004,16 +1008,16 @@ func TestFormErrorHandling(t *testing.T) {
 			multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
 			multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
 			res := []*http.Request{getReq, postReq, multipartReq}
-			return &res
+			return res
 		}(),
 		errs: []error{errors.New(`strconv.ParseInt: parsing "diavola": invalid syntax`), errors.New(`strconv.ParseUint: parsing "-13": invalid syntax`)},
 	}
 
-	for _, req := range *test.reqs {
+	for _, req := range test.reqs {
 		m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
 			form, err := getParsedForm(ir)
 			if err != nil {
-				t.Fatalf(`getParsedForm: got "%v", want nil`, err)
+				t.Fatalf(`getParsedForm: got %v, want nil`, err)
 			}
 			var wantInt int64 = 0
 			gotInt := form.Int64("pizzaInt", 0)
