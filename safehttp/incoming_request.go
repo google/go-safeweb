@@ -32,24 +32,6 @@ func newIncomingRequest(req *http.Request) IncomingRequest {
 	return IncomingRequest{req: req, Header: newHeader(req.Header)}
 }
 
-// QueryForm parses the query parameters provided in the request. It returns
-// the parsed query parameters as a Form object, if no error occurred. If a parsing
-// error occurs it will return it, together with a nil Form.
-func (r *IncomingRequest) QueryForm() (*Form, error) {
-	var err error
-	r.parseOnce.Do(func() {
-		if r.req.Method != "GET" {
-			err = fmt.Errorf("got request method %s, want GET", r.req.Method)
-			return
-		}
-		err = r.req.ParseForm()
-	})
-	if err != nil {
-		return nil, err
-	}
-	return &Form{values: r.req.Form}, nil
-}
-
 // PostForm parses the form parameters provided in the body of a POST, PATCH or
 // PUT request that does not have Content-Type: multipart/form-data. It returns
 // the parsed form parameters as a Form object, if no error occurred. If a parsing

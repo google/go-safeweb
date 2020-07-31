@@ -19,7 +19,7 @@ import (
 	"strconv"
 )
 
-// Form contains parsed data either from URL's query or form parameters, part of
+// Form contains parsed data from form parameters, part of
 // the body of POST, PATCH or PUT requests that are not multipart requests. The
 // form values will only be available after parsing the form, and only through
 // the getter functions.
@@ -28,7 +28,7 @@ type Form struct {
 	err    error
 }
 
-// Int64 checks whether key param maps to any query or form parameter
+// Int64 checks whether key param maps to any form parameter
 // values. In case it does, it will try to convert the first value to a valid
 // int64 and return it. If there are no values associated with param, it
 // will return the defaultValue value. If the first value is not an integer, it will
@@ -46,7 +46,7 @@ func (f *Form) Int64(param string, defaultValue int64) int64 {
 	return paramVal
 }
 
-// Uint64 checks whether key param maps to any query or form parameter
+// Uint64 checks whether key param maps to any form parameter
 // values. In case it does, it will try to convert the first valid
 // uint64 and return it. If there are no values associated with
 // param, it will return the defaultValue value. If the first value is not an
@@ -65,7 +65,7 @@ func (f *Form) Uint64(param string, defaultValue uint64) uint64 {
 	return paramVal
 }
 
-// String checks whether key param maps to any query or form parameter
+// String checks whether key param maps to any form parameter
 // values. In case it does, it will return the first value. If it doesn't, it
 // will return the defaultValue value.
 func (f *Form) String(param string, defaultValue string) string {
@@ -76,7 +76,7 @@ func (f *Form) String(param string, defaultValue string) string {
 	return vals[0]
 }
 
-// Float64 checks whether key param maps to any query or form parameter
+// Float64 checks whether key param maps to any form parameter
 // values. In case it does, it will try to convert the first value to a valid
 // float64 and return it. If there are no values associated with param, it will
 // return the defaultValue value. If the first value is not a float, it will return
@@ -94,7 +94,7 @@ func (f *Form) Float64(param string, defaultValue float64) float64 {
 	return paramVal
 }
 
-// Bool checks whether key param maps to any query or form parameter
+// Bool checks whether key param maps to any form parameter
 // values. In case it does, it will try to convert the first value to a valid
 // bool and return it. If there are no values associated with param, it will
 // return the defaultValue value. If the first value is not a boolean, it will return
@@ -133,7 +133,7 @@ func clearSlice(slicePtr interface{}) error {
 	return nil
 }
 
-// Slice checks whether key param maps to any query or form parameters. If it
+// Slice checks whether key param maps to any form parameters. If it
 // does, it will try to convert them to the type of slice elements slicePtr
 // points to. If there are no values associated with param, it will clear the
 // slice. If type conversion fails at any point, the Form error field will be
