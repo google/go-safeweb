@@ -15,6 +15,7 @@
 package safehttp
 
 import (
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/safehtml"
 	"github.com/google/safehtml/template"
 	"io"
@@ -75,12 +76,19 @@ func TestValidHost(t *testing.T) {
 	})
 	mux.Handle("/", MethodGet, h)
 
-	req := httptest.NewRequest("GET", "/", nil)
-	req.Host = "foo.com"
+	req := httptest.NewRequest("GET", "http://foo.com/", nil)
 	b := &strings.Builder{}
 	rw := newFakeResponseWriter(b)
 
-	mux.serveHTTP(rw, req)
+	mux.ServeHTTP(rw, req)
+
+	if want := 200; rw.status != want {
+		t.Errorf("rw.status: got %v want %v", rw.status, want)
+	}
+
+	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rw.header)); diff != "" {
+		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+	}
 
 	if got, want := b.String(), "&lt;h1&gt;Hello World!&lt;/h1&gt;"; got != want {
 		t.Errorf("response body: got %q want %q", got, want)
@@ -95,19 +103,26 @@ func TestInvalidHost(t *testing.T) {
 	})
 	mux.Handle("/", MethodGet, h)
 
-	req := httptest.NewRequest("GET", "/", nil)
-	req.Host = "bar.com"
+	req := httptest.NewRequest("GET", "http://bar.com/", nil)
 	b := &strings.Builder{}
 	rw := newFakeResponseWriter(b)
 
-	mux.serveHTTP(rw, req)
-
-	if got, want := b.String(), "Not Found\n"; got != want {
-		t.Errorf("response body: got %q want %q", got, want)
-	}
+	mux.ServeHTTP(rw, req)
 
 	if want := 404; rw.status != want {
 		t.Errorf("rw.status: got %v want %v", rw.status, want)
+	}
+
+	wantedHeaders := map[string][]string{
+		"Content-Type": {"text/plain; charset=utf-8"}, "X-Content-Type-Options": {"nosniff"},
+	}
+
+	if diff := cmp.Diff(wantedHeaders, map[string][]string(rw.header)); diff != "" {
+		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+	}
+
+	if got, want := b.String(), "Not Found\n"; got != want {
+		t.Errorf("response body: got %q want %q", got, want)
 	}
 }
 
@@ -119,83 +134,26 @@ func TestInvalidMethod(t *testing.T) {
 	})
 	mux.Handle("/", MethodGet, h)
 
-	req := httptest.NewRequest("POST", "/", nil)
-	req.Host = "foo.com"
+	req := httptest.NewRequest("POST", "http://foo.com/", nil)
 	b := &strings.Builder{}
 	rw := newFakeResponseWriter(b)
 
-	mux.serveHTTP(rw, req)
-
-	if got, want := b.String(), "Method Not Allowed\n"; got != want {
-		t.Errorf("response body: got %q want %q", got, want)
-	}
+	mux.ServeHTTP(rw, req)
 
 	if want := 405; rw.status != want {
 		t.Errorf("rw.status: got %v want %v", rw.status, want)
 	}
-}
 
-func TestHandlerRegistered(t *testing.T) {
-	d := fakeDispatcher{}
-	mux := NewServeMux(d, "foo.com")
-
-	registeredHandler := HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
-		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
-	})
-	mux.Handle("/bar", MethodGet, registeredHandler)
-
-	req := httptest.NewRequest("GET", "/bar", nil)
-	req.Host = "foo.com"
-	ir := newIncomingRequest(req)
-
-	retrievedHandler, pattern := mux.Handler(&ir)
-
-	if want := "/bar"; pattern != want {
-		t.Errorf("mux.Handler(&ir) pattern got: %q want: %q", pattern, want)
+	wantedHeaders := map[string][]string{
+		"Content-Type": {"text/plain; charset=utf-8"}, "X-Content-Type-Options": {"nosniff"},
 	}
 
-	b := &strings.Builder{}
-	fakeRW := newFakeResponseWriter(b)
+	if diff := cmp.Diff(wantedHeaders, map[string][]string(rw.header)); diff != "" {
+		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+	}
 
-	rw := newResponseWriter(d, fakeRW)
-	retrievedHandler.ServeHTTP(rw, &ir)
-
-	if got, want := b.String(), "&lt;h1&gt;Hello World!&lt;/h1&gt;"; got != want {
+	if got, want := b.String(), "Method Not Allowed\n"; got != want {
 		t.Errorf("response body: got %q want %q", got, want)
-	}
-}
-
-func TestHandlerWrongMethod(t *testing.T) {
-	d := fakeDispatcher{}
-	mux := NewServeMux(d, "foo.com")
-
-	registeredHandler := HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
-		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
-	})
-	mux.Handle("/bar", MethodGet, registeredHandler)
-
-	req := httptest.NewRequest("POST", "/bar", nil)
-	req.Host = "foo.com"
-	ir := newIncomingRequest(req)
-
-	retrievedHandler, pattern := mux.Handler(&ir)
-
-	if want := "/bar"; pattern != want {
-		t.Errorf("mux.Handler(&ir) pattern got: %q want: %q", pattern, want)
-	}
-
-	b := &strings.Builder{}
-	fakeRW := newFakeResponseWriter(b)
-
-	rw := newResponseWriter(d, fakeRW)
-	retrievedHandler.ServeHTTP(rw, &ir)
-
-	if got, want := b.String(), "404 page not found\n"; got != want {
-		t.Errorf("response body: got %q want %q", got, want)
-	}
-
-	if want := 404; fakeRW.status != want {
-		t.Errorf("fakeRW.status: got %v want %v", fakeRW.status, want)
 	}
 }
 
@@ -212,26 +170,39 @@ func TestHandleTwoMethods(t *testing.T) {
 	mux.Handle("/bar", MethodGet, registeredGetHandler)
 	mux.Handle("/bar", MethodPost, registeredPostHandler)
 
-	postReq := httptest.NewRequest("POST", "/bar", nil)
-	postReq.Host = "foo.com"
+	postReq := httptest.NewRequest("POST", "http://foo.com/bar", nil)
 	b := &strings.Builder{}
 	rw := newFakeResponseWriter(b)
 
-	mux.serveHTTP(rw, postReq)
+	mux.ServeHTTP(rw, postReq)
+
+	if want := 200; rw.status != want {
+		t.Errorf("rw.status: got %v want %v", rw.status, want)
+	}
+
+	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rw.header)); diff != "" {
+		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+	}
 
 	if got, want := b.String(), "&lt;h1&gt;Hello World! POST&lt;/h1&gt;"; got != want {
 		t.Errorf("response body: got %q want %q", got, want)
 	}
 
-	getReq := httptest.NewRequest("GET", "/bar", nil)
-	getReq.Host = "foo.com"
+	getReq := httptest.NewRequest("GET", "http://foo.com/bar", nil)
 	b = &strings.Builder{}
 	rw = newFakeResponseWriter(b)
 
-	mux.serveHTTP(rw, getReq)
+	mux.ServeHTTP(rw, getReq)
+
+	if want := 200; rw.status != want {
+		t.Errorf("rw.status: got %v want %v", rw.status, want)
+	}
+
+	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rw.header)); diff != "" {
+		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+	}
 
 	if got, want := b.String(), "&lt;h1&gt;Hello World! GET&lt;/h1&gt;"; got != want {
 		t.Errorf("response body: got %q want %q", got, want)
 	}
-
 }
