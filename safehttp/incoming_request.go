@@ -15,8 +15,10 @@
 package safehttp
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 )
@@ -26,10 +28,17 @@ type IncomingRequest struct {
 	req       *http.Request
 	Header    Header
 	parseOnce sync.Once
+	TLS       *tls.ConnectionState
+	URL       *url.URL
 }
 
 func newIncomingRequest(req *http.Request) *IncomingRequest {
-	return &IncomingRequest{req: req, Header: newHeader(req.Header)}
+	return &IncomingRequest{
+		req:    req,
+		Header: newHeader(req.Header),
+		TLS:    req.TLS,
+		URL:    req.URL,
+	}
 }
 
 // PostForm parses the form parameters provided in the body of a POST, PATCH or
