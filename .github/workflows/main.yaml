@@ -58,7 +58,7 @@ jobs:
 
     - name: Ensure all files were formatted as per gofmt
       run: |
-        [ $(gofmt -l $(find . -name '*.go') 2>&1)" = "" ]
+        [ "$(gofmt -l $(find . -name '*.go') 2>&1)" = "" ]
 
   vet:
     name: vet
