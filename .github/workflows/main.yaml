@@ -22,10 +22,6 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
 
-    - name: Ensure all files were formatted as per gofmt
-      run: |
-        gofmt -l $(find . -name '*.go') >/dev/null
-
     - name: Build
       run: go build -v ./...
  
@@ -62,7 +58,7 @@ jobs:
 
     - name: Ensure all files were formatted as per gofmt
       run: |
-        gofmt -l $(find . -name '*.go') >/dev/null
+        [ $(gofmt -l $(find . -name '*.go') 2>&1)" = "" ]
 
   vet:
     name: vet
