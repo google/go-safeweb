@@ -41,7 +41,7 @@ type ServeMux struct {
 
 	// Maps user-provided patterns to combined handlers which encapsulate
 	// multiple handlers, each one associated with an HTTP method.
-	handlers map[string]combinedHandler
+	handlers map[string]methodHandler
 }
 
 // NewServeMux allocates and returns a new ServeMux
@@ -55,7 +55,7 @@ func NewServeMux(dispatcher Dispatcher, domains ...string) *ServeMux {
 		mux:        http.NewServeMux(),
 		domains:    d,
 		dispatcher: dispatcher,
-		handlers:   map[string]combinedHandler{},
+		handlers:   map[string]methodHandler{},
 	}
 }
 
@@ -64,7 +64,7 @@ func NewServeMux(dispatcher Dispatcher, domains ...string) *ServeMux {
 func (m *ServeMux) Handle(pattern string, method string, h Handler) {
 	ch, ok := m.handlers[pattern]
 	if !ok {
-		ch := combinedHandler{
+		ch := methodHandler{
 			h:       make(map[string]Handler),
 			domains: m.domains,
 			d:       m.dispatcher,
@@ -88,8 +88,8 @@ func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	m.mux.ServeHTTP(w, r)
 }
 
-// combinedHandler is collection of handlers based on the request method.
-type combinedHandler struct {
+// methodHandler is collection of handlers based on the request method.
+type methodHandler struct {
 	// Maps an HTTP method to its handler
 	h       map[string]Handler
 	domains map[string]bool
@@ -98,7 +98,7 @@ type combinedHandler struct {
 
 // ServeHTTP dispatches the request to the handler associated with
 // the incoming request's method.
-func (c combinedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (c methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !c.domains[r.Host] {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
