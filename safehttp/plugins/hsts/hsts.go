@@ -44,7 +44,7 @@ func NewPlugin() Plugin {
 func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 	if r.TLS == nil {
 		r.URL.Scheme = "https"
-		return w.Redirect(r, r.URL.String(), 301)
+		return w.Redirect(r, r.URL.String(), safehttp.StatusMovedPermanently)
 	}
 
 	var value strings.Builder
@@ -59,7 +59,7 @@ func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) 
 	h := w.Header()
 	if err := h.Set("Strict-Transport-Security", value.String()); err != nil {
 		// TODO(@mattiasgrenfeldt): Replace the response with an actual saferesponse somehow.
-		return w.ServerError(500, "Internal Server Error")
+		return w.ServerError(safehttp.StatusInternalServerError, "Internal Server Error")
 	}
 	return safehttp.Result{}
 }
