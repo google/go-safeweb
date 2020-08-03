@@ -61,6 +61,8 @@ func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) 
 		// TODO(@mattiasgrenfeldt): Replace the response with an actual saferesponse somehow.
 		return w.ServerError(safehttp.StatusInternalServerError, "Internal Server Error")
 	}
+	// TODO: Implement header claiming.
+	h.MarkImmutable("Strict-Transport-Security")
 	return safehttp.Result{}
 }
 
