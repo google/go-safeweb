@@ -14,12 +14,12 @@
 
 package safehttp
 
-// StatusCode TODO
+// StatusCode contains HTTP status codes as registered with IANA.
+// See: https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
 type StatusCode int
 
 const (
-	// Status200OK TODO
-	Status200OK StatusCode = 200
-	// Status500InternalServerError TODO
-	Status500InternalServerError = 500
+	StatusOK                  StatusCode = 200 // RFC 7231, 6.3.1
+	StatusMovedPermanently    StatusCode = 301 // RFC 7231, 6.4.2
+	StatusInternalServerError StatusCode = 500 // RFC 7231, 6.6.1
 )
