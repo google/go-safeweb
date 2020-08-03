@@ -542,7 +542,8 @@ func TestFormInvalidFloat64(t *testing.T) {
 				}(),
 			},
 			err:  errors.New(`strconv.ParseFloat: parsing "diavola": invalid syntax`),
-			want: 0.0},
+			want: 0.0,
+		},
 		{
 			name: "Overflow float64 in request",
 			reqs: []*http.Request{
