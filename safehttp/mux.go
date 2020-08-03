@@ -65,11 +65,10 @@ func (m *ServeMux) Handle(pattern string, method string, h Handler) {
 	ch, ok := m.handlers[pattern]
 	if !ok {
 		ch := methodHandler{
-			h:       make(map[string]Handler),
+			h:       map[string]Handler{method: h},
 			domains: m.domains,
 			d:       m.dispatcher,
 		}
-		ch.h[method] = h
 
 		m.handlers[pattern] = ch
 		m.mux.Handle(pattern, ch)
