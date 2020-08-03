@@ -23,18 +23,27 @@ import (
 
 // Plugin implements automatic HSTS functionality.
 type Plugin struct {
-	maxAge            uint64
-	includeSubDomains bool
-	preload           bool
+	// The time, in seconds, that the browser should remember
+	// that a site is only to be accessed using HTTPS.
+	MaxAge uint64
+
+	// This field controls the includeSubDomains directive.
+	// When DisableIncludeSubDomains is false, all subdomains
+	// of the domain where this service is hosted will also be added
+	// to the browsers HSTS list.
+	DisableIncludeSubDomains bool
+
+	// This field controls the preload directive.
+	// This should only be enabled if this site should be
+	// added to the browser HSTS preload list, which is supported
+	// by all major browsers. See https://hstspreload.org/ for
+	// more info.
+	Preload bool
 }
 
 // NewPlugin creates a new HSTS plugin with safe defaults.
 func NewPlugin() Plugin {
-	return Plugin{
-		maxAge:            63072000, // two years in seconds
-		includeSubDomains: true,
-		preload:           false,
-	}
+	return Plugin{MaxAge: 63072000} // two years in seconds
 }
 
 // Before should be executed before the request is sent to the handler.
@@ -49,11 +58,11 @@ func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) 
 
 	var value strings.Builder
 	value.WriteString("max-age=")
-	value.WriteString(strconv.FormatUint(p.maxAge, 10))
-	if p.includeSubDomains {
+	value.WriteString(strconv.FormatUint(p.MaxAge, 10))
+	if !p.DisableIncludeSubDomains {
 		value.WriteString("; includeSubDomains")
 	}
-	if p.preload {
+	if p.Preload {
 		value.WriteString("; preload")
 	}
 	h := w.Header()
@@ -64,21 +73,4 @@ func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) 
 	// TODO: Implement header claiming.
 	h.MarkImmutable("Strict-Transport-Security")
 	return safehttp.Result{}
-}
-
-// EnablePreload enables the preload directive.
-// This should only be enabled if this site should be
-// added to the browser HSTS preload list which is supported
-// by all major browsers. See https://hstspreload.org/ for
-// more info.
-func (p *Plugin) EnablePreload() {
-	p.preload = true
-}
-
-// DisableIncludeSubDomains disables the includeSubDomains
-// directive. When includeSubDomains is enabled, all subdomains
-// of the domain where this service is hosted will also be added
-// to the browsers HSTS list. This method disables this feature.
-func (p *Plugin) DisableIncludeSubDomains() {
-	p.includeSubDomains = false
 }
