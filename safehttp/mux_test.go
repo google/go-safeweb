@@ -15,19 +15,20 @@
 package safehttp
 
 import (
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/safehtml"
-	"github.com/google/safehtml/template"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/safehtml"
+	"github.com/google/safehtml/template"
 )
 
-type fakeDispatcher struct{}
+type testDispatcher struct{}
 
-func (fakeDispatcher) Write(rw http.ResponseWriter, resp Response) error {
+func (testDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 	switch x := resp.(type) {
 	case safehtml.HTML:
 		_, err := rw.Write([]byte(x.String()))
@@ -37,7 +38,7 @@ func (fakeDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 	}
 }
 
-func (fakeDispatcher) ExecuteTemplate(rw http.ResponseWriter, t Template, data interface{}) error {
+func (testDispatcher) ExecuteTemplate(rw http.ResponseWriter, t Template, data interface{}) error {
 	switch x := t.(type) {
 	case *template.Template:
 		return x.Execute(rw, data)
@@ -46,30 +47,30 @@ func (fakeDispatcher) ExecuteTemplate(rw http.ResponseWriter, t Template, data i
 	}
 }
 
-type fakeResponseWriter struct {
+type responseRecorder struct {
 	header http.Header
 	writer io.Writer
 	status int
 }
 
-func newFakeResponseWriter(w io.Writer) *fakeResponseWriter {
-	return &fakeResponseWriter{header: http.Header{}, writer: w, status: http.StatusOK}
+func newResponseRecorder(w io.Writer) *responseRecorder {
+	return &responseRecorder{header: http.Header{}, writer: w, status: http.StatusOK}
 }
 
-func (r *fakeResponseWriter) Header() http.Header {
+func (r *responseRecorder) Header() http.Header {
 	return r.header
 }
 
-func (r *fakeResponseWriter) WriteHeader(statusCode int) {
+func (r *responseRecorder) WriteHeader(statusCode int) {
 	r.status = statusCode
 }
 
-func (r *fakeResponseWriter) Write(data []byte) (int, error) {
+func (r *responseRecorder) Write(data []byte) (int, error) {
 	return r.writer.Write(data)
 }
 
 func TestValidHost(t *testing.T) {
-	mux := NewServeMux(fakeDispatcher{}, "foo.com")
+	mux := NewServeMux(testDispatcher{}, "foo.com")
 
 	h := HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
@@ -78,7 +79,7 @@ func TestValidHost(t *testing.T) {
 
 	req := httptest.NewRequest("GET", "http://foo.com/", nil)
 	b := &strings.Builder{}
-	rw := newFakeResponseWriter(b)
+	rw := newResponseRecorder(b)
 
 	mux.ServeHTTP(rw, req)
 
@@ -96,7 +97,7 @@ func TestValidHost(t *testing.T) {
 }
 
 func TestInvalidHost(t *testing.T) {
-	mux := NewServeMux(fakeDispatcher{}, "foo.com")
+	mux := NewServeMux(testDispatcher{}, "foo.com")
 
 	h := HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
@@ -105,7 +106,7 @@ func TestInvalidHost(t *testing.T) {
 
 	req := httptest.NewRequest("GET", "http://bar.com/", nil)
 	b := &strings.Builder{}
-	rw := newFakeResponseWriter(b)
+	rw := newResponseRecorder(b)
 
 	mux.ServeHTTP(rw, req)
 
@@ -127,7 +128,7 @@ func TestInvalidHost(t *testing.T) {
 }
 
 func TestInvalidMethod(t *testing.T) {
-	mux := NewServeMux(fakeDispatcher{}, "foo.com")
+	mux := NewServeMux(testDispatcher{}, "foo.com")
 
 	h := HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
@@ -136,7 +137,7 @@ func TestInvalidMethod(t *testing.T) {
 
 	req := httptest.NewRequest("POST", "http://foo.com/", nil)
 	b := &strings.Builder{}
-	rw := newFakeResponseWriter(b)
+	rw := newResponseRecorder(b)
 
 	mux.ServeHTTP(rw, req)
 
@@ -158,7 +159,7 @@ func TestInvalidMethod(t *testing.T) {
 }
 
 func TestHandleTwoMethods(t *testing.T) {
-	d := fakeDispatcher{}
+	d := testDispatcher{}
 	mux := NewServeMux(d, "foo.com")
 
 	registeredGetHandler := HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
@@ -172,7 +173,7 @@ func TestHandleTwoMethods(t *testing.T) {
 
 	postReq := httptest.NewRequest("POST", "http://foo.com/bar", nil)
 	b := &strings.Builder{}
-	rw := newFakeResponseWriter(b)
+	rw := newResponseRecorder(b)
 
 	mux.ServeHTTP(rw, postReq)
 
@@ -190,7 +191,7 @@ func TestHandleTwoMethods(t *testing.T) {
 
 	getReq := httptest.NewRequest("GET", "http://foo.com/bar", nil)
 	b = &strings.Builder{}
-	rw = newFakeResponseWriter(b)
+	rw = newResponseRecorder(b)
 
 	mux.ServeHTTP(rw, getReq)
 
