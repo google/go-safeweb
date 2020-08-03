@@ -139,6 +139,7 @@ func clearSlice(slicePtr interface{}) error {
 // points to. If there are no values associated with param, it will clear the
 // slice. If type conversion fails at any point, the slice will be cleared and
 // calling Err() will return the parsing error.
+// TODO(mihalimara22): Simplify this function to avoid duplicate logic
 func (f *Form) Slice(param string, slicePtr interface{}) {
 	mapVals, ok := f.values[param]
 	if !ok {
