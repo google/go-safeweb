@@ -184,3 +184,21 @@ func TestHandleTwoMethods(t *testing.T) {
 		t.Errorf("response body: got %q want %q", got, want)
 	}
 }
+
+func TestHandleSameMethodTwice(t *testing.T) {
+	d := testDispatcher{}
+	mux := NewServeMux(d, "foo.com")
+
+	registeredHandler := HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
+		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
+	})
+	mux.Handle("/bar", MethodGet, registeredHandler)
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf(`mux.Handle("/bar", MethodGet, registeredHandler) expected panic`)
+		}
+	}()
+
+	mux.Handle("/bar", MethodGet, registeredHandler)
+}
