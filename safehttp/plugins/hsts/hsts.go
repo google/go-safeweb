@@ -39,6 +39,12 @@ type Plugin struct {
 	// by all major browsers. See https://hstspreload.org/ for
 	// more info.
 	Preload bool
+
+	// If this server is behind a proxy that terminates HTTPS
+	// traffic then this should be enabled. If this is enabled
+	// then the plugin will always send the Strict-Transport-Security
+	// header and will not redirect HTTP traffic to HTTPS traffic.
+	BehindProxy bool
 }
 
 // NewPlugin creates a new HSTS plugin with safe defaults.
@@ -51,7 +57,7 @@ func NewPlugin() Plugin {
 // is received the Strict-Transport-Security header is applied to the
 // response.
 func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-	if r.TLS == nil {
+	if !p.BehindProxy && r.TLS == nil {
 		r.URL.Scheme = "https"
 		return w.Redirect(r, r.URL.String(), safehttp.StatusMovedPermanently)
 	}
