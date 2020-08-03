@@ -47,8 +47,9 @@ func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) 
 		return w.Redirect(r, r.URL.String(), 301)
 	}
 
-	value := strings.Builder{}
-	value.WriteString("max-age=" + strconv.FormatUint(p.maxAge, 10))
+	var value strings.Builder
+	value.WriteString("max-age=")
+	value.WriteString(strconv.FormatUint(p.maxAge, 10))
 	if p.includeSubDomains {
 		value.WriteString("; includeSubDomains")
 	}
