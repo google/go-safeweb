@@ -20,19 +20,15 @@ import (
 )
 
 // Form contains parsed data from form parameters, part of
-// the body of POST, PATCH or PUT requests that are not multipart requests. The
-// form values will only be available after parsing the form, and only through
-// the getter functions.
+// the body of POST, PATCH or PUT requests that are not multipart requests.
 type Form struct {
 	values map[string][]string
 	err    error
 }
 
-// Int64 checks whether key param maps to any form parameter
-// values. In case it does, it will try to convert the first value to a valid
-// int64 and return it. If there are no values associated with param, it
-// will return the defaultValue value. If the first value is not an integer, it will
-// return the defaultValue value and calling Err() will return the parsing error.
+// Int64 returns the first form parameter value. If the first value is not a
+// valid int64, the defaultValue is returned instead and an error is set
+// (retrievable by Err()).
 func (f *Form) Int64(param string, defaultValue int64) int64 {
 	vals, ok := f.values[param]
 	if !ok {
@@ -46,11 +42,9 @@ func (f *Form) Int64(param string, defaultValue int64) int64 {
 	return paramVal
 }
 
-// Uint64 checks whether key param maps to any form parameter
-// values. In case it does, it will try to convert the first valid
-// uint64 and return it. If there are no values associated with
-// param, it will return the defaultValue value. If the first value is not an
-// unsigned integer, it will return the defaultValue value and calling Err() will return the parsing error.
+// Uint64 returns the first form parameter value. If the first value is not a
+// valid uint64, the defaultValue is returned instead and an error is set
+// (retrievable by Err()).
 func (f *Form) Uint64(param string, defaultValue uint64) uint64 {
 	vals, ok := f.values[param]
 	if !ok {
@@ -64,9 +58,9 @@ func (f *Form) Uint64(param string, defaultValue uint64) uint64 {
 	return paramVal
 }
 
-// String checks whether key param maps to any form parameter
-// values. In case it does, it will return the first value. If it doesn't, it
-// will return the defaultValue value.
+// String returns the first form parameter value. If the first value is not a
+// valid string, the defaultValue is returned instead and an error is set
+// (retrievable by Err()).
 func (f *Form) String(param string, defaultValue string) string {
 	vals, ok := f.values[param]
 	if !ok {
@@ -75,12 +69,9 @@ func (f *Form) String(param string, defaultValue string) string {
 	return vals[0]
 }
 
-// Float64 checks whether key param maps to any form parameter
-// values. In case it does, it will try to convert the first value to a valid
-// float64 and return it. If there are no values associated with param, it will
-// return the defaultValue value. If the first value is not a float, it will
-// return the defaultValue value and calling Err() will return the parsing
-// error.
+// Float64 returns the first form parameter value. If the first value is not a
+// valid float64, the defaultValue is returned instead and an error is set
+// (retrievable by Err()).
 func (f *Form) Float64(param string, defaultValue float64) float64 {
 	vals, ok := f.values[param]
 	if !ok {
@@ -94,12 +85,9 @@ func (f *Form) Float64(param string, defaultValue float64) float64 {
 	return paramVal
 }
 
-// Bool checks whether key param maps to any form parameter
-// values. In case it does, it will try to convert the first value to a valid
-// bool and return it. If there are no values associated with param, it will
-// return the defaultValue value. If the first value is not a boolean, it will
-// return the defaultValue value and calling Err() will return the parsing
-// error.
+// Bool returns the first form parameter value. If the first value is not a
+// valid bool, the defaultValue is returned instead and an error is set
+// (retrievable by Err()).
 func (f *Form) Bool(param string, defaultValue bool) bool {
 	vals, ok := f.values[param]
 	if !ok {
@@ -134,11 +122,11 @@ func clearSlice(slicePtr interface{}) error {
 	return nil
 }
 
-// Slice checks whether key param maps to any form parameters. If it
-// does, it will try to convert them to the type of slice elements slicePtr
-// points to. If there are no values associated with param, it will clear the
-// slice. If type conversion fails at any point, the slice will be cleared and
-// calling Err() will return the parsing error.
+// Slice returns the form parameter values. If the values don't have the same
+// type, slicePtr will point to a nil slice instead and an error is set
+// (retrievable by Err()). This function should be used in case a form parameter
+// maps to multiple values.
+//
 // TODO(mihalimara22): Simplify this function to avoid duplicate logic
 func (f *Form) Slice(param string, slicePtr interface{}) {
 	mapVals, ok := f.values[param]
@@ -214,9 +202,7 @@ func (f *Form) Err() error {
 }
 
 // MultipartForm extends the Form structure to define a POST, PATCH or PUT
-// request that has Content-Type: multipart/form-data. Its fields are only
-// available after parsing the form, through getter functions that specify the
-// type.
+// request that has Content-Type: multipart/form-data.
 type MultipartForm struct {
 	Form
 	// TODO(mihalimara22): add support for form files in the MultipartForm
