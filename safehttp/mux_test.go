@@ -69,92 +69,69 @@ func (r *responseRecorder) Write(data []byte) (int, error) {
 	return r.writer.Write(data)
 }
 
-func TestValidHost(t *testing.T) {
-	mux := NewServeMux(testDispatcher{}, "foo.com")
-
-	h := HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
-		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
-	})
-	mux.Handle("/", MethodGet, h)
-
-	req := httptest.NewRequest("GET", "http://foo.com/", nil)
-	b := &strings.Builder{}
-	rw := newResponseRecorder(b)
-
-	mux.ServeHTTP(rw, req)
-
-	if want := 200; rw.status != want {
-		t.Errorf("rw.status: got %v want %v", rw.status, want)
+func TestMuxOneHandlerOneRequest(t *testing.T) {
+	var test = []struct {
+		name       string
+		req        *http.Request
+		wantStatus int
+		wantHeader map[string][]string
+		wantBody   string
+	}{
+		{
+			name:       "Valid Request",
+			req:        httptest.NewRequest("GET", "http://foo.com/", nil),
+			wantStatus: 200,
+			wantHeader: map[string][]string{},
+			wantBody:   "&lt;h1&gt;Hello World!&lt;/h1&gt;",
+		},
+		{
+			name:       "Invalid Host",
+			req:        httptest.NewRequest("GET", "http://bar.com/", nil),
+			wantStatus: 404,
+			wantHeader: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Not Found\n",
+		},
+		{
+			name:       "Invalid Method",
+			req:        httptest.NewRequest("POST", "http://foo.com/", nil),
+			wantStatus: 405,
+			wantHeader: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Method Not Allowed\n",
+		},
 	}
 
-	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rw.header)); diff != "" {
-		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
-	}
+	for _, tt := range test {
+		t.Run(tt.name, func(t *testing.T) {
+			mux := NewServeMux(testDispatcher{}, "foo.com")
 
-	if got, want := b.String(), "&lt;h1&gt;Hello World!&lt;/h1&gt;"; got != want {
-		t.Errorf("response body: got %q want %q", got, want)
-	}
-}
+			h := HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
+				return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
+			})
+			mux.Handle("/", MethodGet, h)
 
-func TestInvalidHost(t *testing.T) {
-	mux := NewServeMux(testDispatcher{}, "foo.com")
+			b := &strings.Builder{}
+			rw := newResponseRecorder(b)
 
-	h := HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
-		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
-	})
-	mux.Handle("/", MethodGet, h)
+			mux.ServeHTTP(rw, tt.req)
 
-	req := httptest.NewRequest("GET", "http://bar.com/", nil)
-	b := &strings.Builder{}
-	rw := newResponseRecorder(b)
+			if rw.status != tt.wantStatus {
+				t.Errorf("rw.status: got %v want %v", rw.status, tt.wantStatus)
+			}
 
-	mux.ServeHTTP(rw, req)
+			if diff := cmp.Diff(tt.wantHeader, map[string][]string(rw.header)); diff != "" {
+				t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+			}
 
-	if want := 404; rw.status != want {
-		t.Errorf("rw.status: got %v want %v", rw.status, want)
-	}
-
-	wantedHeaders := map[string][]string{
-		"Content-Type": {"text/plain; charset=utf-8"}, "X-Content-Type-Options": {"nosniff"},
-	}
-
-	if diff := cmp.Diff(wantedHeaders, map[string][]string(rw.header)); diff != "" {
-		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
-	}
-
-	if got, want := b.String(), "Not Found\n"; got != want {
-		t.Errorf("response body: got %q want %q", got, want)
-	}
-}
-
-func TestInvalidMethod(t *testing.T) {
-	mux := NewServeMux(testDispatcher{}, "foo.com")
-
-	h := HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
-		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
-	})
-	mux.Handle("/", MethodGet, h)
-
-	req := httptest.NewRequest("POST", "http://foo.com/", nil)
-	b := &strings.Builder{}
-	rw := newResponseRecorder(b)
-
-	mux.ServeHTTP(rw, req)
-
-	if want := 405; rw.status != want {
-		t.Errorf("rw.status: got %v want %v", rw.status, want)
-	}
-
-	wantedHeaders := map[string][]string{
-		"Content-Type": {"text/plain; charset=utf-8"}, "X-Content-Type-Options": {"nosniff"},
-	}
-
-	if diff := cmp.Diff(wantedHeaders, map[string][]string(rw.header)); diff != "" {
-		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
-	}
-
-	if got, want := b.String(), "Method Not Allowed\n"; got != want {
-		t.Errorf("response body: got %q want %q", got, want)
+			if got := b.String(); got != tt.wantBody {
+				t.Errorf("response body: got %q want %q", got, tt.wantBody)
+			}
+		})
 	}
 }
 
