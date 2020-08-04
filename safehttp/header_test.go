@@ -368,3 +368,49 @@ func TestValuesEmptyHeader(t *testing.T) {
 		t.Errorf("h.Values(\"Foo-Key\") mismatch (-want +got):\n%s", diff)
 	}
 }
+
+func TestClaim(t *testing.T) {
+	h := newHeader(http.Header{})
+	set, err := h.Claim("Foo-Key")
+	if err != nil {
+		t.Fatalf(`_, err := h.Claim("Foo-Key") got: %v want: nil`, err)
+	}
+	set([]string{"Bar-Value", "Pizza-Value"})
+	if diff := cmp.Diff([]string{"Bar-Value", "Pizza-Value"}, h.Values("Foo-Key")); diff != "" {
+		t.Errorf("h.Values(\"Foo-Key\") mismatch (-want +got):\n%s", diff)
+	}
+}
+
+// TestClaimCanonicalization verifies that names of headers
+// are canonicalized before being interpreted as header
+// names.
+// Note that the casing of the header name is different
+// when accessing and modifying the same header.
+func TestClaimCanonicalization(t *testing.T) {
+	h := newHeader(http.Header{})
+	set, err := h.Claim("fOO-kEY")
+	if err != nil {
+		t.Fatalf(`_, err := h.Claim("fOO-kEY") got: %v want: nil`, err)
+	}
+	set([]string{"Bar-Value", "Pizza-Value"})
+	if diff := cmp.Diff([]string{"Bar-Value", "Pizza-Value"}, h.Values("fOo-kEy")); diff != "" {
+		t.Errorf("h.Values(\"fOo-kEy\") mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestClaimSetCookie(t *testing.T) {
+	h := newHeader(http.Header{})
+	if _, err := h.Claim("Set-Cookie"); err == nil {
+		t.Error(`_, err := h.Claim("Set-Cookie") got: nil want: error`)
+	}
+}
+
+func TestClaimClaimed(t *testing.T) {
+	h := newHeader(http.Header{})
+	if _, err := h.Claim("Foo-Key"); err != nil {
+		t.Errorf(`_, err := h.Claim("Foo-Key") got: %v want: nil`, err)
+	}
+	if _, err := h.Claim("Foo-Key"); err == nil {
+		t.Error(`_, err := h.Claim("Foo-Key") got: nil want: error`)
+	}
+}
