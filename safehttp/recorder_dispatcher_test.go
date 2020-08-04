@@ -23,6 +23,10 @@ import (
 	"github.com/google/safehtml"
 )
 
+// This file contains a test dispatcher and a responserecorder
+// that implements a http.ResponseWriter. These are used for
+// testing.
+
 type testDispatcher struct{}
 
 func (testDispatcher) Write(rw http.ResponseWriter, resp safehttp.Response) error {
