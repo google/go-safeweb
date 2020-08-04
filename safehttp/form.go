@@ -93,15 +93,12 @@ func (f *Form) Bool(param string, defaultValue bool) bool {
 	if !ok {
 		return defaultValue
 	}
-	switch vals[0] {
-	case "true":
-		return true
-	case "false":
-		return false
-	default:
-		f.err = fmt.Errorf("values of form parameter %q not a boolean", param)
+	b, err := strconv.ParseBool(vals[0])
+	if err != nil {
+		f.err = err
+		return defaultValue
 	}
-	return defaultValue
+	return b
 }
 
 func clearSlice(slicePtr interface{}) error {
@@ -177,16 +174,13 @@ func (f *Form) Slice(param string, slicePtr interface{}) {
 	case *[]bool:
 		res := make([]bool, 0, len(mapVals))
 		for _, x := range mapVals {
-			switch x {
-			case "true":
-				res = append(res, true)
-			case "false":
-				res = append(res, false)
-			default:
-				f.err = fmt.Errorf("values of form parameter %q not a boolean", param)
+			b, err := strconv.ParseBool(x)
+			if err != nil {
+				f.err = err
 				*values = nil
 				return
 			}
+			res = append(res, b)
 		}
 		*values = res
 	default:

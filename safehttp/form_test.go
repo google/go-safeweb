@@ -593,24 +593,34 @@ func TestFormValidBool(t *testing.T) {
 				reqs := []*http.Request{
 					httptest.NewRequest("POST", "/", strings.NewReader("pizza=true")),
 					httptest.NewRequest("POST", "/", strings.NewReader("pizza=false")),
+					httptest.NewRequest("POST", "/", strings.NewReader("pizza=True")),
+					httptest.NewRequest("POST", "/", strings.NewReader("pizza=False")),
+					httptest.NewRequest("POST", "/", strings.NewReader("pizza=TRUE")),
+					httptest.NewRequest("POST", "/", strings.NewReader("pizza=FALSE")),
+					httptest.NewRequest("POST", "/", strings.NewReader("pizza=t")),
+					httptest.NewRequest("POST", "/", strings.NewReader("pizza=f")),
+					httptest.NewRequest("POST", "/", strings.NewReader("pizza=T")),
+					httptest.NewRequest("POST", "/", strings.NewReader("pizza=F")),
+					httptest.NewRequest("POST", "/", strings.NewReader("pizza=1")),
+					httptest.NewRequest("POST", "/", strings.NewReader("pizza=0")),
 				}
 				for _, req := range reqs {
 					req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 				}
 				return reqs
 			}(),
-			want: []bool{true, false},
+			want: []bool{true, false, true, false, true, false, true, false, true, false, true, false},
 		},
 		{
 			name: "Valid booleans in POST multipart request",
 			reqs: func() []*http.Request {
-				slice := []bool{true, false}
+				slice := []string{"true", "false", "True", "False", "TRUE", "FALSE", "t", "f", "T", "F", "1", "0"}
 				var reqs []*http.Request
 				for _, val := range slice {
 					multipartReqBody := "--123\r\n" +
 						"Content-Disposition: form-data; name=\"pizza\"\r\n" +
 						"\r\n" +
-						fmt.Sprintf("%v\r\n", val) +
+						val + "\r\n" +
 						"--123--\r\n"
 					multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
 					multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
@@ -619,7 +629,7 @@ func TestFormValidBool(t *testing.T) {
 				}
 				return reqs
 			}(),
-			want: []bool{true, false},
+			want: []bool{true, false, true, false, true, false, true, false, true, false, true, false},
 		},
 	}
 
@@ -740,6 +750,7 @@ func TestFormInvalidBool(t *testing.T) {
 }
 
 func TestFormValidSlice(t *testing.T) {
+	// TODO(@mihalimara22): Test other boolean syntax like "t", "f", "0" and "1" here.
 	validSlices := []interface{}{
 		[]int64{-8, 9, -100}, []uint64{8, 9, 10}, []string{"margeritta", "diavola", "calzone"}, []float64{1.3, 8.9, -4.1}, []bool{true, false, true},
 	}
