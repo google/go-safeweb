@@ -86,10 +86,10 @@ func TestFormValidInt(t *testing.T) {
 			}
 			return safehttp.Result{}
 		}, &testDispatcher{})
-		recorder := httptest.NewRecorder()
-		m.HandleRequest(recorder, test.req)
-		if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
-			t.Errorf("response status: got %v, want %v", respStatus, want)
+		rec := newResponseRecorder(&strings.Builder{})
+		m.HandleRequest(rec, test.req)
+		if want := 200; rec.status != want {
+			t.Errorf("response status: got %v, want %v", rec.status, want)
 		}
 	}
 }
@@ -174,10 +174,10 @@ func TestFormInvalidInt(t *testing.T) {
 				}
 				return safehttp.Result{}
 			}, &testDispatcher{})
-			recorder := httptest.NewRecorder()
-			m.HandleRequest(recorder, req)
-			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
-				t.Errorf("response status: got %v, want %v", respStatus, want)
+			rec := newResponseRecorder(&strings.Builder{})
+			m.HandleRequest(rec, req)
+			if want := 200; rec.status != want {
+				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
 		}
 	}
@@ -240,10 +240,10 @@ func TestFormValidUint(t *testing.T) {
 			}
 			return safehttp.Result{}
 		}, &testDispatcher{})
-		recorder := httptest.NewRecorder()
-		m.HandleRequest(recorder, test.req)
-		if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
-			t.Errorf("response status: got %v, want %v", respStatus, want)
+		rec := newResponseRecorder(&strings.Builder{})
+		m.HandleRequest(rec, test.req)
+		if want := 200; rec.status != want {
+			t.Errorf("response status: got %v, want %v", rec.status, want)
 		}
 	}
 }
@@ -326,10 +326,10 @@ func TestFormInvalidUint(t *testing.T) {
 				}
 				return safehttp.Result{}
 			}, &testDispatcher{})
-			recorder := httptest.NewRecorder()
-			m.HandleRequest(recorder, req)
-			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
-				t.Errorf("response status: got %v, want %v", respStatus, want)
+			rec := newResponseRecorder(&strings.Builder{})
+			m.HandleRequest(rec, req)
+			if want := 200; rec.status != want {
+				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
 		}
 	}
@@ -405,10 +405,10 @@ func TestFormValidString(t *testing.T) {
 				}
 				return safehttp.Result{}
 			}, &testDispatcher{})
-			recorder := httptest.NewRecorder()
-			m.HandleRequest(recorder, req)
-			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
-				t.Errorf("response status: got %v, want %v", respStatus, want)
+			rec := newResponseRecorder(&strings.Builder{})
+			m.HandleRequest(rec, req)
+			if want := 200; rec.status != want {
+				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
 		}
 	}
@@ -485,10 +485,10 @@ func TestFormValidFloat64(t *testing.T) {
 				}
 				return safehttp.Result{}
 			}, &testDispatcher{})
-			recorder := httptest.NewRecorder()
-			m.HandleRequest(recorder, req)
-			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
-				t.Errorf("response status: got %v, want %v", respStatus, want)
+			rec := newResponseRecorder(&strings.Builder{})
+			m.HandleRequest(rec, req)
+			if want := 200; rec.status != want {
+				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
 		}
 	}
@@ -572,10 +572,10 @@ func TestFormInvalidFloat64(t *testing.T) {
 				}
 				return safehttp.Result{}
 			}, &testDispatcher{})
-			recorder := httptest.NewRecorder()
-			m.HandleRequest(recorder, req)
-			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
-				t.Errorf("response status: got %v, want %v", respStatus, want)
+			rec := newResponseRecorder(&strings.Builder{})
+			m.HandleRequest(rec, req)
+			if want := 200; rec.status != want {
+				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
 		}
 	}
@@ -650,10 +650,10 @@ func TestFormValidBool(t *testing.T) {
 				}
 				return safehttp.Result{}
 			}, &testDispatcher{})
-			recorder := httptest.NewRecorder()
-			m.HandleRequest(recorder, req)
-			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
-				t.Errorf("response status: got %v, want %v", respStatus, want)
+			rec := newResponseRecorder(&strings.Builder{})
+			m.HandleRequest(rec, req)
+			if want := 200; rec.status != want {
+				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
 		}
 	}
@@ -730,10 +730,10 @@ func TestFormInvalidBool(t *testing.T) {
 				}
 				return safehttp.Result{}
 			}, &testDispatcher{})
-			recorder := httptest.NewRecorder()
-			m.HandleRequest(recorder, req)
-			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
-				t.Errorf("response status: got %v, want %v", respStatus, want)
+			rec := newResponseRecorder(&strings.Builder{})
+			m.HandleRequest(rec, req)
+			if want := 200; rec.status != want {
+				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
 		}
 	}
@@ -858,10 +858,10 @@ func TestFormValidSlice(t *testing.T) {
 				}
 				return safehttp.Result{}
 			}, &testDispatcher{})
-			recorder := httptest.NewRecorder()
-			m.HandleRequest(recorder, req)
-			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
-				t.Errorf("response status: got %v, want %v", respStatus, want)
+			rec := newResponseRecorder(&strings.Builder{})
+			m.HandleRequest(rec, req)
+			if want := 200; rec.status != want {
+				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
 		}
 	}
@@ -982,10 +982,10 @@ func TestFormInvalidSlice(t *testing.T) {
 				}
 				return safehttp.Result{}
 			}, &testDispatcher{})
-			recorder := httptest.NewRecorder()
-			m.HandleRequest(recorder, req)
-			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
-				t.Errorf("response status: got %v, want %v", respStatus, want)
+			rec := newResponseRecorder(&strings.Builder{})
+			m.HandleRequest(rec, req)
+			if want := 200; rec.status != want {
+				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
 		}
 	}
@@ -1069,10 +1069,10 @@ func TestFormErrorHandling(t *testing.T) {
 			}
 			return safehttp.Result{}
 		}, &testDispatcher{})
-		recorder := httptest.NewRecorder()
-		m.HandleRequest(recorder, req)
-		if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
-			t.Errorf("response status: got %v, want %v", respStatus, want)
+		rec := newResponseRecorder(&strings.Builder{})
+		m.HandleRequest(rec, req)
+		if want := 200; rec.status != want {
+			t.Errorf("response status: got %v, want %v", rec.status, want)
 		}
 	}
 }
