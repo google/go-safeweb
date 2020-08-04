@@ -15,6 +15,7 @@
 package hsts
 
 import (
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -58,8 +59,12 @@ func NewPlugin() Plugin {
 // response.
 func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 	if !p.BehindProxy && r.TLS == nil {
-		r.URL.Scheme = "https"
-		return w.Redirect(r, r.URL.String(), safehttp.StatusMovedPermanently)
+		u, err := url.Parse(r.URL.String())
+		if err != nil {
+			return w.ServerError(safehttp.StatusInternalServerError, "Internal Server Error")
+		}
+		u.Scheme = "https"
+		return w.Redirect(r, u.String(), safehttp.StatusMovedPermanently)
 	}
 
 	var value strings.Builder
