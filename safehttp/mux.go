@@ -33,6 +33,8 @@ const (
 // When creating the multiplexer, the user needs to specify a list of allowed
 // domains. The server will only serve requests target to those domains and
 // otherwise will reply with HTTP 404 Not Found.
+// TODO(@mihalimara22, @mattiasgrenfeldt): add a link to docs/ explaining
+// why this is done.
 //
 // Patterns names are fixed, rooted paths, like "/favicon.ico", or rooted
 // subtrees like "/images/" (note the trailing slash). Longer patterns take
@@ -45,14 +47,16 @@ const (
 // pattern "/" matches all paths not matched by other registered patterns,
 // not just the URL with Path == "/".
 //
-// If a subtree has been registered and a request is received naming the subtree root without its trailing slash, ServeMux redirects that request to
+// If a subtree has been registered and a request is received naming the subtree
+// root without its trailing slash, ServeMux redirects that request to
 // the subtree root (adding the trailing slash). This behavior can be overridden
 // with a separate registration for the path without the trailing slash. For
 // example, registering "/images/" causes ServeMux to redirect a request for
 // "/images" to "/images/", unless "/images" has been registered separately.
 //
 // Patterns may optionally begin with a host name, restricting matches to URLs
-// on that host only. Host-specific patterns take precedence over general
+// on that host only. This host name must be in the list of allowed domains passed
+// when creating the ServeMux. Host-specific patterns take precedence over general
 // patterns, so that a handler might register for the two patterns "/codesearch"
 // and "codesearch.google.com/" without also taking over requests for
 // "http://www.google.com/".
@@ -61,23 +65,20 @@ const (
 // header, stripping the port number and redirecting any request containing . or
 // .. elements or repeated slashes to an equivalent, cleaner URL.
 //
-// Multiple HTTP methods can be served for one pattern and the user is expected
-// to register a handler for each method supported. These will be combined
-// into one handler per pattern. The framework will then match each
-// incoming request to its underlying handler according to its HTTP method.
+// Multiple handlers can be registered for a single pattern, as long as they
+// handle different HTTP methods.
 type ServeMux struct {
 	mux     *http.ServeMux
 	domains map[string]bool
 	disp    Dispatcher
 
-	// Maps user-provided patterns to combined handlers which encapsulate
-	// multiple handlers, each one associated with an HTTP method.
+	// Maps patterns to handlers supporting multiple HTTP methods.
 	handlers map[string]methodHandler
 }
 
 // NewServeMux allocates and returns a new ServeMux
-// TODO(@mattiasgrenfeldt, @mihalimara22): make domains a variadic of string ..//**literals**.
 func NewServeMux(dispatcher Dispatcher, domains ...string) *ServeMux {
+	// TODO(@mattiasgrenfeldt, @mihalimara22): make domains a variadic of string **literals**.
 	d := map[string]bool{}
 	for _, host := range domains {
 		d[host] = true
