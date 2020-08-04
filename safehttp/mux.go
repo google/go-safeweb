@@ -30,7 +30,11 @@ const (
 // request against a list of registered patterns and calls the handler for
 // the pattern that most closely matches the URL.
 //
-// Patterns name are fixed, rooted paths, like "/favicon.ico", or rooted
+// When creating the multiplexer, the user needs to specify a list of allowed
+// domains. The server will only serve requests target to those domains and
+// otherwise will reply with HTTP 404 Not Found.
+//
+// Patterns names are fixed, rooted paths, like "/favicon.ico", or rooted
 // subtrees like "/images/" (note the trailing slash). Longer patterns take
 // precedence over shorter ones, so that if there are handlers registered for
 // both "/images/" and "/images/thumbnails/", the latter handler will be called
