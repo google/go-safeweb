@@ -25,7 +25,7 @@ import (
 
 type testDispatcher struct{}
 
-func (d *testDispatcher) Write(rw http.ResponseWriter, resp safehttp.Response) error {
+func (testDispatcher) Write(rw http.ResponseWriter, resp safehttp.Response) error {
 	switch x := resp.(type) {
 	case safehtml.HTML:
 		_, err := rw.Write([]byte(x.String()))
@@ -35,7 +35,7 @@ func (d *testDispatcher) Write(rw http.ResponseWriter, resp safehttp.Response) e
 	}
 }
 
-func (d *testDispatcher) ExecuteTemplate(rw http.ResponseWriter, t safehttp.Template, data interface{}) error {
+func (testDispatcher) ExecuteTemplate(rw http.ResponseWriter, t safehttp.Template, data interface{}) error {
 	switch x := t.(type) {
 	case *template.Template:
 		return x.Execute(rw, data)
