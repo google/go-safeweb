@@ -26,18 +26,45 @@ const (
 	MethodPost = "POST"
 )
 
-// ServeMux is a safe HTTP request multiplexer that wraps http.ServeMux.
-// It matches the URL of each incoming request against a list of registered
-// patterns and calls the handler for the pattern that most closely matches the
-// URL.
+// ServeMux is an HTTP request multiplexer. It matches the URL of each incoming
+// request against a list of registered patterns and calls the handler for
+// the pattern that most closely matches the URL.
 //
-// The multiplexer contains a list of allowed domains that will be matched
-// against each incoming request. A different handler can be specified for every
-// HTTP method supported at a registered pattern.
+// Patterns name are fixed, rooted paths, like "/favicon.ico", or rooted
+// subtrees like "/images/" (note the trailing slash). Longer patterns take
+// precedence over shorter ones, so that if there are handlers registered for
+// both "/images/" and "/images/thumbnails/", the latter handler will be called
+// for paths beginning "/images/thumbnails/" and the former will receive
+// requests for any other paths in the "/images/" subtree.
+//
+// Note that since a pattern ending in a slash names a rooted subtree, the
+// pattern "/" matches all paths not matched by other registered patterns,
+// not just the URL with Path == "/".
+//
+// If a subtree has been registered and a request is received naming the subtree root without its trailing slash, ServeMux redirects that request to
+// the subtree root (adding the trailing slash). This behavior can be overridden
+// with a separate registration for the path without the trailing slash. For
+// example, registering "/images/" causes ServeMux to redirect a request for
+// "/images" to "/images/", unless "/images" has been registered separately.
+//
+// Patterns may optionally begin with a host name, restricting matches to URLs
+// on that host only. Host-specific patterns take precedence over general
+// patterns, so that a handler might register for the two patterns "/codesearch"
+// and "codesearch.google.com/" without also taking over requests for
+// "http://www.google.com/".
+//
+// ServeMux also takes care of sanitizing the URL request path and the Host
+// header, stripping the port number and redirecting any request containing . or
+// .. elements or repeated slashes to an equivalent, cleaner URL.
+//
+// Multiple HTTP methods can be served for one pattern and the user is expected
+// to register a handler for each method supported. These will be combined
+// into one handler per pattern. The framework will then match each
+// incoming request to its underlying handler according to its HTTP method.
 type ServeMux struct {
-	mux        *http.ServeMux
-	domains    map[string]bool
-	dispatcher Dispatcher
+	mux     *http.ServeMux
+	domains map[string]bool
+	disp    Dispatcher
 
 	// Maps user-provided patterns to combined handlers which encapsulate
 	// multiple handlers, each one associated with an HTTP method.
@@ -45,17 +72,17 @@ type ServeMux struct {
 }
 
 // NewServeMux allocates and returns a new ServeMux
-// TODO(@mattias, @mara): make domains a variadic of string **literals**.
+// TODO(@mattiasgrenfeldt, @mihalimara22): make domains a variadic of string ..//**literals**.
 func NewServeMux(dispatcher Dispatcher, domains ...string) *ServeMux {
 	d := map[string]bool{}
 	for _, host := range domains {
 		d[host] = true
 	}
 	return &ServeMux{
-		mux:        http.NewServeMux(),
-		domains:    d,
-		dispatcher: dispatcher,
-		handlers:   map[string]methodHandler{},
+		mux:      http.NewServeMux(),
+		domains:  d,
+		disp:     dispatcher,
+		handlers: map[string]methodHandler{},
 	}
 }
 
@@ -65,9 +92,9 @@ func (m *ServeMux) Handle(pattern string, method string, h Handler) {
 	ch, ok := m.handlers[pattern]
 	if !ok {
 		ch := methodHandler{
-			h:       map[string]Handler{method: h},
-			domains: m.domains,
-			d:       m.dispatcher,
+			methodMap: map[string]Handler{method: h},
+			domains:   m.domains,
+			disp:      m.disp,
 		}
 
 		m.handlers[pattern] = ch
@@ -75,10 +102,10 @@ func (m *ServeMux) Handle(pattern string, method string, h Handler) {
 		return
 	}
 
-	if _, ok := ch.h[method]; ok {
+	if _, ok := ch.methodMap[method]; ok {
 		panic("method already registered")
 	}
-	ch.h[method] = h
+	ch.methodMap[method] = h
 }
 
 // ServeHTTP dispatches the request to the handler whose method matches the
@@ -90,24 +117,24 @@ func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // methodHandler is collection of handlers based on the request method.
 type methodHandler struct {
 	// Maps an HTTP method to its handler
-	h       map[string]Handler
-	domains map[string]bool
-	d       Dispatcher
+	methodMap map[string]Handler
+	domains   map[string]bool
+	disp      Dispatcher
 }
 
 // ServeHTTP dispatches the request to the handler associated with
 // the incoming request's method.
-func (c methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if !c.domains[r.Host] {
+func (m methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if !m.domains[r.Host] {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
 
-	h, ok := c.h[r.Method]
+	h, ok := m.methodMap[r.Method]
 	if !ok {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return
 	}
 
-	h.ServeHTTP(newResponseWriter(c.d, w), newIncomingRequest(r))
+	h.ServeHTTP(newResponseWriter(m.disp, w), newIncomingRequest(r))
 }
