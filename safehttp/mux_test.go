@@ -135,57 +135,61 @@ func TestMuxOneHandlerOneRequest(t *testing.T) {
 	}
 }
 
-func TestHandleTwoMethods(t *testing.T) {
+func TestMuxServeTwoHandlers(t *testing.T) {
+	var tests = []struct {
+		name        string
+		req         *http.Request
+		hf          HandlerFunc
+		wantStatus  int
+		wantHeaders map[string][]string
+		wantBody    string
+	}{
+		{
+			name: "GET Handler",
+			req:  httptest.NewRequest("GET", "http://foo.com/bar", nil),
+			hf: HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
+				return w.Write(safehtml.HTMLEscaped("<h1>Hello World! GET</h1>"))
+			}),
+			wantStatus:  200,
+			wantHeaders: map[string][]string{},
+			wantBody:    "&lt;h1&gt;Hello World! GET&lt;/h1&gt;",
+		},
+		{
+			name: "POST Handler",
+			req:  httptest.NewRequest("POST", "http://foo.com/bar", nil),
+			hf: HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
+				return w.Write(safehtml.HTMLEscaped("<h1>Hello World! POST</h1>"))
+			}),
+			wantStatus:  200,
+			wantHeaders: map[string][]string{},
+			wantBody:    "&lt;h1&gt;Hello World! POST&lt;/h1&gt;",
+		},
+	}
+
 	d := testDispatcher{}
 	mux := NewServeMux(d, "foo.com")
+	mux.Handle("/bar", MethodGet, tests[0].hf)
+	mux.Handle("/bar", MethodPost, tests[1].hf)
 
-	registeredGetHandler := HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
-		return w.Write(safehtml.HTMLEscaped("<h1>Hello World! GET</h1>"))
-	})
-	registeredPostHandler := HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
-		return w.Write(safehtml.HTMLEscaped("<h1>Hello World! POST</h1>"))
-	})
-	mux.Handle("/bar", MethodGet, registeredGetHandler)
-	mux.Handle("/bar", MethodPost, registeredPostHandler)
+	for _, test := range tests {
+		b := &strings.Builder{}
+		rw := newResponseRecorder(b)
+		mux.ServeHTTP(rw, test.req)
+		if want := test.wantStatus; rw.status != want {
+			t.Errorf("rw.status: got %v want %v", rw.status, want)
+		}
 
-	postReq := httptest.NewRequest("POST", "http://foo.com/bar", nil)
-	b := &strings.Builder{}
-	rw := newResponseRecorder(b)
+		if diff := cmp.Diff(test.wantHeaders, map[string][]string(rw.header)); diff != "" {
+			t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+		}
 
-	mux.ServeHTTP(rw, postReq)
-
-	if want := 200; rw.status != want {
-		t.Errorf("rw.status: got %v want %v", rw.status, want)
-	}
-
-	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rw.header)); diff != "" {
-		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
-	}
-
-	if got, want := b.String(), "&lt;h1&gt;Hello World! POST&lt;/h1&gt;"; got != want {
-		t.Errorf("response body: got %q want %q", got, want)
-	}
-
-	getReq := httptest.NewRequest("GET", "http://foo.com/bar", nil)
-	b = &strings.Builder{}
-	rw = newResponseRecorder(b)
-
-	mux.ServeHTTP(rw, getReq)
-
-	if want := 200; rw.status != want {
-		t.Errorf("rw.status: got %v want %v", rw.status, want)
-	}
-
-	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rw.header)); diff != "" {
-		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
-	}
-
-	if got, want := b.String(), "&lt;h1&gt;Hello World! GET&lt;/h1&gt;"; got != want {
-		t.Errorf("response body: got %q want %q", got, want)
+		if got, want := b.String(), test.wantBody; got != want {
+			t.Errorf("response body: got %q want %q", got, want)
+		}
 	}
 }
 
-func TestHandleSameMethodTwice(t *testing.T) {
+func TestMuxHandleSameMethodTwice(t *testing.T) {
 	d := testDispatcher{}
 	mux := NewServeMux(d, "foo.com")
 
