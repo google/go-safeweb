@@ -92,9 +92,9 @@ func (m *ServeMux) Handle(pattern string, method string, h Handler) {
 	ch, ok := m.handlers[pattern]
 	if !ok {
 		ch := methodHandler{
-			methodMap: map[string]Handler{method: h},
-			domains:   m.domains,
-			disp:      m.disp,
+			handlers: map[string]Handler{method: h},
+			domains:  m.domains,
+			disp:     m.disp,
 		}
 
 		m.handlers[pattern] = ch
@@ -102,10 +102,10 @@ func (m *ServeMux) Handle(pattern string, method string, h Handler) {
 		return
 	}
 
-	if _, ok := ch.methodMap[method]; ok {
+	if _, ok := ch.handlers[method]; ok {
 		panic("method already registered")
 	}
-	ch.methodMap[method] = h
+	ch.handlers[method] = h
 }
 
 // ServeHTTP dispatches the request to the handler whose method matches the
@@ -117,9 +117,9 @@ func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // methodHandler is collection of handlers based on the request method.
 type methodHandler struct {
 	// Maps an HTTP method to its handler
-	methodMap map[string]Handler
-	domains   map[string]bool
-	disp      Dispatcher
+	handlers map[string]Handler
+	domains  map[string]bool
+	disp     Dispatcher
 }
 
 // ServeHTTP dispatches the request to the handler associated with
@@ -130,7 +130,7 @@ func (m methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h, ok := m.methodMap[r.Method]
+	h, ok := m.handlers[r.Method]
 	if !ok {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return
