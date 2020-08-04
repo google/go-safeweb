@@ -27,9 +27,9 @@ import (
 	"github.com/google/safehtml"
 )
 
-type dispatcher struct{}
+type testDispatcher struct{}
 
-func (dispatcher) Write(rw http.ResponseWriter, resp safehttp.Response) error {
+func (testDispatcher) Write(rw http.ResponseWriter, resp safehttp.Response) error {
 	switch x := resp.(type) {
 	case safehtml.HTML:
 		_, err := rw.Write([]byte(x.String()))
@@ -39,29 +39,29 @@ func (dispatcher) Write(rw http.ResponseWriter, resp safehttp.Response) error {
 	}
 }
 
-func (dispatcher) ExecuteTemplate(rw http.ResponseWriter, t safehttp.Template, data interface{}) error {
+func (testDispatcher) ExecuteTemplate(rw http.ResponseWriter, t safehttp.Template, data interface{}) error {
 	return nil
 }
 
-type responseWriter struct {
+type responseRecorder struct {
 	header http.Header
 	writer io.Writer
 	status int
 }
 
-func newResponseWriter(w io.Writer) *responseWriter {
-	return &responseWriter{header: http.Header{}, writer: w, status: http.StatusOK}
+func newResponseRecorder(w io.Writer) *responseRecorder {
+	return &responseRecorder{header: http.Header{}, writer: w, status: http.StatusOK}
 }
 
-func (r *responseWriter) Header() http.Header {
+func (r *responseRecorder) Header() http.Header {
 	return r.header
 }
 
-func (r *responseWriter) WriteHeader(statusCode int) {
+func (r *responseRecorder) WriteHeader(statusCode int) {
 	r.status = statusCode
 }
 
-func (r *responseWriter) Write(data []byte) (int, error) {
+func (r *responseRecorder) Write(data []byte) (int, error) {
 	return r.writer.Write(data)
 }
 
@@ -71,7 +71,7 @@ func TestAccessIncomingHeaders(t *testing.T) {
 			t.Errorf(`r.Header.Get("A") got: %v want: %v`, got, want)
 		}
 		return rw.Write(safehtml.HTMLEscaped("hello"))
-	}, &dispatcher{})
+	}, &testDispatcher{})
 
 	request := "GET / HTTP/1.1\r\n" +
 		"Host: localhost:8080\r\n" +
@@ -82,7 +82,7 @@ func TestAccessIncomingHeaders(t *testing.T) {
 	}
 
 	b := &strings.Builder{}
-	rw := newResponseWriter(b)
+	rw := newResponseRecorder(b)
 
 	m.HandleRequest(rw, req)
 }
@@ -91,12 +91,12 @@ func TestChangingResponseHeaders(t *testing.T) {
 	m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, _ *safehttp.IncomingRequest) safehttp.Result {
 		rw.Header().Set("pIZZA", "Pasta")
 		return rw.Write(safehtml.HTMLEscaped("hello"))
-	}, &dispatcher{})
+	}, &testDispatcher{})
 
 	req := httptest.NewRequest("GET", "/", nil)
 
 	b := &strings.Builder{}
-	rw := newResponseWriter(b)
+	rw := newResponseRecorder(b)
 
 	m.HandleRequest(rw, req)
 
