@@ -12,14 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package safehttp
+package safehttp_test
 
 import (
 	"errors"
 	"fmt"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/safehtml"
-	"github.com/google/safehtml/template"
 	"math"
 	"net/http"
 	"net/http/httptest"
@@ -27,28 +24,10 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-safeweb/safehttp"
 )
-
-type dispatcher struct{}
-
-func (d *dispatcher) Write(rw http.ResponseWriter, resp Response) error {
-	switch x := resp.(type) {
-	case safehtml.HTML:
-		_, err := rw.Write([]byte(x.String()))
-		return err
-	default:
-		panic("not a safe response type")
-	}
-}
-
-func (d *dispatcher) ExecuteTemplate(rw http.ResponseWriter, t Template, data interface{}) error {
-	switch x := t.(type) {
-	case *template.Template:
-		return x.Execute(rw, data)
-	default:
-		panic("not a safe response type")
-	}
-}
 
 func TestFormValidInt(t *testing.T) {
 	stringMaxInt := strconv.FormatInt(math.MaxInt64, 10)
@@ -83,9 +62,9 @@ func TestFormValidInt(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-			var form *Form
-			if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+		m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+			var form *safehttp.Form
+			if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
 				var err error
 				form, err = ir.PostForm()
 				if err != nil {
@@ -105,8 +84,8 @@ func TestFormValidInt(t *testing.T) {
 			if diff := cmp.Diff(test.want, got); diff != "" {
 				t.Errorf("form.Int64: got %v, want %v, diff (-want +got): \n%s", got, test.want, diff)
 			}
-			return Result{}
-		}, &dispatcher{})
+			return safehttp.Result{}
+		}, &testDispatcher{})
 		recorder := httptest.NewRecorder()
 		m.HandleRequest(recorder, test.req)
 		if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
@@ -171,9 +150,9 @@ func TestFormInvalidInt(t *testing.T) {
 
 	for _, test := range tests {
 		for _, req := range test.reqs {
-			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				var form *Form
-				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+			m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+				var form *safehttp.Form
+				if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
 					var err error
 					form, err = ir.PostForm()
 					if err != nil {
@@ -193,8 +172,8 @@ func TestFormInvalidInt(t *testing.T) {
 				if form.Err() == nil {
 					t.Errorf("form.Err: got nil, want %v", test.err)
 				}
-				return Result{}
-			}, &dispatcher{})
+				return safehttp.Result{}
+			}, &testDispatcher{})
 			recorder := httptest.NewRecorder()
 			m.HandleRequest(recorder, req)
 			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
@@ -237,9 +216,9 @@ func TestFormValidUint(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-			var form *Form
-			if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+		m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+			var form *safehttp.Form
+			if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
 				var err error
 				form, err = ir.PostForm()
 				if err != nil {
@@ -259,8 +238,8 @@ func TestFormValidUint(t *testing.T) {
 			if diff := cmp.Diff(test.want, got); diff != "" {
 				t.Errorf("form.Uint64: got %v, want %v, diff (-want +got): \n%s", got, test.want, diff)
 			}
-			return Result{}
-		}, &dispatcher{})
+			return safehttp.Result{}
+		}, &testDispatcher{})
 		recorder := httptest.NewRecorder()
 		m.HandleRequest(recorder, test.req)
 		if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
@@ -323,9 +302,9 @@ func TestFormInvalidUint(t *testing.T) {
 	}
 	for _, test := range tests {
 		for _, req := range test.reqs {
-			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				var form *Form
-				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+			m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+				var form *safehttp.Form
+				if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
 					var err error
 					form, err = ir.PostForm()
 					if err != nil {
@@ -345,8 +324,8 @@ func TestFormInvalidUint(t *testing.T) {
 				if form.Err() == nil {
 					t.Errorf("form.Err: got nil, want %v", test.err)
 				}
-				return Result{}
-			}, &dispatcher{})
+				return safehttp.Result{}
+			}, &testDispatcher{})
 			recorder := httptest.NewRecorder()
 			m.HandleRequest(recorder, req)
 			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
@@ -401,9 +380,9 @@ func TestFormValidString(t *testing.T) {
 
 	for _, test := range tests {
 		for idx, req := range test.reqs {
-			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				var form *Form
-				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+			m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+				var form *safehttp.Form
+				if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
 					var err error
 					form, err = ir.PostForm()
 					if err != nil {
@@ -424,8 +403,8 @@ func TestFormValidString(t *testing.T) {
 				if err := form.Err(); err != nil {
 					t.Errorf("form.Err: got %v, want nil", err)
 				}
-				return Result{}
-			}, &dispatcher{})
+				return safehttp.Result{}
+			}, &testDispatcher{})
 			recorder := httptest.NewRecorder()
 			m.HandleRequest(recorder, req)
 			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
@@ -481,9 +460,9 @@ func TestFormValidFloat64(t *testing.T) {
 
 	for _, test := range tests {
 		for idx, req := range test.reqs {
-			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				var form *Form
-				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+			m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+				var form *safehttp.Form
+				if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
 					var err error
 					form, err = ir.PostForm()
 					if err != nil {
@@ -504,8 +483,8 @@ func TestFormValidFloat64(t *testing.T) {
 				if err := form.Err(); err != nil {
 					t.Errorf("form.Err: got %v, want nil", err)
 				}
-				return Result{}
-			}, &dispatcher{})
+				return safehttp.Result{}
+			}, &testDispatcher{})
 			recorder := httptest.NewRecorder()
 			m.HandleRequest(recorder, req)
 			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
@@ -569,9 +548,9 @@ func TestFormInvalidFloat64(t *testing.T) {
 	}
 	for _, test := range tests {
 		for _, req := range test.reqs {
-			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				var form *Form
-				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+			m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+				var form *safehttp.Form
+				if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
 					var err error
 					form, err = ir.PostForm()
 					if err != nil {
@@ -591,8 +570,8 @@ func TestFormInvalidFloat64(t *testing.T) {
 				if form.Err() == nil {
 					t.Errorf("form.Err: got nil, want %v", test.err)
 				}
-				return Result{}
-			}, &dispatcher{})
+				return safehttp.Result{}
+			}, &testDispatcher{})
 			recorder := httptest.NewRecorder()
 			m.HandleRequest(recorder, req)
 			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
@@ -646,9 +625,9 @@ func TestFormValidBool(t *testing.T) {
 
 	for _, test := range tests {
 		for idx, req := range test.reqs {
-			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				var form *Form
-				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+			m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+				var form *safehttp.Form
+				if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
 					var err error
 					form, err = ir.PostForm()
 					if err != nil {
@@ -669,8 +648,8 @@ func TestFormValidBool(t *testing.T) {
 				if err := form.Err(); err != nil {
 					t.Errorf("form.Err: got %v, want nil", err)
 				}
-				return Result{}
-			}, &dispatcher{})
+				return safehttp.Result{}
+			}, &testDispatcher{})
 			recorder := httptest.NewRecorder()
 			m.HandleRequest(recorder, req)
 			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
@@ -727,9 +706,9 @@ func TestFormInvalidBool(t *testing.T) {
 
 	for _, test := range tests {
 		for _, req := range test.reqs {
-			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				var form *Form
-				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+			m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+				var form *safehttp.Form
+				if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
 					var err error
 					form, err = ir.PostForm()
 					if err != nil {
@@ -749,8 +728,8 @@ func TestFormInvalidBool(t *testing.T) {
 				if form.Err() == nil {
 					t.Errorf("form.Err: got nil, want %v", test.err)
 				}
-				return Result{}
-			}, &dispatcher{})
+				return safehttp.Result{}
+			}, &testDispatcher{})
 			recorder := httptest.NewRecorder()
 			m.HandleRequest(recorder, req)
 			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
@@ -813,9 +792,9 @@ func TestFormValidSlice(t *testing.T) {
 
 	for _, test := range tests {
 		for idx, req := range test.reqs {
-			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				var form *Form
-				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+			m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+				var form *safehttp.Form
+				if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
 					var err error
 					form, err = ir.PostForm()
 					if err != nil {
@@ -877,8 +856,8 @@ func TestFormValidSlice(t *testing.T) {
 				default:
 					t.Fatalf("type not supported: %T", want)
 				}
-				return Result{}
-			}, &dispatcher{})
+				return safehttp.Result{}
+			}, &testDispatcher{})
 			recorder := httptest.NewRecorder()
 			m.HandleRequest(recorder, req)
 			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
@@ -968,9 +947,9 @@ func TestFormInvalidSlice(t *testing.T) {
 
 	for _, test := range tests {
 		for _, req := range test.reqs {
-			m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-				var form *Form
-				if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+			m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+				var form *safehttp.Form
+				if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
 					var err error
 					form, err = ir.PostForm()
 					if err != nil {
@@ -1001,8 +980,8 @@ func TestFormInvalidSlice(t *testing.T) {
 						t.Errorf("form.Err: got nil, want %v", test.err)
 					}
 				}
-				return Result{}
-			}, &dispatcher{})
+				return safehttp.Result{}
+			}, &testDispatcher{})
 			recorder := httptest.NewRecorder()
 			m.HandleRequest(recorder, req)
 			if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
@@ -1048,9 +1027,9 @@ func TestFormErrorHandling(t *testing.T) {
 	}
 
 	for _, req := range test.reqs {
-		m := NewMachinery(func(rw ResponseWriter, ir *IncomingRequest) Result {
-			var form *Form
-			if !strings.HasPrefix(ir.req.Header.Get("Content-Type"), "multipart/form-data") {
+		m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+			var form *safehttp.Form
+			if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
 				var err error
 				form, err = ir.PostForm()
 				if err != nil {
@@ -1088,8 +1067,8 @@ func TestFormErrorHandling(t *testing.T) {
 			if form.Err() == nil {
 				t.Errorf("form.Err: got nil, want %v", test.errs[1])
 			}
-			return Result{}
-		}, &dispatcher{})
+			return safehttp.Result{}
+		}, &testDispatcher{})
 		recorder := httptest.NewRecorder()
 		m.HandleRequest(recorder, req)
 		if respStatus, want := recorder.Result().StatusCode, 200; respStatus != want {
