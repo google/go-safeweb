@@ -58,8 +58,7 @@ func (w *ResponseWriter) ServerError(code StatusCode, resp Response) Result {
 	return Result{}
 }
 
-// Redirect responds with a redirect, whose type is
-// specified by the status code, to the given url.
+// Redirect responds with a redirect to a given url, using code as the status code.
 func (w *ResponseWriter) Redirect(r *IncomingRequest, url string, code StatusCode) Result {
 	http.Redirect(w.rw, r.req, url, int(code))
 	return Result{}
