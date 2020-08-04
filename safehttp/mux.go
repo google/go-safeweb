@@ -77,16 +77,16 @@ type ServeMux struct {
 }
 
 // NewServeMux allocates and returns a new ServeMux
-func NewServeMux(dispatcher Dispatcher, domains ...string) *ServeMux {
+func NewServeMux(d Dispatcher, domains ...string) *ServeMux {
 	// TODO(@mattiasgrenfeldt, @mihalimara22): make domains a variadic of string **literals**.
-	d := map[string]bool{}
+	dm := map[string]bool{}
 	for _, host := range domains {
-		d[host] = true
+		dm[host] = true
 	}
 	return &ServeMux{
 		mux:      http.NewServeMux(),
-		domains:  d,
-		disp:     dispatcher,
+		domains:  dm,
+		disp:     d,
 		handlers: map[string]methodHandler{},
 	}
 }
@@ -94,23 +94,23 @@ func NewServeMux(dispatcher Dispatcher, domains ...string) *ServeMux {
 // Handle registers a handler for the given pattern and method. If another
 // handler is already registered for the same pattern and method, Handle panics.
 func (m *ServeMux) Handle(pattern string, method string, h Handler) {
-	ch, ok := m.handlers[pattern]
+	mh, ok := m.handlers[pattern]
 	if !ok {
-		ch := methodHandler{
+		mh := methodHandler{
 			handlers: map[string]Handler{method: h},
 			domains:  m.domains,
 			disp:     m.disp,
 		}
 
-		m.handlers[pattern] = ch
-		m.mux.Handle(pattern, ch)
+		m.handlers[pattern] = mh
+		m.mux.Handle(pattern, mh)
 		return
 	}
 
-	if _, ok := ch.handlers[method]; ok {
+	if _, ok := mh.handlers[method]; ok {
 		panic("method already registered")
 	}
-	ch.handlers[method] = h
+	mh.handlers[method] = h
 }
 
 // ServeHTTP dispatches the request to the handler whose method matches the
