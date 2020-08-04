@@ -67,12 +67,14 @@ func TestSetEmptySetCookie(t *testing.T) {
 	}
 }
 
-func TestSetImmutable(t *testing.T) {
+func TestSetClaimed(t *testing.T) {
 	h := newHeader(http.Header{})
 	if err := h.Set("Foo-Key", "Pizza-Value"); err != nil {
 		t.Errorf(`h.Set("Foo-Key", "Pizza-Value") got: %v want: nil`, err)
 	}
-	h.MarkImmutable("Foo-Key")
+	if _, err := h.Claim("Foo-Key"); err != nil {
+		t.Errorf(`h.Claim("Foo-Key") got: %v want: nil`, err)
+	}
 	if err := h.Set("Foo-Key", "Bar-Value"); err == nil {
 		t.Error(`h.Set("Foo-Key", "Bar-Value") got: nil want: error`)
 	}
@@ -81,9 +83,11 @@ func TestSetImmutable(t *testing.T) {
 	}
 }
 
-func TestSetEmptyImmutable(t *testing.T) {
+func TestSetEmptyClaimed(t *testing.T) {
 	h := newHeader(http.Header{})
-	h.MarkImmutable("Foo-Key")
+	if _, err := h.Claim("Foo-Key"); err != nil {
+		t.Errorf(`h.Claim("Foo-Key") got: %v want: nil`, err)
+	}
 	if err := h.Set("Foo-Key", "Bar-Value"); err == nil {
 		t.Error(`h.Set("Foo-Key", "Bar-Value") got: nil want: error`)
 	}
@@ -144,12 +148,14 @@ func TestAddEmptySetCookie(t *testing.T) {
 	}
 }
 
-func TestAddImmutable(t *testing.T) {
+func TestAddClaimed(t *testing.T) {
 	h := newHeader(http.Header{})
 	if err := h.Add("Foo-Key", "Bar-Value"); err != nil {
 		t.Errorf(`h.Add("Foo-Key", "Bar-Value") got err: %v want: nil`, err)
 	}
-	h.MarkImmutable("Foo-Key")
+	if _, err := h.Claim("Foo-Key"); err != nil {
+		t.Errorf(`h.Claim("Foo-Key") got: %v want: nil`, err)
+	}
 	if err := h.Add("Foo-Key", "Pizza-Value"); err == nil {
 		t.Error(`h.Add("Foo-Key", "Pizza-Value") got: nil want: error`)
 	}
@@ -158,9 +164,11 @@ func TestAddImmutable(t *testing.T) {
 	}
 }
 
-func TestAddEmptyImmutable(t *testing.T) {
+func TestAddEmptyClaimed(t *testing.T) {
 	h := newHeader(http.Header{})
-	h.MarkImmutable("Foo-Key")
+	if _, err := h.Claim("Foo-Key"); err != nil {
+		t.Errorf(`h.Claim("Foo-Key") got: %v want: nil`, err)
+	}
 	if err := h.Add("Foo-Key", "Pizza-Value"); err == nil {
 		t.Error(`h.Add("Foo-Key", "Pizza-Value") got: nil want: error`)
 	}
@@ -222,12 +230,14 @@ func TestDelEmptySetCookie(t *testing.T) {
 	}
 }
 
-func TestDelImmutable(t *testing.T) {
+func TestDelClaimed(t *testing.T) {
 	h := newHeader(http.Header{})
 	if err := h.Set("Foo-Key", "Bar-Value"); err != nil {
 		t.Errorf(`h.Set("Foo-Key", "Bar-Value") got err: %v want: nil`, err)
 	}
-	h.MarkImmutable("Foo-Key")
+	if _, err := h.Claim("Foo-Key"); err != nil {
+		t.Errorf(`h.Claim("Foo-Key") got: %v want: nil`, err)
+	}
 	if err := h.Del("Foo-Key"); err == nil {
 		t.Error(`h.Del("Foo-Key") got: nil want: error`)
 	}
@@ -236,9 +246,11 @@ func TestDelImmutable(t *testing.T) {
 	}
 }
 
-func TestDelEmptyImmutable(t *testing.T) {
+func TestDelEmptyClaimed(t *testing.T) {
 	h := newHeader(http.Header{})
-	h.MarkImmutable("Foo-Key")
+	if _, err := h.Claim("Foo-Key"); err != nil {
+		t.Errorf(`h.Claim("Foo-Key") got: %v want: nil`, err)
+	}
 	if err := h.Del("Foo-Key"); err == nil {
 		t.Error(`h.Del("Foo-Key") got: nil want: error`)
 	}
@@ -265,16 +277,18 @@ func TestSetCookieInvalidName(t *testing.T) {
 	}
 }
 
-// TestValuesModifyImmutable verifies that modifying the
+// TestValuesModifyClaimed verifies that modifying the
 // slice returned by Values() doesn't modify the underlying
 // slice. The test ensures that Values() returns a copy
 // of the underlying slice.
-func TestValuesModifyImmutable(t *testing.T) {
+func TestValuesModifyClaimed(t *testing.T) {
 	h := newHeader(http.Header{})
 	if err := h.Set("Foo-Key", "Bar-Value"); err != nil {
 		t.Errorf(`h.Set("Foo-Key", "Bar-Value") got err: %v want: nil`, err)
 	}
-	h.MarkImmutable("Foo-Key")
+	if _, err := h.Claim("Foo-Key"); err != nil {
+		t.Errorf(`h.Claim("Foo-Key") got: %v want: nil`, err)
+	}
 	v := h.Values("Foo-Key")
 	if diff := cmp.Diff([]string{"Bar-Value"}, v); diff != "" {
 		t.Errorf("h.Values(\"Foo-Key\") mismatch (-want +got):\n%s", diff)
