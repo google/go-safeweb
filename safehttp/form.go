@@ -93,12 +93,12 @@ func (f *Form) Bool(param string, defaultValue bool) bool {
 	if !ok {
 		return defaultValue
 	}
-	b, err := strconv.ParseBool(vals[0])
+	paramVal, err := strconv.ParseBool(vals[0])
 	if err != nil {
 		f.err = err
 		return defaultValue
 	}
-	return b
+	return paramVal
 }
 
 func clearSlice(slicePtr interface{}) error {
