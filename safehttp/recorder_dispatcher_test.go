@@ -15,6 +15,7 @@
 package safehttp_test
 
 import (
+	"io"
 	"net/http"
 	"text/template"
 
@@ -41,4 +42,26 @@ func (d *testDispatcher) ExecuteTemplate(rw http.ResponseWriter, t safehttp.Temp
 	default:
 		panic("not a safe response type")
 	}
+}
+
+type responseRecorder struct {
+	header http.Header
+	writer io.Writer
+	status int
+}
+
+func newResponseRecorder(w io.Writer) *responseRecorder {
+	return &responseRecorder{header: http.Header{}, writer: w, status: http.StatusOK}
+}
+
+func (r *responseRecorder) Header() http.Header {
+	return r.header
+}
+
+func (r *responseRecorder) WriteHeader(statusCode int) {
+	r.status = statusCode
+}
+
+func (r *responseRecorder) Write(data []byte) (int, error) {
+	return r.writer.Write(data)
 }
