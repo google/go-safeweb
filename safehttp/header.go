@@ -29,7 +29,10 @@ type Header struct {
 }
 
 func newHeader(h http.Header) Header {
-	return Header{wrapped: h, claimed: map[string]bool{}}
+	return Header{
+		wrapped: h,
+		claimed: map[string]bool{},
+	}
 }
 
 // Claim claims the header with the given name and returns a function
