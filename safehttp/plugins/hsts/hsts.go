@@ -24,6 +24,7 @@ import (
 )
 
 // Plugin implements automatic HSTS functionality.
+// See https://tools.ietf.org/html/rfc6797 for more info.
 type Plugin struct {
 	// MaxAge is the duration that the browser should remember
 	// that a site is only to be accessed using HTTPS. MaxAge
@@ -52,6 +53,10 @@ type Plugin struct {
 }
 
 // NewPlugin creates a new HSTS plugin with safe defaults.
+// These safe defaults are:
+//  - max-age set to two years.
+//  - includeSubDomains is enabled.
+//  - preload is disabled.
 func NewPlugin() Plugin {
 	return Plugin{MaxAge: 63072000 * time.Second} // two years in seconds
 }
