@@ -86,7 +86,7 @@ func TestHSTS(t *testing.T) {
 			req:        httptest.NewRequest("GET", "https://localhost/", nil),
 			wantStatus: 200,
 			wantHeaders: map[string][]string{
-				"Strict-Transport-Security": {"max-age=63072000; includeSubDomains"},
+				"Strict-Transport-Security": {"max-age=63072000; includeSubDomains"}, // 63072000 seconds is two years
 			},
 			wantBody: "",
 		},
@@ -107,6 +107,7 @@ func TestHSTS(t *testing.T) {
 			req:        httptest.NewRequest("GET", "http://localhost/", nil),
 			wantStatus: 200,
 			wantHeaders: map[string][]string{
+				// max-age=0 tells the browser to expire the HSTS protection.
 				"Strict-Transport-Security": {"max-age=0; includeSubDomains"},
 			},
 			wantBody: "",
@@ -117,6 +118,7 @@ func TestHSTS(t *testing.T) {
 			req:        httptest.NewRequest("GET", "https://localhost/", nil),
 			wantStatus: 200,
 			wantHeaders: map[string][]string{
+				// max-age=0 tells the browser to expire the HSTS protection.
 				"Strict-Transport-Security": {"max-age=0; preload"},
 			},
 			wantBody: "",
@@ -127,6 +129,7 @@ func TestHSTS(t *testing.T) {
 			req:        httptest.NewRequest("GET", "https://localhost/", nil),
 			wantStatus: 200,
 			wantHeaders: map[string][]string{
+				// max-age=0 tells the browser to expire the HSTS protection.
 				"Strict-Transport-Security": {"max-age=0; includeSubDomains; preload"},
 			},
 			wantBody: "",
@@ -137,17 +140,18 @@ func TestHSTS(t *testing.T) {
 			req:        httptest.NewRequest("GET", "https://localhost/", nil),
 			wantStatus: 200,
 			wantHeaders: map[string][]string{
+				// max-age=0 tells the browser to expire the HSTS protection.
 				"Strict-Transport-Security": {"max-age=0"},
 			},
 			wantBody: "",
 		},
 		{
 			name:       "Custom maxage",
-			plugin:     hsts.Plugin{MaxAge: 7777},
+			plugin:     hsts.Plugin{MaxAge: 3600},
 			req:        httptest.NewRequest("GET", "https://localhost/", nil),
 			wantStatus: 200,
 			wantHeaders: map[string][]string{
-				"Strict-Transport-Security": {"max-age=7777; includeSubDomains"},
+				"Strict-Transport-Security": {"max-age=3600; includeSubDomains"}, // 3600 seconds is 1 hour
 			},
 			wantBody: "",
 		},
