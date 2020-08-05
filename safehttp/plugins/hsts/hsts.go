@@ -18,15 +18,16 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/go-safeweb/safehttp"
 )
 
 // Plugin implements automatic HSTS functionality.
 type Plugin struct {
-	// The time, in seconds, that the browser should remember
+	// The time that the browser should remember
 	// that a site is only to be accessed using HTTPS.
-	MaxAge uint64
+	MaxAge time.Duration
 
 	// This field controls the includeSubDomains directive.
 	// When DisableIncludeSubDomains is false, all subdomains
@@ -50,7 +51,7 @@ type Plugin struct {
 
 // NewPlugin creates a new HSTS plugin with safe defaults.
 func NewPlugin() Plugin {
-	return Plugin{MaxAge: 63072000} // two years in seconds
+	return Plugin{MaxAge: 63072000 * time.Second} // two years in seconds
 }
 
 // Before should be executed before the request is sent to the handler.
@@ -58,6 +59,10 @@ func NewPlugin() Plugin {
 // is received the Strict-Transport-Security header is applied to the
 // response.
 func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+	if p.MaxAge < 0 {
+		return w.ServerError(safehttp.StatusInternalServerError, "Internal Server Error")
+	}
+
 	if !p.BehindProxy && r.TLS == nil {
 		u, err := url.Parse(r.URL.String())
 		if err != nil {
@@ -69,7 +74,7 @@ func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) 
 
 	var value strings.Builder
 	value.WriteString("max-age=")
-	value.WriteString(strconv.FormatUint(p.MaxAge, 10))
+	value.WriteString(strconv.FormatInt(int64(p.MaxAge.Seconds()), 10))
 	if !p.DisableIncludeSubDomains {
 		value.WriteString("; includeSubDomains")
 	}

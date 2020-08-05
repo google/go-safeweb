@@ -21,6 +21,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
@@ -147,7 +148,7 @@ func TestHSTS(t *testing.T) {
 		},
 		{
 			name:       "Custom maxage",
-			plugin:     hsts.Plugin{MaxAge: 3600},
+			plugin:     hsts.Plugin{MaxAge: 3600 * time.Second},
 			req:        httptest.NewRequest("GET", "https://localhost/", nil),
 			wantStatus: 200,
 			wantHeaders: map[string][]string{
@@ -183,6 +184,60 @@ func TestHSTS(t *testing.T) {
 
 func TestStrictTransportSecurityAlreadyImmutable(t *testing.T) {
 	p := hsts.NewPlugin()
+	m := safehttp.NewMachinery(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+		w.Header().MarkImmutable("Strict-Transport-Security")
+		return p.Before(w, r)
+	}, &testDispatcher{})
+
+	req := httptest.NewRequest("GET", "https://localhost/", nil)
+
+	// TODO(@mattiasgrenfeldt): Change from current to desired behavior once
+	// safehttp.ResponseWriter.ServerError has changed signature and been
+	// implemented.
+	t.Run("Current Behavior", func(t *testing.T) {
+		b := &strings.Builder{}
+		rr := newResponseRecorder(b)
+
+		m.HandleRequest(rr, req)
+
+		if want := 200; rr.status != want {
+			t.Errorf("status code got: %v want: %v", rr.status, want)
+		}
+
+		wantHeaders := map[string][]string{}
+		if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
+			t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
+		}
+
+		if got, want := b.String(), ""; got != want {
+			t.Errorf("response body got: %q want: %q", got, want)
+		}
+	})
+
+	t.Run("Desired Behavior", func(t *testing.T) {
+		t.Skip()
+		b := &strings.Builder{}
+		rr := newResponseRecorder(b)
+
+		m.HandleRequest(rr, req)
+
+		if want := 500; rr.status != want {
+			t.Errorf("status code got: %v want: %v", rr.status, want)
+		}
+
+		wantHeaders := map[string][]string{}
+		if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
+			t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
+		}
+
+		if got, want := b.String(), "Internal Server Error"; got != want {
+			t.Errorf("response body got: %q want: %q", got, want)
+		}
+	})
+}
+
+func TestNegativeMaxAge(t *testing.T) {
+	p := hsts.Plugin{MaxAge: -1 * time.Second}
 	m := safehttp.NewMachinery(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		w.Header().MarkImmutable("Strict-Transport-Security")
 		return p.Before(w, r)
