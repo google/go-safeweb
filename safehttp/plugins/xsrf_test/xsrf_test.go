@@ -12,17 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package safehttp
+package xsrf_test
 
-// StatusCode contains HTTP status codes as registered with IANA.
-// See: https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
-type StatusCode int
-
-const (
-	StatusOK                  StatusCode = 200 // RFC 7231, 6.3.1
-	StatusMovedPermanently    StatusCode = 301 // RFC 7231, 6.4.2
-	StatusBadRequest          StatusCode = 400 // RFC 7231, 6.5.1
-	StatusUnauthorized        StatusCode = 401 // RFC 7231, 3.1
-	StatusForbidden           StatusCode = 403 // RFC 7231, 6.5.3
-	StatusInternalServerError StatusCode = 500 // RFC 7231, 6.6.1
+import (
+	"github.com/google/go-safeweb/safehttp_test"
+	"testing"
 )
+
+func TestTokenValidation(t *testing.T) {
+
+}
+
+func TestFetchMetadataPolicy(t *testing.T) {
+
+}

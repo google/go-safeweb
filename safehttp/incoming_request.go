@@ -42,6 +42,21 @@ func NewIncomingRequest(req *http.Request) *IncomingRequest {
 	}
 }
 
+// GetMethod TODO
+func (r *IncomingRequest) GetMethod() string {
+	return r.req.Method
+}
+
+//GetHost TODO
+func (r *IncomingRequest) GetHost() string {
+	return r.req.Host
+}
+
+// GetPath TODO
+func (r *IncomingRequest) GetPath() string {
+	return r.req.URL.Path
+}
+
 // PostForm parses the form parameters provided in the body of a POST, PATCH or
 // PUT request that does not have Content-Type: multipart/form-data. It returns
 // the parsed form parameters as a Form object, if no error occurred. If a parsing
