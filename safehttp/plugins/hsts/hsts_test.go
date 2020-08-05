@@ -132,6 +132,16 @@ func TestHSTS(t *testing.T) {
 			wantBody: "",
 		},
 		{
+			name:       "No preload and no includeSubDomains",
+			plugin:     hsts.Plugin{DisableIncludeSubDomains: true},
+			req:        httptest.NewRequest("GET", "https://localhost/", nil),
+			wantStatus: 200,
+			wantHeaders: map[string][]string{
+				"Strict-Transport-Security": {"max-age=0"},
+			},
+			wantBody: "",
+		},
+		{
 			name:       "Custom maxage",
 			plugin:     hsts.Plugin{MaxAge: 7777},
 			req:        httptest.NewRequest("GET", "https://localhost/", nil),
