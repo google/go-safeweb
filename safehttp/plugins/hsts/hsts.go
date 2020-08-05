@@ -25,24 +25,26 @@ import (
 
 // Plugin implements automatic HSTS functionality.
 type Plugin struct {
-	// The time that the browser should remember
-	// that a site is only to be accessed using HTTPS.
+	// MaxAge is the duration that the browser should remember
+	// that a site is only to be accessed using HTTPS. MaxAge
+	// must be positive.
 	MaxAge time.Duration
 
-	// This field controls the includeSubDomains directive.
+	// DisableIncludeSubDomains disables the includeSubDomains directive.
 	// When DisableIncludeSubDomains is false, all subdomains
 	// of the domain where this service is hosted will also be added
 	// to the browsers HSTS list.
 	DisableIncludeSubDomains bool
 
-	// This field controls the preload directive.
+	// Preload enables the preload directive.
 	// This should only be enabled if this site should be
 	// added to the browser HSTS preload list, which is supported
 	// by all major browsers. See https://hstspreload.org/ for
 	// more info.
 	Preload bool
 
-	// If this server is behind a proxy that terminates HTTPS
+	// BehindProxy controls how the plugin should behave with regards
+	// to HTTPS. If this server is behind a proxy that terminates HTTPS
 	// traffic then this should be enabled. If this is enabled
 	// then the plugin will always send the Strict-Transport-Security
 	// header and will not redirect HTTP traffic to HTTPS traffic.
