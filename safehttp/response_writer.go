@@ -56,6 +56,9 @@ func (w *ResponseWriter) WriteTemplate(t Template, data interface{}) Result {
 // ServerError TODO
 func (w *ResponseWriter) ServerError(code StatusCode) Result {
 	if code < 500 || code >= 600 {
+		// TODO(@mattiasgrenfeldt, @mihalimara22, @kele, @empijei): Decide how it should
+		// be communicated to the user of the framework that they've called the wrong
+		// method.
 		return Result{}
 	}
 	http.Error(w.rw, http.StatusText(int(code)), int(code))
