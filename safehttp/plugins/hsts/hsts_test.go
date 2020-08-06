@@ -156,6 +156,17 @@ func TestHSTS(t *testing.T) {
 			},
 			wantBody: "",
 		},
+		{
+			name:       "Negative maxage",
+			plugin:     hsts.Plugin{MaxAge: -1 * time.Second},
+			req:        httptest.NewRequest("GET", "https://localhost/", nil),
+			wantStatus: 500,
+			wantHeaders: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Internal Server Error\n",
+		},
 	}
 
 	for _, tt := range test {
@@ -191,98 +202,24 @@ func TestStrictTransportSecurityAlreadyImmutable(t *testing.T) {
 
 	req := httptest.NewRequest("GET", "https://localhost/", nil)
 
-	// TODO(@mattiasgrenfeldt): Change from current to desired behavior once
-	// safehttp.ResponseWriter.ServerError has changed signature and been
-	// implemented.
-	t.Run("Current Behavior", func(t *testing.T) {
-		b := &strings.Builder{}
-		rr := newResponseRecorder(b)
+	b := &strings.Builder{}
+	rr := newResponseRecorder(b)
 
-		m.HandleRequest(rr, req)
+	m.HandleRequest(rr, req)
 
-		if want := 200; rr.status != want {
-			t.Errorf("status code got: %v want: %v", rr.status, want)
-		}
+	if want := 500; rr.status != want {
+		t.Errorf("status code got: %v want: %v", rr.status, want)
+	}
 
-		wantHeaders := map[string][]string{}
-		if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
-			t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
-		}
+	wantHeaders := map[string][]string{
+		"Content-Type":           {"text/plain; charset=utf-8"},
+		"X-Content-Type-Options": {"nosniff"},
+	}
+	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
+		t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
+	}
 
-		if got, want := b.String(), ""; got != want {
-			t.Errorf("response body got: %q want: %q", got, want)
-		}
-	})
-
-	t.Run("Desired Behavior", func(t *testing.T) {
-		t.Skip()
-		b := &strings.Builder{}
-		rr := newResponseRecorder(b)
-
-		m.HandleRequest(rr, req)
-
-		if want := 500; rr.status != want {
-			t.Errorf("status code got: %v want: %v", rr.status, want)
-		}
-
-		wantHeaders := map[string][]string{}
-		if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
-			t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
-		}
-
-		if got, want := b.String(), "Internal Server Error"; got != want {
-			t.Errorf("response body got: %q want: %q", got, want)
-		}
-	})
-}
-
-func TestNegativeMaxAge(t *testing.T) {
-	p := hsts.Plugin{MaxAge: -1 * time.Second}
-	m := safehttp.NewMachinery(p.Before, &testDispatcher{})
-
-	req := httptest.NewRequest("GET", "https://localhost/", nil)
-
-	// TODO(@mattiasgrenfeldt): Change from current to desired behavior once
-	// safehttp.ResponseWriter.ServerError has changed signature and been
-	// implemented.
-	t.Run("Current Behavior", func(t *testing.T) {
-		b := &strings.Builder{}
-		rr := newResponseRecorder(b)
-
-		m.HandleRequest(rr, req)
-
-		if want := 200; rr.status != want {
-			t.Errorf("status code got: %v want: %v", rr.status, want)
-		}
-
-		wantHeaders := map[string][]string{}
-		if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
-			t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
-		}
-
-		if got, want := b.String(), ""; got != want {
-			t.Errorf("response body got: %q want: %q", got, want)
-		}
-	})
-
-	t.Run("Desired Behavior", func(t *testing.T) {
-		t.Skip()
-		b := &strings.Builder{}
-		rr := newResponseRecorder(b)
-
-		m.HandleRequest(rr, req)
-
-		if want := 500; rr.status != want {
-			t.Errorf("status code got: %v want: %v", rr.status, want)
-		}
-
-		wantHeaders := map[string][]string{}
-		if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
-			t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
-		}
-
-		if got, want := b.String(), "Internal Server Error"; got != want {
-			t.Errorf("response body got: %q want: %q", got, want)
-		}
-	})
+	if got, want := b.String(), "Internal Server Error\n"; got != want {
+		t.Errorf("response body got: %q want: %q", got, want)
+	}
 }

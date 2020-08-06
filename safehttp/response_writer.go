@@ -54,7 +54,11 @@ func (w *ResponseWriter) WriteTemplate(t Template, data interface{}) Result {
 }
 
 // ServerError TODO
-func (w *ResponseWriter) ServerError(code StatusCode, resp Response) Result {
+func (w *ResponseWriter) ServerError(code StatusCode) Result {
+	if code < 500 || code >= 600 {
+		return Result{}
+	}
+	http.Error(w.rw, http.StatusText(int(code)), int(code))
 	return Result{}
 }
 
