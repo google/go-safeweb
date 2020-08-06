@@ -90,7 +90,6 @@ func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) 
 	}
 	h := w.Header()
 	if err := h.Set("Strict-Transport-Security", value.String()); err != nil {
-		// TODO(@mattiasgrenfeldt): Replace the response with an actual saferesponse somehow.
 		return w.ServerError(safehttp.StatusInternalServerError)
 	}
 	if _, err := h.Claim("Strict-Transport-Security"); err != nil {
