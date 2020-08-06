@@ -28,7 +28,7 @@ import (
 type Plugin struct {
 	// MaxAge is the duration that the browser should remember
 	// that a site is only to be accessed using HTTPS. MaxAge
-	// must be positive.
+	// must be positive. Will be rounded to seconds before use.
 	MaxAge time.Duration
 
 	// DisableIncludeSubDomains disables the includeSubDomains directive.
