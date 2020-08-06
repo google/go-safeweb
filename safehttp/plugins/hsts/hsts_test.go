@@ -185,7 +185,7 @@ func TestHSTS(t *testing.T) {
 func TestStrictTransportSecurityAlreadyImmutable(t *testing.T) {
 	p := hsts.NewPlugin()
 	m := safehttp.NewMachinery(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-		w.Header().MarkImmutable("Strict-Transport-Security")
+		w.Header().Claim("Strict-Transport-Security")
 		return p.Before(w, r)
 	}, &testDispatcher{})
 
@@ -238,10 +238,7 @@ func TestStrictTransportSecurityAlreadyImmutable(t *testing.T) {
 
 func TestNegativeMaxAge(t *testing.T) {
 	p := hsts.Plugin{MaxAge: -1 * time.Second}
-	m := safehttp.NewMachinery(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-		w.Header().MarkImmutable("Strict-Transport-Security")
-		return p.Before(w, r)
-	}, &testDispatcher{})
+	m := safehttp.NewMachinery(p.Before, &testDispatcher{})
 
 	req := httptest.NewRequest("GET", "https://localhost/", nil)
 
