@@ -373,7 +373,7 @@ func TestClaim(t *testing.T) {
 	h := newHeader(http.Header{})
 	set, err := h.Claim("Foo-Key")
 	if err != nil {
-		t.Fatalf(`_, err := h.Claim("Foo-Key") got: %v want: nil`, err)
+		t.Fatalf(`h.Claim("Foo-Key") got: %v want: nil`, err)
 	}
 	set([]string{"Bar-Value", "Pizza-Value"})
 	if diff := cmp.Diff([]string{"Bar-Value", "Pizza-Value"}, h.Values("Foo-Key")); diff != "" {
@@ -390,7 +390,7 @@ func TestClaimCanonicalization(t *testing.T) {
 	h := newHeader(http.Header{})
 	set, err := h.Claim("fOO-kEY")
 	if err != nil {
-		t.Fatalf(`_, err := h.Claim("fOO-kEY") got: %v want: nil`, err)
+		t.Fatalf(`h.Claim("fOO-kEY") got: %v want: nil`, err)
 	}
 	set([]string{"Bar-Value", "Pizza-Value"})
 	if diff := cmp.Diff([]string{"Bar-Value", "Pizza-Value"}, h.Values("fOo-kEy")); diff != "" {
@@ -401,16 +401,16 @@ func TestClaimCanonicalization(t *testing.T) {
 func TestClaimSetCookie(t *testing.T) {
 	h := newHeader(http.Header{})
 	if _, err := h.Claim("Set-Cookie"); err == nil {
-		t.Error(`_, err := h.Claim("Set-Cookie") got: nil want: error`)
+		t.Error(`h.Claim("Set-Cookie") got: nil want: error`)
 	}
 }
 
 func TestClaimClaimed(t *testing.T) {
 	h := newHeader(http.Header{})
 	if _, err := h.Claim("Foo-Key"); err != nil {
-		t.Errorf(`_, err := h.Claim("Foo-Key") got: %v want: nil`, err)
+		t.Errorf(`h.Claim("Foo-Key") got: %v want: nil`, err)
 	}
 	if _, err := h.Claim("Foo-Key"); err == nil {
-		t.Error(`_, err := h.Claim("Foo-Key") got: nil want: error`)
+		t.Error(`h.Claim("Foo-Key") got: nil want: error`)
 	}
 }
