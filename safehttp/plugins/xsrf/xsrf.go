@@ -17,7 +17,6 @@ package xsrf
 import (
 	"fmt"
 	"github.com/google/go-safeweb/safehttp"
-	"log"
 	// TODO(@empijei, @kele, @mattiasgrenfeldt, @mihalimara22): decide whether we want to depend on this package or reimplement thefunctionality
 	"golang.org/x/net/xsrftoken"
 )
@@ -37,19 +36,19 @@ type StorageService interface {
 	GetUserID() (string, error)
 }
 
-// Plugin implements XSRF protection.
+// Plugin implements XSRF protection. It requires an application key and a
+// storage service. The appKey uniquely identifies each registered server and
+// should have high entropy. The storage service supports retrieving ID's of the
+// application's users. Both the appKey and user ID are used in the XSRF
+// token generation algorithm.
 //
 // TODO(@mihalimara22): Add Fetch Metadata support
 type Plugin struct {
-	//appKey uniquely identifies each registered server and should have high
-	//entropy as it will be used in the xsrf token generation algorithm.
 	appKey string
 	s      StorageService
 }
 
-// NewPlugin creates a new XSRF plugin. It requires a storage service that
-// supports retrieving ID's of the application's users. These are used for XSRF
-// token generation.
+// NewPlugin creates a new XSRF plugin.
 func NewPlugin(appKey string, s StorageService) *Plugin {
 	return &Plugin{
 		appKey: appKey,
@@ -62,7 +61,7 @@ func NewPlugin(appKey string, s StorageService) *Plugin {
 func (p *Plugin) GenerateToken(host string, path string) (string, error) {
 	userID, err := p.s.GetUserID()
 	if err != nil {
-		return "", fmt.Errorf("token generation failed: %v", err)
+		return "", err
 	}
 	token := xsrftoken.Generate(p.appKey, userID, host+path)
 	return token, nil
@@ -70,36 +69,34 @@ func (p *Plugin) GenerateToken(host string, path string) (string, error) {
 
 // validateToken validates the XSRF token. This should be present in all
 // requests as the value of form parameter xsrf-token.
-func (p *Plugin) validateToken(r *safehttp.IncomingRequest) (safehttp.StatusCode, bool) {
+func (p *Plugin) validateToken(r *safehttp.IncomingRequest) safehttp.StatusCode {
 	userID, err := p.s.GetUserID()
 	if err != nil {
-		return safehttp.StatusUnauthorized, false
+		return safehttp.StatusUnauthorized
 	}
 	f, err := r.PostForm()
 	if err != nil {
 		mf, err := r.MultipartForm(0)
 		if err != nil {
-			return safehttp.StatusBadRequest, false
+			return safehttp.StatusBadRequest
 		}
 		f = &mf.Form
 	}
 	tok := f.String(TokenKey, "")
 	if f.Err() != nil || tok == "" {
-		return safehttp.StatusForbidden, false
+		return safehttp.StatusForbidden
 	}
-	ok := xsrftoken.Valid(tok, p.appKey, userID, r.GetHost()+r.GetPath())
-	if !ok {
-		return safehttp.StatusForbidden, false
+	if ok := xsrftoken.Valid(tok, p.appKey, userID, r.GetHost()+r.GetPath()); !ok {
+		return safehttp.StatusForbidden
 	}
-	return 0, true
+	return 0
 }
 
 // Before should be executed before directing the request to the handler. The
 // function applies checks to the Incoming Request to ensure this is not part
 // of a Cross-Site Request Forgery.
 func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-	if status, ok := p.validateToken(r); !ok {
-		log.Printf("here %d", status)
+	if status := p.validateToken(r); status != 0 {
 		return w.ClientError(status)
 	}
 	return safehttp.Result{}
