@@ -141,5 +141,5 @@ func (m methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.ServeHTTP(newResponseWriter(m.disp, w), newIncomingRequest(r))
+	h.ServeHTTP(NewResponseWriter(m.disp, w), NewIncomingRequest(r))
 }
