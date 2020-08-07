@@ -18,7 +18,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 )
@@ -29,7 +28,7 @@ type IncomingRequest struct {
 	Header    Header
 	parseOnce sync.Once
 	TLS       *tls.ConnectionState
-	URL       *url.URL
+	URL       URL
 }
 
 func newIncomingRequest(req *http.Request) *IncomingRequest {
@@ -37,7 +36,7 @@ func newIncomingRequest(req *http.Request) *IncomingRequest {
 		req:    req,
 		Header: newHeader(req.Header),
 		TLS:    req.TLS,
-		URL:    req.URL,
+		URL:    URL{url: req.URL},
 	}
 }
 
