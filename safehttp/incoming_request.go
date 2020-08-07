@@ -42,11 +42,6 @@ func NewIncomingRequest(req *http.Request) *IncomingRequest {
 	}
 }
 
-// GetMethod TODO
-func (r *IncomingRequest) GetMethod() string {
-	return r.req.Method
-}
-
 //GetHost TODO
 func (r *IncomingRequest) GetHost() string {
 	return r.req.Host
