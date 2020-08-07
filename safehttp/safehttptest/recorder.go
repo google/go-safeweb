@@ -1,0 +1,119 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	https://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package safehttptest
+
+import (
+	"html/template"
+	"io"
+	"net/http"
+	"strings"
+
+	"github.com/google/go-safeweb/safehttp"
+	"github.com/google/safehtml"
+)
+
+type testDispatcher struct{}
+
+func (testDispatcher) Write(rw http.ResponseWriter, resp safehttp.Response) error {
+	switch x := resp.(type) {
+	case safehtml.HTML:
+		_, err := rw.Write([]byte(x.String()))
+		return err
+	default:
+		panic("not a safe response type")
+	}
+}
+
+func (testDispatcher) ExecuteTemplate(rw http.ResponseWriter, t safehttp.Template, data interface{}) error {
+	switch x := t.(type) {
+	case *template.Template:
+		return x.Execute(rw, data)
+	default:
+		panic("not a safe response type")
+	}
+}
+
+// ResponseRecorder encapsulates a safehttp.ResponseWriter that records
+// mutations for later inspection in tests. The safehttp.ResponseWriter
+// should be passed as part of the handler function in tests.
+type ResponseRecorder struct {
+	safehttp.ResponseWriter
+	rw *responseRecorder
+	b  *strings.Builder
+}
+
+// NewResponseRecorder creates a ResponseRecorder from the default testDispatcher.
+func NewResponseRecorder() *ResponseRecorder {
+	var b strings.Builder
+	rw := newResponseRecorder(&b)
+	return &ResponseRecorder{
+		rw:             rw,
+		b:              &b,
+		ResponseWriter: safehttp.NewResponseWriter(testDispatcher{}, rw),
+	}
+}
+
+// NewResponseRecorderFromDispatcher creates a ResponseRecorder from a
+// provided safehttp.Dispatcher.
+func NewResponseRecorderFromDispatcher(d safehttp.Dispatcher) *ResponseRecorder {
+	var b strings.Builder
+	rw := newResponseRecorder(&b)
+	return &ResponseRecorder{
+		rw:             rw,
+		b:              &b,
+		ResponseWriter: safehttp.NewResponseWriter(d, rw),
+	}
+}
+
+// Header returns the recorded response headers.
+func (r *ResponseRecorder) Header() http.Header {
+	return r.rw.Header()
+}
+
+// Status returns the recorded response status code.
+func (r *ResponseRecorder) Status() int {
+	return r.rw.status
+}
+
+// Body returns the recorded response body.
+func (r *ResponseRecorder) Body() string {
+	return r.b.String()
+}
+
+type responseRecorder struct {
+	header http.Header
+	writer io.Writer
+	status int
+}
+
+func newResponseRecorder(w io.Writer) *responseRecorder {
+	return &responseRecorder{
+		header: http.Header{},
+		writer: w,
+		status: http.StatusOK,
+	}
+}
+
+func (r *responseRecorder) Header() http.Header {
+	return r.header
+}
+
+func (r *responseRecorder) WriteHeader(statusCode int) {
+	r.status = statusCode
+}
+
+func (r *responseRecorder) Write(data []byte) (int, error) {
+	return r.writer.Write(data)
+}
