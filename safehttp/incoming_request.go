@@ -32,7 +32,9 @@ type IncomingRequest struct {
 	URL       *url.URL
 }
 
-func newIncomingRequest(req *http.Request) *IncomingRequest {
+// NewIncomingRequest creates an safehttp.IncomingRequest
+// from an http.Request.
+func NewIncomingRequest(req *http.Request) *IncomingRequest {
 	return &IncomingRequest{
 		req:    req,
 		Header: newHeader(req.Header),
