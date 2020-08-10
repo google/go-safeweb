@@ -40,19 +40,19 @@ type StorageService interface {
 	GetUserID() (string, error)
 }
 
-// Plugin implements XSRF protection. It requires an application key and a
-// storage service. The appKey uniquely identifies each registered service and
-// should have high entropy. The storage service supports retrieving ID's of the
-// application's users. Both the appKey and user ID are used in the XSRF
-// token generation algorithm.
-//
+// Plugin implements XSRF protection.
 // TODO(@mihalimara22): Add Fetch Metadata support
 type Plugin struct {
 	appKey  string
 	storage StorageService
 }
 
-// NewPlugin creates a new XSRF plugin.
+// NewPlugin creates a new XSRF plugin.It requires an application key and a
+// storage service. The appKey uniquely identifies each registered service and
+// should have high entropy. The storage service supports retrieving ID's of the
+// application's users. Both the appKey and user ID are used in the XSRF
+// token generation algorithm.
+//
 func NewPlugin(appKey string, s StorageService) *Plugin {
 	return &Plugin{
 		appKey:  appKey,
