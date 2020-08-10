@@ -18,61 +18,10 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/plugins/xsrf"
-	"github.com/google/safehtml"
-	"github.com/google/safehtml/template"
-	"io"
-	"net/http"
-	"net/http/httptest"
+	"github.com/google/go-safeweb/safehttp/safehttptest"
 	"strings"
 	"testing"
 )
-
-type testDispatcher struct{}
-
-func (testDispatcher) Write(rw http.ResponseWriter, resp safehttp.Response) error {
-	switch x := resp.(type) {
-	case safehtml.HTML:
-		_, err := rw.Write([]byte(x.String()))
-		return err
-	default:
-		panic("not a safe response type")
-	}
-}
-
-func (testDispatcher) ExecuteTemplate(rw http.ResponseWriter, t safehttp.Template, data interface{}) error {
-	switch x := t.(type) {
-	case *template.Template:
-		return x.Execute(rw, data)
-	default:
-		panic("not a safe response type")
-	}
-}
-
-type responseRecorder struct {
-	header http.Header
-	writer io.Writer
-	status int
-}
-
-func newResponseRecorder(w io.Writer) *responseRecorder {
-	return &responseRecorder{
-		header: http.Header{},
-		writer: w,
-		status: http.StatusOK,
-	}
-}
-
-func (r *responseRecorder) Header() http.Header {
-	return r.header
-}
-
-func (r *responseRecorder) WriteHeader(statusCode int) {
-	r.status = statusCode
-}
-
-func (r *responseRecorder) Write(data []byte) (int, error) {
-	return r.writer.Write(data)
-}
 
 type testUserIDStorage struct{}
 
@@ -132,19 +81,17 @@ func TestXSRFTokenPost(t *testing.T) {
 		if err != nil {
 			t.Fatalf("p.GenerateToken: got %v, want nil", err)
 		}
-		req := httptest.NewRequest("POST", test.target, strings.NewReader(xsrf.TokenKey+"="+tok))
+		req := safehttptest.NewRequest("POST", test.target, strings.NewReader(xsrf.TokenKey+"="+tok))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		m := safehttp.NewMachinery(p.Before, &testDispatcher{})
-		b := strings.Builder{}
-		rec := newResponseRecorder(&b)
-		m.HandleRequest(rec, req)
-		if rec.status != test.wantStatus {
-			t.Errorf("response status: got %v, want %v", rec.status, test.wantStatus)
+		rec := safehttptest.NewResponseRecorder()
+		p.Before(rec.ResponseWriter, req)
+		if rec.Status() != test.wantStatus {
+			t.Errorf("response status: got %v, want %v", rec.Status(), test.wantStatus)
 		}
 		if diff := cmp.Diff(test.wantHeader, map[string][]string(rec.Header())); diff != "" {
 			t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
 		}
-		if got := b.String(); got != test.wantBody {
+		if got := rec.Body(); got != test.wantBody {
 			t.Errorf("response body: got %q want %q", got, test.wantBody)
 		}
 	}
@@ -202,24 +149,22 @@ func TestXSRFTokenMultipart(t *testing.T) {
 		if err != nil {
 			t.Fatalf("p.GenerateToken: got %v, want nil", err)
 		}
-		multipartReqBody := "--123\r\n" +
+		reqBody := "--123\r\n" +
 			"Content-Disposition: form-data; name=\"xsrf-token\"\r\n" +
 			"\r\n" +
 			tok + "\r\n" +
 			"--123--\r\n"
-		multipartReq := httptest.NewRequest("POST", test.target, strings.NewReader(multipartReqBody))
-		multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
-		m := safehttp.NewMachinery(p.Before, &testDispatcher{})
-		b := strings.Builder{}
-		rec := newResponseRecorder(&b)
-		m.HandleRequest(rec, multipartReq)
-		if rec.status != test.wantStatus {
-			t.Errorf("response status: got %v, want %v", rec.status, test.wantStatus)
+		req := safehttptest.NewRequest("POST", test.target, strings.NewReader(reqBody))
+		req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+		rec := safehttptest.NewResponseRecorder()
+		p.Before(rec.ResponseWriter, req)
+		if rec.Status() != test.wantStatus {
+			t.Errorf("response status: got %v, want %v", rec.Status(), test.wantStatus)
 		}
 		if diff := cmp.Diff(test.wantHeader, map[string][]string(rec.Header())); diff != "" {
 			t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
 		}
-		if got := b.String(); got != test.wantBody {
+		if got := rec.Body(); got != test.wantBody {
 			t.Errorf("response body: got %q want %q", got, test.wantBody)
 		}
 	}
@@ -228,15 +173,15 @@ func TestXSRFTokenMultipart(t *testing.T) {
 func TestXSRFMissingToken(t *testing.T) {
 	tests := []struct {
 		name       string
-		req        *http.Request
+		req        *safehttp.IncomingRequest
 		wantStatus int
 		wantHeader map[string][]string
 		wantBody   string
 	}{
 		{
 			name: "Missing token in POST request",
-			req: func() *http.Request {
-				req := httptest.NewRequest("POST", "/", strings.NewReader("foo=bar"))
+			req: func() *safehttp.IncomingRequest {
+				req := safehttptest.NewRequest("POST", "/", strings.NewReader("foo=bar"))
 				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 				return req
 			}(),
@@ -249,13 +194,13 @@ func TestXSRFMissingToken(t *testing.T) {
 		},
 		{
 			name: "Missing token in multipart request",
-			req: func() *http.Request {
+			req: func() *safehttp.IncomingRequest {
 				b := "--123\r\n" +
 					"Content-Disposition: form-data; name=\"foo\"\r\n" +
 					"\r\n" +
 					"bar\r\n" +
 					"--123--\r\n"
-				req := httptest.NewRequest("POST", "/", strings.NewReader(b))
+				req := safehttptest.NewRequest("POST", "/", strings.NewReader(b))
 				req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
 				return req
 			}(),
@@ -269,17 +214,15 @@ func TestXSRFMissingToken(t *testing.T) {
 	}
 	for _, test := range tests {
 		p := xsrf.NewPlugin("1234", testUserIDStorage{})
-		m := safehttp.NewMachinery(p.Before, &testDispatcher{})
-		b := strings.Builder{}
-		rec := newResponseRecorder(&b)
-		m.HandleRequest(rec, test.req)
-		if rec.status != test.wantStatus {
-			t.Errorf("response status: got %v, want %v", rec.status, test.wantStatus)
+		rec := safehttptest.NewResponseRecorder()
+		p.Before(rec.ResponseWriter, test.req)
+		if rec.Status() != test.wantStatus {
+			t.Errorf("response status: got %v, want %v", rec.Status(), test.wantStatus)
 		}
 		if diff := cmp.Diff(test.wantHeader, map[string][]string(rec.Header())); diff != "" {
 			t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
 		}
-		if got := b.String(); got != test.wantBody {
+		if got := rec.Body(); got != test.wantBody {
 			t.Errorf("response body: got %q want %q", got, test.wantBody)
 		}
 	}
