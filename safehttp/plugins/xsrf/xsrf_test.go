@@ -224,3 +224,63 @@ func TestXSRFTokenMultipart(t *testing.T) {
 		}
 	}
 }
+
+func TestXSRFMissingToken(t *testing.T) {
+	tests := []struct {
+		name       string
+		req        *http.Request
+		wantStatus int
+		wantHeader map[string][]string
+		wantBody   string
+	}{
+		{
+			name: "Missing token in POST request",
+			req: func() *http.Request {
+				req := httptest.NewRequest("POST", "/", strings.NewReader("foo=bar"))
+				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+				return req
+			}(),
+			wantStatus: 401,
+			wantHeader: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Unauthorized\n",
+		},
+		{
+			name: "Missing token in multipart request",
+			req: func() *http.Request {
+				b := "--123\r\n" +
+					"Content-Disposition: form-data; name=\"foo\"\r\n" +
+					"\r\n" +
+					"bar\r\n" +
+					"--123--\r\n"
+				req := httptest.NewRequest("POST", "/", strings.NewReader(b))
+				req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+				return req
+			}(),
+			wantStatus: 401,
+			wantHeader: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Unauthorized\n",
+		},
+	}
+	for _, test := range tests {
+		p := xsrf.NewPlugin("1234", testUserIDStorage{})
+		m := safehttp.NewMachinery(p.Before, &testDispatcher{})
+		b := strings.Builder{}
+		rec := newResponseRecorder(&b)
+		m.HandleRequest(rec, test.req)
+		if rec.status != test.wantStatus {
+			t.Errorf("response status: got %v, want %v", rec.status, test.wantStatus)
+		}
+		if diff := cmp.Diff(test.wantHeader, map[string][]string(rec.Header())); diff != "" {
+			t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+		}
+		if got := b.String(); got != test.wantBody {
+			t.Errorf("response body: got %q want %q", got, test.wantBody)
+		}
+	}
+}
