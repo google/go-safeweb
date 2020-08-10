@@ -52,7 +52,6 @@ type Plugin struct {
 // should have high entropy. The storage service supports retrieving ID's of the
 // application's users. Both the appKey and user ID are used in the XSRF
 // token generation algorithm.
-//
 func NewPlugin(appKey string, s StorageService) *Plugin {
 	return &Plugin{
 		appKey:  appKey,
