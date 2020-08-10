@@ -31,7 +31,7 @@ type testDispatcher struct{}
 func (testDispatcher) Write(c ResponseWriterContainer, resp Response) error {
 	switch x := resp.(type) {
 	case safehtml.HTML:
-		rw := c.Release(http.StatusOK, "text/html; charset=utf-8")
+		rw := c.Release(StatusOK, "text/html; charset=utf-8")
 		_, err := rw.Write([]byte(x.String()))
 		return err
 	default:
@@ -42,7 +42,7 @@ func (testDispatcher) Write(c ResponseWriterContainer, resp Response) error {
 func (testDispatcher) ExecuteTemplate(c ResponseWriterContainer, t Template, data interface{}) error {
 	switch x := t.(type) {
 	case *template.Template:
-		rw := c.Release(http.StatusOK, "text/html; charset=utf-8")
+		rw := c.Release(StatusOK, "text/html; charset=utf-8")
 		return x.Execute(rw, data)
 	default:
 		panic("not a safe response type")

@@ -93,8 +93,8 @@ type ResponseWriterContainer struct {
 // Release releases the held http.ResponseWriter given that a status code
 // and a content type are provided. The status code and the content type are
 // written to the response before returning the ResponseWriter.
-func (c ResponseWriterContainer) Release(statusCode int, contentType string) http.ResponseWriter {
+func (c ResponseWriterContainer) Release(statusCode StatusCode, contentType string) http.ResponseWriter {
 	c.w.Header().Set("Content-Type", contentType)
-	c.w.WriteHeader(statusCode)
+	c.w.WriteHeader(int(statusCode))
 	return c.w
 }
