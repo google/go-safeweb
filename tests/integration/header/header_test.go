@@ -29,9 +29,10 @@ import (
 
 type testDispatcher struct{}
 
-func (testDispatcher) Write(rw http.ResponseWriter, resp safehttp.Response) error {
+func (testDispatcher) Write(h safehttp.ResponseWriterHolder, resp safehttp.Response) error {
 	switch x := resp.(type) {
 	case safehtml.HTML:
+		rw := h.Release(http.StatusOK, "text/html; charset=utf-8")
 		_, err := rw.Write([]byte(x.String()))
 		return err
 	default:
@@ -39,7 +40,7 @@ func (testDispatcher) Write(rw http.ResponseWriter, resp safehttp.Response) erro
 	}
 }
 
-func (testDispatcher) ExecuteTemplate(rw http.ResponseWriter, t safehttp.Template, data interface{}) error {
+func (testDispatcher) ExecuteTemplate(h safehttp.ResponseWriterHolder, t safehttp.Template, data interface{}) error {
 	return nil
 }
 

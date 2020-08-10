@@ -28,9 +28,10 @@ import (
 
 type testDispatcher struct{}
 
-func (testDispatcher) Write(rw http.ResponseWriter, resp Response) error {
+func (testDispatcher) Write(h ResponseWriterHolder, resp Response) error {
 	switch x := resp.(type) {
 	case safehtml.HTML:
+		rw := h.Release(http.StatusOK, "text/html; charset=utf-8")
 		_, err := rw.Write([]byte(x.String()))
 		return err
 	default:
@@ -38,9 +39,10 @@ func (testDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 	}
 }
 
-func (testDispatcher) ExecuteTemplate(rw http.ResponseWriter, t Template, data interface{}) error {
+func (testDispatcher) ExecuteTemplate(h ResponseWriterHolder, t Template, data interface{}) error {
 	switch x := t.(type) {
 	case *template.Template:
+		rw := h.Release(http.StatusOK, "text/html; charset=utf-8")
 		return x.Execute(rw, data)
 	default:
 		panic("not a safe response type")
@@ -81,8 +83,10 @@ func TestMuxOneHandlerOneRequest(t *testing.T) {
 			name:       "Valid Request",
 			req:        httptest.NewRequest("GET", "http://foo.com/", nil),
 			wantStatus: 200,
-			wantHeader: map[string][]string{},
-			wantBody:   "&lt;h1&gt;Hello World!&lt;/h1&gt;",
+			wantHeader: map[string][]string{
+				"Content-Type": {"text/html; charset=utf-8"},
+			},
+			wantBody: "&lt;h1&gt;Hello World!&lt;/h1&gt;",
 		},
 		{
 			name:       "Invalid Host",
@@ -150,9 +154,11 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 			hf: HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World! GET</h1>"))
 			}),
-			wantStatus:  200,
-			wantHeaders: map[string][]string{},
-			wantBody:    "&lt;h1&gt;Hello World! GET&lt;/h1&gt;",
+			wantStatus: 200,
+			wantHeaders: map[string][]string{
+				"Content-Type": {"text/html; charset=utf-8"},
+			},
+			wantBody: "&lt;h1&gt;Hello World! GET&lt;/h1&gt;",
 		},
 		{
 			name: "POST Handler",
@@ -160,9 +166,11 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 			hf: HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World! POST</h1>"))
 			}),
-			wantStatus:  200,
-			wantHeaders: map[string][]string{},
-			wantBody:    "&lt;h1&gt;Hello World! POST&lt;/h1&gt;",
+			wantStatus: 200,
+			wantHeaders: map[string][]string{
+				"Content-Type": {"text/html; charset=utf-8"},
+			},
+			wantBody: "&lt;h1&gt;Hello World! POST&lt;/h1&gt;",
 		},
 	}
 

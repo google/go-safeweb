@@ -39,7 +39,7 @@ type Result struct{}
 
 // Write TODO
 func (w *ResponseWriter) Write(resp Response) Result {
-	if err := w.d.Write(w.rw, resp); err != nil {
+	if err := w.d.Write(ResponseWriterHolder{w: w.rw}, resp); err != nil {
 		panic("error")
 	}
 	return Result{}
@@ -47,7 +47,7 @@ func (w *ResponseWriter) Write(resp Response) Result {
 
 // WriteTemplate TODO
 func (w *ResponseWriter) WriteTemplate(t Template, data interface{}) Result {
-	if err := w.d.ExecuteTemplate(w.rw, t, data); err != nil {
+	if err := w.d.ExecuteTemplate(ResponseWriterHolder{w: w.rw}, t, data); err != nil {
 		panic("error")
 	}
 	return Result{}
@@ -80,6 +80,21 @@ func (w ResponseWriter) Header() Header {
 
 // Dispatcher TODO
 type Dispatcher interface {
-	Write(rw http.ResponseWriter, resp Response) error
-	ExecuteTemplate(rw http.ResponseWriter, t Template, data interface{}) error
+	Write(h ResponseWriterHolder, resp Response) error
+	ExecuteTemplate(h ResponseWriterHolder, t Template, data interface{}) error
+}
+
+// ResponseWriterHolder holds an http.ResponseWriter until
+// a status code and a content type to be written is provided.
+type ResponseWriterHolder struct {
+	w http.ResponseWriter
+}
+
+// Release releases the held http.ResponseWriter given that a status code
+// and a content type is provided. The status code and the content type are
+// written to the response before returning the responsewriter.
+func (h ResponseWriterHolder) Release(statusCode int, contentType string) http.ResponseWriter {
+	h.w.Header().Set("Content-Type", contentType)
+	h.w.WriteHeader(statusCode)
+	return h.w
 }
