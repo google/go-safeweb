@@ -74,9 +74,9 @@ func (r *responseRecorder) Write(data []byte) (int, error) {
 	return r.writer.Write(data)
 }
 
-type testStorageService struct{}
+type testUserIDStorage struct{}
 
-func (testStorageService) GetUserID() (string, error) {
+func (testUserIDStorage) GetUserID() (string, error) {
 	return "potato", nil
 }
 
@@ -124,10 +124,10 @@ func TestXSRFTokenPost(t *testing.T) {
 			wantBody: "Forbidden\n",
 		},
 		//TODO(@mihalimara22): Add tests for invalid user ID once
-		//StorageService.GetUserID receives a parameter
+		//UserIDStorage.GetUserID receives a parameter
 	}
 	for _, test := range tests {
-		p := xsrf.NewPlugin("1234", testStorageService{})
+		p := xsrf.NewPlugin("1234", testUserIDStorage{})
 		tok, err := p.GenerateToken(test.host, test.path)
 		if err != nil {
 			t.Fatalf("p.GenerateToken: got %v, want nil", err)
@@ -194,10 +194,10 @@ func TestXSRFTokenMultipart(t *testing.T) {
 			wantBody: "Forbidden\n",
 		},
 		//TODO(@mihalimara22): Add tests for invalid user ID once
-		//StorageService.GetUserID receives a parameter
+		//UserIDStorage.GetUserID receives a parameter
 	}
 	for _, test := range tests {
-		p := xsrf.NewPlugin("1234", testStorageService{})
+		p := xsrf.NewPlugin("1234", testUserIDStorage{})
 		tok, err := p.GenerateToken(test.host, test.path)
 		if err != nil {
 			t.Fatalf("p.GenerateToken: got %v, want nil", err)
