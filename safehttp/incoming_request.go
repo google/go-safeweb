@@ -24,11 +24,12 @@ import (
 
 // IncomingRequest TODO
 type IncomingRequest struct {
-	req       *http.Request
-	Header    Header
-	parseOnce sync.Once
-	TLS       *tls.ConnectionState
-	URL       *URL
+	req                *http.Request
+	Header             Header
+	postParseOnce      sync.Once
+	multipartParseOnce sync.Once
+	TLS                *tls.ConnectionState
+	URL                *URL
 }
 
 // NewIncomingRequest creates an IncomingRequest
@@ -65,7 +66,7 @@ func (r *IncomingRequest) Path() string {
 // always be used for forms in POST requests.
 func (r *IncomingRequest) PostForm() (*Form, error) {
 	var err error
-	r.parseOnce.Do(func() {
+	r.postParseOnce.Do(func() {
 		if r.req.Method != "POST" && r.req.Method != "PATCH" && r.req.Method != "PUT" {
 			err = fmt.Errorf("got request method %s, want POST/PATCH/PUT", r.req.Method)
 			return
@@ -94,11 +95,11 @@ func (r *IncomingRequest) PostForm() (*Form, error) {
 // used when the user expects a POST request with the Content-Type: multipart/form-data header.
 func (r *IncomingRequest) MultipartForm(maxMemory int64) (*MultipartForm, error) {
 	var err error
-	r.parseOnce.Do(func() {
-		// Ensures no more than 32 MB are stored in memory when a form file is
-		// passed as part of the request. If this is bigger than 32 MB, the rest
-		// will be stored on disk.
-		const defaultMaxMemory = 32 << 20
+	// Ensures no more than 32 MB are stored in memory when a form file is
+	// passed as part of the request. If this is bigger than 32 MB, the rest
+	// will be stored on disk.
+	const defaultMaxMemory = 32 << 20
+	r.multipartParseOnce.Do(func() {
 		if r.req.Method != "POST" && r.req.Method != "PATCH" && r.req.Method != "PUT" {
 			err = fmt.Errorf("got request method %s, want POST/PATCH/PUT", r.req.Method)
 			return
