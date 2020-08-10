@@ -28,7 +28,7 @@ type IncomingRequest struct {
 	Header    Header
 	parseOnce sync.Once
 	TLS       *tls.ConnectionState
-	URL       URL
+	URL       *URL
 }
 
 func newIncomingRequest(req *http.Request) *IncomingRequest {
@@ -36,7 +36,7 @@ func newIncomingRequest(req *http.Request) *IncomingRequest {
 		req:    req,
 		Header: newHeader(req.Header),
 		TLS:    req.TLS,
-		URL:    URL{url: req.URL},
+		URL:    &URL{url: req.URL},
 	}
 }
 
