@@ -22,7 +22,8 @@ type URL struct {
 }
 
 // Query parses the query string in the URL and returns a form
-// containing its values.
+// containing its values. The returned error describes the first
+// decoding error encountered, if any.
 func (u URL) Query() (Form, error) {
 	v, err := url.ParseQuery(u.url.RawQuery)
 	if err != nil {
@@ -32,6 +33,9 @@ func (u URL) Query() (Form, error) {
 }
 
 // String reassembles the URL into a valid URL string.
+//
+// The method uses the net/url.EscapedPath method to obtain the path.
+// See the net/url.EscapedPath method for more details.
 func (u URL) String() string {
 	return u.url.String()
 }
@@ -58,6 +62,11 @@ func (u URL) Port() string {
 }
 
 // Path returns the path of the URL.
+//
+// Note that the path is stored in decoded form: /%47%6f%2f
+// becomes /Go/. A consequence is that it is impossible to tell
+// which slashes in the path were slashes in the raw URL and which
+// were %2f.
 func (u URL) Path() string {
 	return u.url.Path
 }
