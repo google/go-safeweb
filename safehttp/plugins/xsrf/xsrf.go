@@ -15,6 +15,7 @@
 package xsrf
 
 import (
+	"fmt"
 	"github.com/google/go-safeweb/safehttp"
 
 	// TODO(@empijei, @kele, @mattiasgrenfeldt, @mihalimara22): decide whether
@@ -32,9 +33,10 @@ const (
 // including their IDs, needed in generating the XSRF token.
 type StorageService interface {
 	// GetUserID returns the ID of the user making the request based on the
-	// incoming request.
+	// incoming request. If an error occurs, it returns it together with an
+	// empty string.
 	// TODO(@mihalimara22): add a *safehttp.IncomingRequest as a parameter to
-	// this function once the method for this is exported
+	// this function once the method for this is exported.
 	GetUserID() (string, error)
 }
 
@@ -63,10 +65,9 @@ func NewPlugin(appKey string, s StorageService) *Plugin {
 func (p *Plugin) GenerateToken(host string, path string) (string, error) {
 	userID, err := p.storage.GetUserID()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("couldn't retrive the user ID: %v", err)
 	}
-	token := xsrftoken.Generate(p.appKey, userID, host+path)
-	return token, nil
+	return xsrftoken.Generate(p.appKey, userID, host+path), nil
 }
 
 // validateToken validates the XSRF token. This should be present in all
