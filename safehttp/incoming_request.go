@@ -32,7 +32,7 @@ type IncomingRequest struct {
 	URL       *url.URL
 }
 
-// NewIncomingRequest creates an safehttp.IncomingRequest
+// NewIncomingRequest creates an IncomingRequest
 // from an http.Request.
 func NewIncomingRequest(req *http.Request) *IncomingRequest {
 	return &IncomingRequest{

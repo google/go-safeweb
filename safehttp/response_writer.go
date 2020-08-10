@@ -29,7 +29,7 @@ type ResponseWriter struct {
 	header Header
 }
 
-// NewResponseWriter creates a safehttp.ResponseWriter from
+// NewResponseWriter creates a ResponseWriter from
 // a safehttp.Dispatcher and a http.ResponseWriter.
 func NewResponseWriter(d Dispatcher, rw http.ResponseWriter) ResponseWriter {
 	header := newHeader(rw.Header())
