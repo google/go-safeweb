@@ -75,11 +75,11 @@ func (r *responseRecorder) Write(data []byte) (int, error) {
 
 type testStorageService struct{}
 
-func (s testStorageService) GetUserID() (string, error) {
+func (testStorageService) GetUserID() (string, error) {
 	return "potato", nil
 }
 
-func TestXSRFToken(t *testing.T) {
+func TestXSRFTokenPost(t *testing.T) {
 	tests := []struct {
 		name       string
 		target     string
@@ -108,6 +108,8 @@ func TestXSRFToken(t *testing.T) {
 			path:       "/spaghetti",
 			wantStatus: 403,
 		},
+		//TODO(@mihalimara22): Add tests for invalid user ID once
+		//StorageService.GetUserID receives a parameter
 	}
 	for _, test := range tests {
 		p := xsrf.NewPlugin("1234", testStorageService{})
@@ -121,9 +123,62 @@ func TestXSRFToken(t *testing.T) {
 		m := safehttp.NewMachinery(p.Before, &testDispatcher{})
 		rec := newResponseRecorder(&strings.Builder{})
 		m.HandleRequest(rec, req)
-		if want := test.wantStatus; rec.status != want {
-			t.Errorf("response status: got %v, want %v", rec.status, want)
+		if rec.status != test.wantStatus {
+			t.Errorf("response status: got %v, want %v", rec.status, test.wantStatus)
 		}
+	}
+}
 
+func TestXSRFTokenMultipart(t *testing.T) {
+	tests := []struct {
+		name       string
+		target     string
+		host       string
+		path       string
+		wantStatus int
+	}{
+		{
+			name:       "Valid token",
+			target:     "http://foo.com/pizza",
+			host:       "foo.com",
+			path:       "/pizza",
+			wantStatus: 200,
+		},
+		{
+			name:       "Invalid host in token generation",
+			target:     "http://foo.com/pizza",
+			host:       "bar.com",
+			path:       "/pizza",
+			wantStatus: 403,
+		},
+		{
+			name:       "Invalid path in token generation",
+			target:     "http://foo.com/pizza",
+			host:       "foo.com",
+			path:       "/spaghetti",
+			wantStatus: 403,
+		},
+		//TODO(@mihalimara22): Add tests for invalid user ID once
+		//StorageService.GetUserID receives a parameter
+	}
+	for _, test := range tests {
+		p := xsrf.NewPlugin("1234", testStorageService{})
+		tok, err := p.GenerateToken(test.host, test.path)
+		if err != nil {
+			t.Fatalf("p.GenerateToken: got %v, want nil", err)
+		}
+		multipartReqBody := "--123\r\n" +
+			"Content-Disposition: form-data; name=\"xsrf-token\"\r\n" +
+			"\r\n" +
+			tok + "\r\n" +
+			"--123--\r\n"
+		multipartReq := httptest.NewRequest("POST", test.target, strings.NewReader(multipartReqBody))
+		multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+		m := safehttp.NewMachinery(p.Before, &testDispatcher{})
+		rec := newResponseRecorder(&strings.Builder{})
+		m.HandleRequest(rec, multipartReq)
+		if rec.status != test.wantStatus {
+			t.Errorf("response status: got %v, want %v", rec.status, test.wantStatus)
+		}
 	}
 }
