@@ -85,14 +85,14 @@ type Dispatcher interface {
 }
 
 // ResponseWriterContainer holds an http.ResponseWriter until
-// a status code and a content type to be written is provided.
+// a status code and a content type to be written are provided.
 type ResponseWriterContainer struct {
 	w http.ResponseWriter
 }
 
 // Release releases the held http.ResponseWriter given that a status code
-// and a content type is provided. The status code and the content type are
-// written to the response before returning the responsewriter.
+// and a content type are provided. The status code and the content type are
+// written to the response before returning the ResponseWriter.
 func (c ResponseWriterContainer) Release(statusCode int, contentType string) http.ResponseWriter {
 	c.w.Header().Set("Content-Type", contentType)
 	c.w.WriteHeader(statusCode)
