@@ -50,14 +50,14 @@ func (testDispatcher) ExecuteTemplate(rw http.ResponseWriter, t safehttp.Templat
 // should be passed as part of the handler function in tests.
 type ResponseRecorder struct {
 	safehttp.ResponseWriter
-	rw *responseRecorder
+	rw *responseWriter
 	b  *strings.Builder
 }
 
 // NewResponseRecorder creates a ResponseRecorder from the default testDispatcher.
 func NewResponseRecorder() *ResponseRecorder {
 	var b strings.Builder
-	rw := newResponseRecorder(&b)
+	rw := newResponseWriter(&b)
 	return &ResponseRecorder{
 		rw:             rw,
 		b:              &b,
@@ -69,7 +69,7 @@ func NewResponseRecorder() *ResponseRecorder {
 // provided safehttp.Dispatcher.
 func NewResponseRecorderFromDispatcher(d safehttp.Dispatcher) *ResponseRecorder {
 	var b strings.Builder
-	rw := newResponseRecorder(&b)
+	rw := newResponseWriter(&b)
 	return &ResponseRecorder{
 		rw:             rw,
 		b:              &b,
@@ -92,28 +92,30 @@ func (r *ResponseRecorder) Body() string {
 	return r.b.String()
 }
 
-type responseRecorder struct {
+// responseWriter is an implementation of the http.ResponseWriter interface used
+// for constructing an HTTP response.
+type responseWriter struct {
 	header http.Header
 	writer io.Writer
 	status int
 }
 
-func newResponseRecorder(w io.Writer) *responseRecorder {
-	return &responseRecorder{
+func newResponseWriter(w io.Writer) *responseWriter {
+	return &responseWriter{
 		header: http.Header{},
 		writer: w,
 		status: http.StatusOK,
 	}
 }
 
-func (r *responseRecorder) Header() http.Header {
+func (r *responseWriter) Header() http.Header {
 	return r.header
 }
 
-func (r *responseRecorder) WriteHeader(statusCode int) {
+func (r *responseWriter) WriteHeader(statusCode int) {
 	r.status = statusCode
 }
 
-func (r *responseRecorder) Write(data []byte) (int, error) {
+func (r *responseWriter) Write(data []byte) (int, error) {
 	return r.writer.Write(data)
 }
