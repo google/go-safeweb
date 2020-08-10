@@ -15,15 +15,17 @@
 package xsrf
 
 import (
-	"fmt"
 	"github.com/google/go-safeweb/safehttp"
-	// TODO(@empijei, @kele, @mattiasgrenfeldt, @mihalimara22): decide whether we want to depend on this package or reimplement thefunctionality
+
+	// TODO(@empijei, @kele, @mattiasgrenfeldt, @mihalimara22): decide whether
+	// we want to depend on this package or reimplement thefunctionality
+
 	"golang.org/x/net/xsrftoken"
 )
 
 const (
 	// TokenKey is the form key used when sending the token as part of POST
-	// request
+	// request.
 	TokenKey = "xsrf-token"
 )
 
@@ -76,7 +78,7 @@ func (p *Plugin) validateToken(r *safehttp.IncomingRequest) safehttp.StatusCode 
 	}
 	f, err := r.PostForm()
 	if err != nil {
-		mf, err := r.MultipartForm(0)
+		mf, err := r.MultipartForm(32 << 20)
 		if err != nil {
 			return safehttp.StatusBadRequest
 		}
@@ -86,7 +88,7 @@ func (p *Plugin) validateToken(r *safehttp.IncomingRequest) safehttp.StatusCode 
 	if f.Err() != nil || tok == "" {
 		return safehttp.StatusForbidden
 	}
-	if ok := xsrftoken.Valid(tok, p.appKey, userID, r.GetHost()+r.GetPath()); !ok {
+	if ok := xsrftoken.Valid(tok, p.appKey, userID, r.Host()+r.Path()); !ok {
 		return safehttp.StatusForbidden
 	}
 	return 0
