@@ -19,7 +19,6 @@ import (
 
 	// TODO(@empijei, @kele, @mattiasgrenfeldt, @mihalimara22): decide whether
 	// we want to depend on this package or reimplement thefunctionality
-
 	"golang.org/x/net/xsrftoken"
 )
 
@@ -29,39 +28,40 @@ const (
 	TokenKey = "xsrf-token"
 )
 
-// StorageService is an interface the framework users need to implement. This
-// will contain information about users of the web application, including their
-// IDs, needed in generating the XSRF token.
+// StorageService  contains information about the users of the web application,
+// including their IDs, needed in generating the XSRF token.
 type StorageService interface {
-	// TODO(@mihalimara22): add the parameters that the storage service needs in
-	// order to determine the user ID
+	// GetUserID returns the ID of the user making the request based on the
+	// incoming request.
+	// TODO(@mihalimara22): add a *safehttp.IncomingRequest as a parameter to
+	// this function once the method for this is exported
 	GetUserID() (string, error)
 }
 
 // Plugin implements XSRF protection. It requires an application key and a
-// storage service. The appKey uniquely identifies each registered server and
+// storage service. The appKey uniquely identifies each registered service and
 // should have high entropy. The storage service supports retrieving ID's of the
 // application's users. Both the appKey and user ID are used in the XSRF
 // token generation algorithm.
 //
 // TODO(@mihalimara22): Add Fetch Metadata support
 type Plugin struct {
-	appKey string
-	s      StorageService
+	appKey  string
+	storage StorageService
 }
 
 // NewPlugin creates a new XSRF plugin.
 func NewPlugin(appKey string, s StorageService) *Plugin {
 	return &Plugin{
-		appKey: appKey,
-		s:      s,
+		appKey:  appKey,
+		storage: s,
 	}
 }
 
 // GenerateToken generates a cryptographically safe XSRF token per user, using
 // their ID and the request host and path.
 func (p *Plugin) GenerateToken(host string, path string) (string, error) {
-	userID, err := p.s.GetUserID()
+	userID, err := p.storage.GetUserID()
 	if err != nil {
 		return "", err
 	}
@@ -72,7 +72,7 @@ func (p *Plugin) GenerateToken(host string, path string) (string, error) {
 // validateToken validates the XSRF token. This should be present in all
 // requests as the value of form parameter xsrf-token.
 func (p *Plugin) validateToken(r *safehttp.IncomingRequest) safehttp.StatusCode {
-	userID, err := p.s.GetUserID()
+	userID, err := p.storage.GetUserID()
 	if err != nil {
 		return safehttp.StatusUnauthorized
 	}
