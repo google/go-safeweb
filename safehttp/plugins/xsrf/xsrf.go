@@ -29,12 +29,10 @@ const (
 	TokenKey = "xsrf-token"
 )
 
-// StorageService  contains information about the users of the web application,
-// including their IDs, needed in generating the XSRF token.
-type StorageService interface {
-	// GetUserID returns the ID of the user making the request based on the
-	// incoming request. If an error occurs, it returns it together with an
-	// empty string.
+// UserIDStorage stores the web application users' IDs,
+// needed in generating the XSRF token.
+type UserIDStorage interface {
+	// GetUserID returns the ID of the user making the request.
 	// TODO(@mihalimara22): add a *safehttp.IncomingRequest as a parameter to
 	// this function once the method for this is exported.
 	GetUserID() (string, error)
@@ -44,15 +42,15 @@ type StorageService interface {
 // TODO(@mihalimara22): Add Fetch Metadata support
 type Plugin struct {
 	appKey  string
-	storage StorageService
+	storage UserIDStorage
 }
 
-// NewPlugin creates a new XSRF plugin.It requires an application key and a
+// NewPlugin creates a new XSRF plugin. It requires an application key and a
 // storage service. The appKey uniquely identifies each registered service and
 // should have high entropy. The storage service supports retrieving ID's of the
 // application's users. Both the appKey and user ID are used in the XSRF
 // token generation algorithm.
-func NewPlugin(appKey string, s StorageService) *Plugin {
+func NewPlugin(appKey string, s UserIDStorage) *Plugin {
 	return &Plugin{
 		appKey:  appKey,
 		storage: s,
@@ -86,7 +84,7 @@ func (p *Plugin) validateToken(r *safehttp.IncomingRequest) safehttp.StatusCode 
 	}
 	tok := f.String(TokenKey, "")
 	if f.Err() != nil || tok == "" {
-		return safehttp.StatusForbidden
+		return safehttp.StatusUnauthorized
 	}
 	if ok := xsrftoken.Valid(tok, p.appKey, userID, r.Host()+r.Path()); !ok {
 		return safehttp.StatusForbidden
