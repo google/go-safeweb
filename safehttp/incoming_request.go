@@ -42,13 +42,18 @@ func NewIncomingRequest(req *http.Request) *IncomingRequest {
 	}
 }
 
-//GetHost TODO
-func (r *IncomingRequest) GetHost() string {
+// Host returns the host the request is targeted to.
+// TODO(@mihalimara22): Remove this after the safehttp.URL type has been
+// implemented.
+func (r *IncomingRequest) Host() string {
 	return r.req.Host
 }
 
-// GetPath TODO
-func (r *IncomingRequest) GetPath() string {
+// Path returns the relative path of the URL in decoded format (e.g. %47%6f%2f
+// becomes /Go/).
+// TODO(@mihalimara22): Remove this after the safehttp.URL type has been     //
+// implemented.
+func (r *IncomingRequest) Path() string {
 	return r.req.URL.Path
 }
 
