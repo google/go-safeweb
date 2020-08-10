@@ -29,10 +29,10 @@ import (
 
 type testDispatcher struct{}
 
-func (testDispatcher) Write(h safehttp.ResponseWriterHolder, resp safehttp.Response) error {
+func (testDispatcher) Write(c safehttp.ResponseWriterContainer, resp safehttp.Response) error {
 	switch x := resp.(type) {
 	case safehtml.HTML:
-		rw := h.Release(http.StatusOK, "text/html; charset=utf-8")
+		rw := c.Release(http.StatusOK, "text/html; charset=utf-8")
 		_, err := rw.Write([]byte(x.String()))
 		return err
 	default:
@@ -40,10 +40,10 @@ func (testDispatcher) Write(h safehttp.ResponseWriterHolder, resp safehttp.Respo
 	}
 }
 
-func (testDispatcher) ExecuteTemplate(h safehttp.ResponseWriterHolder, t safehttp.Template, data interface{}) error {
+func (testDispatcher) ExecuteTemplate(c safehttp.ResponseWriterContainer, t safehttp.Template, data interface{}) error {
 	switch x := t.(type) {
 	case *template.Template:
-		rw := h.Release(http.StatusOK, "text/html; charset=utf-8")
+		rw := c.Release(http.StatusOK, "text/html; charset=utf-8")
 		return x.Execute(rw, data)
 	default:
 		panic("not a safe response type")
