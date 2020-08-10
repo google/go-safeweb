@@ -15,6 +15,7 @@
 package xsrf_test
 
 import (
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/plugins/xsrf"
 	"github.com/google/safehtml"
@@ -86,6 +87,8 @@ func TestXSRFTokenPost(t *testing.T) {
 		host       string
 		path       string
 		wantStatus int
+		wantHeader map[string][]string
+		wantBody   string
 	}{
 		{
 			name:       "Valid token",
@@ -93,6 +96,8 @@ func TestXSRFTokenPost(t *testing.T) {
 			host:       "foo.com",
 			path:       "/pizza",
 			wantStatus: 200,
+			wantHeader: map[string][]string{},
+			wantBody:   "",
 		},
 		{
 			name:       "Invalid host in token generation",
@@ -100,6 +105,11 @@ func TestXSRFTokenPost(t *testing.T) {
 			host:       "bar.com",
 			path:       "/pizza",
 			wantStatus: 403,
+			wantHeader: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Forbidden\n",
 		},
 		{
 			name:       "Invalid path in token generation",
@@ -107,6 +117,11 @@ func TestXSRFTokenPost(t *testing.T) {
 			host:       "foo.com",
 			path:       "/spaghetti",
 			wantStatus: 403,
+			wantHeader: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Forbidden\n",
 		},
 		//TODO(@mihalimara22): Add tests for invalid user ID once
 		//StorageService.GetUserID receives a parameter
@@ -117,14 +132,20 @@ func TestXSRFTokenPost(t *testing.T) {
 		if err != nil {
 			t.Fatalf("p.GenerateToken: got %v, want nil", err)
 		}
-		b := strings.NewReader(xsrf.TokenKey + "=" + tok)
-		req := httptest.NewRequest("POST", test.target, b)
+		req := httptest.NewRequest("POST", test.target, strings.NewReader(xsrf.TokenKey+"="+tok))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		m := safehttp.NewMachinery(p.Before, &testDispatcher{})
-		rec := newResponseRecorder(&strings.Builder{})
+		b := strings.Builder{}
+		rec := newResponseRecorder(&b)
 		m.HandleRequest(rec, req)
 		if rec.status != test.wantStatus {
 			t.Errorf("response status: got %v, want %v", rec.status, test.wantStatus)
+		}
+		if diff := cmp.Diff(test.wantHeader, map[string][]string(rec.Header())); diff != "" {
+			t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
+		}
+		if got := b.String(); got != test.wantBody {
+			t.Errorf("response body: got %q want %q", got, test.wantBody)
 		}
 	}
 }
@@ -136,6 +157,8 @@ func TestXSRFTokenMultipart(t *testing.T) {
 		host       string
 		path       string
 		wantStatus int
+		wantHeader map[string][]string
+		wantBody   string
 	}{
 		{
 			name:       "Valid token",
@@ -143,6 +166,8 @@ func TestXSRFTokenMultipart(t *testing.T) {
 			host:       "foo.com",
 			path:       "/pizza",
 			wantStatus: 200,
+			wantHeader: map[string][]string{},
+			wantBody:   "",
 		},
 		{
 			name:       "Invalid host in token generation",
@@ -150,6 +175,11 @@ func TestXSRFTokenMultipart(t *testing.T) {
 			host:       "bar.com",
 			path:       "/pizza",
 			wantStatus: 403,
+			wantHeader: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Forbidden\n",
 		},
 		{
 			name:       "Invalid path in token generation",
@@ -157,6 +187,11 @@ func TestXSRFTokenMultipart(t *testing.T) {
 			host:       "foo.com",
 			path:       "/spaghetti",
 			wantStatus: 403,
+			wantHeader: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Forbidden\n",
 		},
 		//TODO(@mihalimara22): Add tests for invalid user ID once
 		//StorageService.GetUserID receives a parameter
@@ -175,10 +210,17 @@ func TestXSRFTokenMultipart(t *testing.T) {
 		multipartReq := httptest.NewRequest("POST", test.target, strings.NewReader(multipartReqBody))
 		multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
 		m := safehttp.NewMachinery(p.Before, &testDispatcher{})
-		rec := newResponseRecorder(&strings.Builder{})
+		b := strings.Builder{}
+		rec := newResponseRecorder(&b)
 		m.HandleRequest(rec, multipartReq)
 		if rec.status != test.wantStatus {
 			t.Errorf("response status: got %v, want %v", rec.status, test.wantStatus)
+		}
+		if diff := cmp.Diff(test.wantHeader, map[string][]string(rec.Header())); diff != "" {
+			t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+		}
+		if got := b.String(); got != test.wantBody {
+			t.Errorf("response body: got %q want %q", got, test.wantBody)
 		}
 	}
 }
