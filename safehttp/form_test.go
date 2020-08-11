@@ -16,14 +16,13 @@ package safehttp_test
 
 import (
 	"errors"
-	"fmt"
 	"math"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"strconv"
 	"strings"
 	"testing"
+	txttemplate "text/template"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
@@ -77,17 +76,20 @@ func TestFormValidInt(t *testing.T) {
 				}
 				form = &mf.Form
 			}
+
 			got := form.Int64("pizza", 0)
 			if err := form.Err(); err != nil {
 				t.Errorf(`form.Error: got %v, want nil`, err)
 			}
 			if diff := cmp.Diff(test.want, got); diff != "" {
-				t.Errorf("form.Int64: got %v, want %v, diff (-want +got): \n%s", got, test.want, diff)
+				t.Errorf("form.Int64:  mismatch (-want +got): \n%s", diff)
 			}
 			return safehttp.Result{}
 		}, &testDispatcher{})
+
 		rec := newResponseRecorder(&strings.Builder{})
 		m.HandleRequest(rec, test.req)
+
 		if want := 200; rec.status != want {
 			t.Errorf("response status: got %v, want %v", rec.status, want)
 		}
@@ -98,7 +100,6 @@ func TestFormInvalidInt(t *testing.T) {
 	tests := []struct {
 		name string
 		reqs []*http.Request
-		err  error
 		want int64
 	}{
 		{
@@ -120,7 +121,6 @@ func TestFormInvalidInt(t *testing.T) {
 					return multipartReq
 				}(),
 			},
-			err:  errors.New(`strconv.ParseInt: parsing "9223372036854775810": value out of range`),
 			want: 0,
 		},
 		{
@@ -143,7 +143,6 @@ func TestFormInvalidInt(t *testing.T) {
 					return multipartReq
 				}(),
 			},
-			err:  errors.New(`strconv.ParseInt: parsing "diavola": invalid syntax`),
 			want: 0,
 		},
 	}
@@ -165,17 +164,21 @@ func TestFormInvalidInt(t *testing.T) {
 					}
 					form = &mf.Form
 				}
+
 				got := form.Int64("pizza", 0)
 				if diff := cmp.Diff(test.want, got); diff != "" {
-					t.Errorf("form.Int64: got %v, want %v, diff (-want +got): \n%s", got, test.want, diff)
+					t.Errorf("form.Int64:  mismatch (-want +got): \n%s", diff)
 				}
 				if form.Err() == nil {
-					t.Errorf("form.Err: got nil, want %v", test.err)
+					t.Errorf("form.Err: got nil, want error")
 				}
+
 				return safehttp.Result{}
 			}, &testDispatcher{})
+
 			rec := newResponseRecorder(&strings.Builder{})
 			m.HandleRequest(rec, req)
+
 			if want := 200; rec.status != want {
 				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
@@ -231,17 +234,20 @@ func TestFormValidUint(t *testing.T) {
 				}
 				form = &mf.Form
 			}
+
 			got := form.Uint64("pizza", 0)
 			if err := form.Err(); err != nil {
 				t.Errorf(`form.Error: got %v, want nil`, err)
 			}
 			if diff := cmp.Diff(test.want, got); diff != "" {
-				t.Errorf("form.Uint64: got %v, want %v, diff (-want +got): \n%s", got, test.want, diff)
+				t.Errorf("form.Uint64:  mismatch (-want +got): \n%s", diff)
 			}
 			return safehttp.Result{}
 		}, &testDispatcher{})
+
 		rec := newResponseRecorder(&strings.Builder{})
 		m.HandleRequest(rec, test.req)
+
 		if want := 200; rec.status != want {
 			t.Errorf("response status: got %v, want %v", rec.status, want)
 		}
@@ -252,7 +258,6 @@ func TestFormInvalidUint(t *testing.T) {
 	tests := []struct {
 		name string
 		reqs []*http.Request
-		err  error
 		want uint64
 	}{
 		{
@@ -274,7 +279,6 @@ func TestFormInvalidUint(t *testing.T) {
 					return multipartReq
 				}(),
 			},
-			err:  errors.New(`strconv.ParseUint: parsing "-1": invalid syntax`),
 			want: 0,
 		},
 		{
@@ -296,7 +300,6 @@ func TestFormInvalidUint(t *testing.T) {
 					return multipartReq
 				}(),
 			},
-			err:  errors.New(`strconv.ParseUint: parsing "18446744073709551630": value out of range`),
 			want: 0,
 		},
 	}
@@ -317,17 +320,20 @@ func TestFormInvalidUint(t *testing.T) {
 					}
 					form = &mf.Form
 				}
+
 				got := form.Uint64("pizza", 0)
 				if diff := cmp.Diff(test.want, got); diff != "" {
-					t.Errorf("form.Uint64: got %v, want %v, diff (-want +got): \n%s", got, test.want, diff)
+					t.Errorf("form.Uint64:  mismatch (-want +got): \n%s", diff)
 				}
 				if form.Err() == nil {
-					t.Errorf("form.Err: got nil, want %v", test.err)
+					t.Errorf("form.Err: got nil, want error")
 				}
 				return safehttp.Result{}
 			}, &testDispatcher{})
+
 			rec := newResponseRecorder(&strings.Builder{})
 			m.HandleRequest(rec, req)
+
 			if want := 200; rec.status != want {
 				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
@@ -395,18 +401,20 @@ func TestFormValidString(t *testing.T) {
 					}
 					form = &mf.Form
 				}
-				want := test.want[idx]
+
 				got := form.String("pizza", "")
-				if diff := cmp.Diff(want, got); diff != "" {
-					t.Errorf("form.String: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
+				if diff := cmp.Diff(test.want[idx], got); diff != "" {
+					t.Errorf("form.String: diff (-want +got): \n%s", diff)
 				}
 				if err := form.Err(); err != nil {
 					t.Errorf("form.Err: got %v, want nil", err)
 				}
 				return safehttp.Result{}
 			}, &testDispatcher{})
+
 			rec := newResponseRecorder(&strings.Builder{})
 			m.HandleRequest(rec, req)
+
 			if want := 200; rec.status != want {
 				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
@@ -475,18 +483,20 @@ func TestFormValidFloat64(t *testing.T) {
 					}
 					form = &mf.Form
 				}
-				want := test.want[idx]
+
 				got := form.Float64("pizza", 0.0)
-				if diff := cmp.Diff(want, got); diff != "" {
-					t.Errorf("form.Float64: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
+				if diff := cmp.Diff(test.want[idx], got); diff != "" {
+					t.Errorf("form.Float64: diff (-want +got): \n%s", diff)
 				}
 				if err := form.Err(); err != nil {
 					t.Errorf("form.Err: got %v, want nil", err)
 				}
 				return safehttp.Result{}
 			}, &testDispatcher{})
+
 			rec := newResponseRecorder(&strings.Builder{})
 			m.HandleRequest(rec, req)
+
 			if want := 200; rec.status != want {
 				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
@@ -498,7 +508,6 @@ func TestFormInvalidFloat64(t *testing.T) {
 	tests := []struct {
 		name string
 		reqs []*http.Request
-		err  error
 		want float64
 	}{
 		{
@@ -520,7 +529,6 @@ func TestFormInvalidFloat64(t *testing.T) {
 					return multipartReq
 				}(),
 			},
-			err:  errors.New(`strconv.ParseFloat: parsing "diavola": invalid syntax`),
 			want: 0.0,
 		},
 		{
@@ -542,7 +550,6 @@ func TestFormInvalidFloat64(t *testing.T) {
 					return multipartReq
 				}(),
 			},
-			err:  errors.New(`strconv.ParseFloat: parsing "1.797693134862315708145274237317043567981e309": value out of range`),
 			want: 0.0,
 		},
 	}
@@ -563,17 +570,21 @@ func TestFormInvalidFloat64(t *testing.T) {
 					}
 					form = &mf.Form
 				}
+
 				got := form.Float64("pizza", 0.0)
 				if diff := cmp.Diff(test.want, got); diff != "" {
-					t.Errorf("form.Float64: got %v, want %v, diff (-want +got): \n%s", got, test.want, diff)
+					t.Errorf("form.Float64:  mismatch (-want +got): \n%s", diff)
 				}
 				if form.Err() == nil {
-					t.Errorf("form.Err: got nil, want %v", test.err)
+					t.Errorf("form.Err: got nil, want error")
 				}
+
 				return safehttp.Result{}
 			}, &testDispatcher{})
+
 			rec := newResponseRecorder(&strings.Builder{})
 			m.HandleRequest(rec, req)
+
 			if want := 200; rec.status != want {
 				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
@@ -650,18 +661,21 @@ func TestFormValidBool(t *testing.T) {
 					}
 					form = &mf.Form
 				}
-				want := test.want[idx]
+
 				got := form.Bool("pizza", false)
-				if diff := cmp.Diff(want, got); diff != "" {
-					t.Errorf("form.Bool: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
+				if diff := cmp.Diff(test.want[idx], got); diff != "" {
+					t.Errorf("form.Bool: diff (-want +got): \n%s", diff)
 				}
 				if err := form.Err(); err != nil {
 					t.Errorf("form.Err: got %v, want nil", err)
 				}
+
 				return safehttp.Result{}
 			}, &testDispatcher{})
+
 			rec := newResponseRecorder(&strings.Builder{})
 			m.HandleRequest(rec, req)
+
 			if want := 200; rec.status != want {
 				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
@@ -674,7 +688,6 @@ func TestFormInvalidBool(t *testing.T) {
 		name string
 		reqs []*http.Request
 		want bool
-		err  error
 	}{
 		{
 			name: "Invalid booleans in POST non-multipart request",
@@ -689,7 +702,6 @@ func TestFormInvalidBool(t *testing.T) {
 				return reqs
 			}(),
 			want: false,
-			err:  errors.New(`values of form parameter "pizza" not a boolean`),
 		},
 		{
 			name: "Invalid booleans in POST multipart request",
@@ -710,7 +722,6 @@ func TestFormInvalidBool(t *testing.T) {
 				return reqs
 			}(),
 			want: false,
-			err:  errors.New(`values of form parameter "pizza" not a boolean`),
 		},
 	}
 
@@ -731,146 +742,20 @@ func TestFormInvalidBool(t *testing.T) {
 					}
 					form = &mf.Form
 				}
+
 				got := form.Bool("pizza", false)
 				if diff := cmp.Diff(test.want, got); diff != "" {
-					t.Errorf("form.Bool: got %v, want %v, diff (-want +got): \n%s", got, test.want, diff)
+					t.Errorf("form.Bool:  mismatch (-want +got): \n%s", diff)
 				}
 				if form.Err() == nil {
-					t.Errorf("form.Err: got nil, want %v", test.err)
+					t.Errorf("form.Err: got nil, want error")
 				}
 				return safehttp.Result{}
 			}, &testDispatcher{})
+
 			rec := newResponseRecorder(&strings.Builder{})
 			m.HandleRequest(rec, req)
-			if want := 200; rec.status != want {
-				t.Errorf("response status: got %v, want %v", rec.status, want)
-			}
-		}
-	}
-}
 
-func TestFormValidSlice(t *testing.T) {
-	// TODO(@mihalimara22): Test other boolean syntax like "t", "f", "0" and "1" here.
-	validSlices := []interface{}{
-		[]int64{-8, 9, -100}, []uint64{8, 9, 10}, []string{"margeritta", "diavola", "calzone"}, []float64{1.3, 8.9, -4.1}, []bool{true, false, true},
-	}
-	// Parsing behaviour of native types that are supported is not included as
-	// it was tested in previous tests.
-	tests := []struct {
-		name string
-		reqs []*http.Request
-	}{
-		{
-			name: "Valid slices in POST non-multipart request",
-			reqs: func() []*http.Request {
-				reqs := []*http.Request{
-					httptest.NewRequest("POST", "/", strings.NewReader("pizza=-8&pizza=9&pizza=-100")),
-					httptest.NewRequest("POST", "/", strings.NewReader("pizza=8&pizza=9&pizza=10")),
-					httptest.NewRequest("POST", "/", strings.NewReader("pizza=margeritta&pizza=diavola&pizza=calzone")),
-					httptest.NewRequest("POST", "/", strings.NewReader("pizza=1.3&pizza=8.9&pizza=-4.1")),
-					httptest.NewRequest("POST", "/", strings.NewReader("pizza=true&pizza=false&pizza=true")),
-				}
-				for _, req := range reqs {
-					req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-				}
-				return reqs
-			}(),
-		},
-		{
-			name: "Valid slice in POST multipart request",
-			reqs: func() []*http.Request {
-				m := &validSlices
-				multipartReqBody := ""
-				var reqs []*http.Request
-				for _, vals := range *m {
-					s := reflect.ValueOf(vals)
-					for i := 0; i < s.Len(); i++ {
-						multipartReqBody += "--123\r\n" +
-							"Content-Disposition: form-data; name=\"pizza\"\r\n" +
-							"\r\n"
-						multipartReqBody += fmt.Sprintf("%v\r\n", s.Index(i))
-					}
-					multipartReqBody += "--123--\r\n"
-					multipartReq := httptest.NewRequest("POST", "/", strings.NewReader(multipartReqBody))
-					multipartReq.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
-					reqs = append(reqs, multipartReq)
-					multipartReqBody = ""
-				}
-				return reqs
-			}(),
-		},
-	}
-
-	for _, test := range tests {
-		for idx, req := range test.reqs {
-			m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
-				var form *safehttp.Form
-				if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
-					var err error
-					form, err = ir.PostForm()
-					if err != nil {
-						t.Fatalf(`ir.PostForm: got %v, want nil`, err)
-					}
-				} else {
-					mf, err := ir.MultipartForm(32 << 20)
-					if err != nil {
-						t.Fatalf(`ir.MultipartForm: got %v, want nil`, err)
-					}
-					form = &mf.Form
-				}
-				switch want := validSlices[idx].(type) {
-				case []int64:
-					var got []int64
-					form.Slice("pizza", &got)
-					if err := form.Err(); err != nil {
-						t.Errorf(`form.Error: got %v, want nil`, err)
-					}
-					if diff := cmp.Diff(want, got); diff != "" {
-						t.Errorf("form.Slice: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
-					}
-				case []string:
-					var got []string
-					form.Slice("pizza", &got)
-					if err := form.Err(); err != nil {
-						t.Errorf(`form.Error: got %v, want nil`, err)
-					}
-					if diff := cmp.Diff(want, got); diff != "" {
-						t.Errorf("form.Slice: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
-					}
-				case []uint64:
-					var got []uint64
-					form.Slice("pizza", &got)
-					if err := form.Err(); err != nil {
-						t.Errorf(`form.Error: got %v, want nil`, err)
-					}
-					if diff := cmp.Diff(want, got); diff != "" {
-						t.Errorf("form.Slice: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
-					}
-				case []float64:
-					var got []float64
-					form.Slice("pizza", &got)
-					if err := form.Err(); err != nil {
-						t.Errorf(`form.Error: got %v, want nil`, err)
-					}
-					if diff := cmp.Diff(want, got); diff != "" {
-						t.Errorf("form.Slice: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
-					}
-				case []bool:
-					var got []bool
-					form.Slice("pizza", &got)
-					if err := form.Err(); err != nil {
-						t.Errorf(`form.Error: got %v, want nil`, err)
-					}
-					if diff := cmp.Diff(want, got); diff != "" {
-						t.Errorf("form.Slice: got %v, want %v, diff (-want +got): \n%s", got, want, diff)
-					}
-				default:
-					t.Fatalf("type not supported: %T", want)
-				}
-				return safehttp.Result{}
-			}, &testDispatcher{})
-			rec := newResponseRecorder(&strings.Builder{})
-			m.HandleRequest(rec, req)
 			if want := 200; rec.status != want {
 				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
@@ -884,7 +769,6 @@ func TestFormInvalidSlice(t *testing.T) {
 	tests := []struct {
 		name string
 		reqs []*http.Request
-		err  error
 		got  interface{}
 		want interface{}
 	}{
@@ -911,15 +795,6 @@ func TestFormInvalidSlice(t *testing.T) {
 					return multipartReq
 				}(),
 			},
-			err: errors.New(`values of form parameter "pizza" not a boolean`),
-			got: func() interface{} {
-				var got []bool
-				return got
-			}(),
-			want: func() interface{} {
-				var want []bool
-				return want
-			}(),
 		},
 		{
 			name: "Unsupported slice type",
@@ -944,15 +819,6 @@ func TestFormInvalidSlice(t *testing.T) {
 					return multipartReq
 				}(),
 			},
-			err: errors.New(`type not supported in Slice call: *[]int8`),
-			got: func() interface{} {
-				var got []int8
-				return got
-			}(),
-			want: func() interface{} {
-				var want []int8
-				return want
-			}(),
 		},
 	}
 
@@ -973,28 +839,21 @@ func TestFormInvalidSlice(t *testing.T) {
 					}
 					form = &mf.Form
 				}
-				switch got := test.got.(type) {
-				case []int8:
-					form.Slice("pizza", &got)
-					if diff := cmp.Diff(test.want, got); diff != "" {
-						t.Errorf("form.Slice: got %v, want %v", got, test.want)
-					}
-					if form.Err() == nil {
-						t.Errorf("form.Err: got nil, want %v", test.err)
-					}
-				case []bool:
-					form.Slice("pizza", &got)
-					if diff := cmp.Diff(test.want, got); diff != "" {
-						t.Errorf("form.Slice: got %v, want %v", got, test.want)
-					}
-					if form.Err() == nil {
-						t.Errorf("form.Err: got nil, want %v", test.err)
-					}
+
+				form.Slice("pizza", test.got)
+				if diff := cmp.Diff(test.want, test.got); diff != "" {
+					t.Errorf("form.Slice: diff (-want +got): \n%v", diff)
 				}
+				if form.Err() == nil {
+					t.Errorf("form.Err: got nil, want error")
+				}
+
 				return safehttp.Result{}
 			}, &testDispatcher{})
+
 			rec := newResponseRecorder(&strings.Builder{})
 			m.HandleRequest(rec, req)
+
 			if want := 200; rec.status != want {
 				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
@@ -1003,19 +862,21 @@ func TestFormInvalidSlice(t *testing.T) {
 }
 
 func TestFormErrorHandling(t *testing.T) {
-	test := struct {
+	tests := []struct {
 		name string
-		reqs []*http.Request
-		errs []error
+		req  *http.Request
 	}{
-		name: "Erros occuring in requests",
-		reqs: []*http.Request{
-			func() *http.Request {
+		{
+			name: "Post form errors",
+			req: func() *http.Request {
 				postReq := httptest.NewRequest("POST", "/", strings.NewReader("pizzaInt=diavola&pizzaBool=true&pizzaUint=-13"))
 				postReq.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 				return postReq
 			}(),
-			func() *http.Request {
+		},
+		{
+			name: "Multipart form errors",
+			req: func() *http.Request {
 				multipartReqBody := "--123\r\n" +
 					"Content-Disposition: form-data; name=\"pizzaInt\"\r\n" +
 					"\r\n" +
@@ -1034,10 +895,9 @@ func TestFormErrorHandling(t *testing.T) {
 				return multipartReq
 			}(),
 		},
-		errs: []error{errors.New(`strconv.ParseInt: parsing "diavola": invalid syntax`), errors.New(`strconv.ParseUint: parsing "-13": invalid syntax`)},
 	}
 
-	for _, req := range test.reqs {
+	for _, tc := range tests {
 		m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 			var form *safehttp.Form
 			if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
@@ -1053,37 +913,222 @@ func TestFormErrorHandling(t *testing.T) {
 				}
 				form = &mf.Form
 			}
-			var wantInt int64 = 0
-			gotInt := form.Int64("pizzaInt", 0)
-			if diff := cmp.Diff(wantInt, gotInt); diff != "" {
-				t.Errorf("form.Int64: got %v, want %v, diff (-want +got): \n%s", gotInt, wantInt, diff)
+
+			gotInt64 := form.Int64("pizzaInt", 0)
+			if diff := cmp.Diff(int64(0), gotInt64); diff != "" {
+				t.Errorf("form.Int64: diff (-want +got): \n%s", diff)
 			}
-			if form.Err() == nil {
-				t.Errorf("form.Err: got nil, want %v", test.errs[0])
+			prevErr := form.Err()
+			if prevErr == nil {
+				t.Errorf("form.Err: got nil, want error")
 			}
-			wantBool := true
+
 			gotBool := form.Bool("pizzaBool", false)
-			if diff := cmp.Diff(wantBool, gotBool); diff != "" {
-				t.Errorf("form.Bool: got %v, want %v, diff (-want +got): \n%s", gotBool, wantBool, diff)
+			if diff := cmp.Diff(true, gotBool); diff != "" {
+				t.Errorf("form.Bool: diff (-want +got): \n%s", diff)
 			}
 			// We expect the same error here becase calling form.Bool succeeds
-			if form.Err() == nil {
-				t.Errorf("form.Err: got nil, want %v", test.errs[0])
+			if err := form.Err(); prevErr.Error() != err.Error() {
+				t.Errorf("form.Err: want %v, got %v", prevErr, err)
 			}
-			var wantUint uint64 = 0
-			gotUint := form.Uint64("pizzaUint", 0)
-			if diff := cmp.Diff(wantUint, gotUint); diff != "" {
-				t.Errorf("form.Uint64: got %v, want %v, diff (-want +got): \n%s", gotUint, wantUint, diff)
+
+			gotUint64 := form.Uint64("pizzaUint", 0)
+			if diff := cmp.Diff(uint64(0), gotUint64); diff != "" {
+				t.Errorf("form.Uint64: diff (-want +got): \n%s", diff)
 			}
 			if form.Err() == nil {
-				t.Errorf("form.Err: got nil, want %v", test.errs[1])
+				t.Errorf("form.Err: got nil, want error")
+			}
+
+			return safehttp.Result{}
+		}, &testDispatcher{})
+
+		rec := newResponseRecorder(&strings.Builder{})
+		m.HandleRequest(rec, tc.req)
+
+		if want := 200; rec.status != want {
+			t.Errorf("response status: got %v, want %v", rec.status, want)
+		}
+	}
+}
+
+func TestFormValidSlicePost(t *testing.T) {
+	tests := []struct {
+		req         *http.Request
+		placeholder interface{}
+		want        interface{}
+	}{
+		{
+			req: func() *http.Request {
+				req := httptest.NewRequest("POST", "/", strings.NewReader("pizza=-8&pizza=9&pizza=-100"))
+				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+				return req
+			}(),
+			placeholder: &[]int64{},
+			want:        &[]int64{-8, 9, -100},
+		},
+		{
+			req: func() *http.Request {
+				req := httptest.NewRequest("POST", "/", strings.NewReader("pizza=8&pizza=9&pizza=10"))
+				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+				return req
+			}(),
+			placeholder: &[]uint64{},
+			want:        &[]uint64{8, 9, 10},
+		},
+		{
+			req: func() *http.Request {
+				req := httptest.NewRequest("POST", "/", strings.NewReader("pizza=margeritta&pizza=diavola&pizza=calzone"))
+				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+				return req
+			}(),
+			placeholder: &[]string{},
+			want:        &[]string{"margeritta", "diavola", "calzone"},
+		},
+		{
+			req: func() *http.Request {
+				req := httptest.NewRequest("POST", "/", strings.NewReader("pizza=1.3&pizza=8.9&pizza=-4.1"))
+				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+				return req
+			}(),
+			placeholder: &[]float64{},
+			want:        &[]float64{1.3, 8.9, -4.1},
+		},
+		{
+			req: func() *http.Request {
+				req := httptest.NewRequest("POST", "/", strings.NewReader("pizza=true&pizza=false&pizza=T"))
+				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+				return req
+			}(),
+			placeholder: &[]bool{},
+			want:        &[]bool{true, false, true},
+		},
+	}
+
+	for _, tc := range tests {
+		m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+			form, err := ir.PostForm()
+			if err != nil {
+				t.Fatalf(`ir.PostForm: got err %v, want nil`, err)
+			}
+
+			form.Slice("pizza", tc.placeholder)
+			if err := form.Err(); err != nil {
+				t.Errorf(`form.Err: got err %v, want nil`, err)
+			}
+
+			if diff := cmp.Diff(tc.want, tc.placeholder); diff != "" {
+				t.Errorf("form.Slice: diff (-want +got): \n%v", diff)
+			}
+
+			return safehttp.Result{}
+		}, &testDispatcher{})
+
+		rec := newResponseRecorder(&strings.Builder{})
+		m.HandleRequest(rec, tc.req)
+
+		if respStatus, want := rec.status, 200; respStatus != want {
+			t.Errorf("response status: got %v, want %v", respStatus, want)
+		}
+	}
+
+}
+
+func TestFormValidSliceMultipart(t *testing.T) {
+	multipartBody := txttemplate.Must(txttemplate.New("multipart").Parse(
+		"{{ range . -}}" +
+			"--123\r\n" +
+			"Content-Disposition: form-data; name=\"pizza\"\r\n" +
+			"\r\n" +
+			"{{ . }}\r\n" +
+			"{{ end }}" +
+			"--123--\r\n"))
+
+	tests := []struct {
+		req         *http.Request
+		placeholder interface{}
+		want        interface{}
+	}{
+		{
+			req: func() *http.Request {
+				b := &strings.Builder{}
+				multipartBody.Execute(b, []string{"-8", "9", "-100"})
+				req := httptest.NewRequest("POST", "/", strings.NewReader(b.String()))
+				req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+				return req
+			}(),
+			placeholder: &[]int64{},
+			want:        &[]int64{-8, 9, -100},
+		},
+		{
+			req: func() *http.Request {
+				b := &strings.Builder{}
+				multipartBody.Execute(b, []string{"8", "9", "10"})
+				req := httptest.NewRequest("POST", "/", strings.NewReader(b.String()))
+				req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+				return req
+			}(),
+			placeholder: &[]uint64{},
+			want:        &[]uint64{8, 9, 10},
+		},
+		{
+			req: func() *http.Request {
+				b := &strings.Builder{}
+				multipartBody.Execute(b, []string{"margeritta", "diavola", "calzone"})
+				req := httptest.NewRequest("POST", "/", strings.NewReader(b.String()))
+				req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+				return req
+			}(),
+			placeholder: &[]string{},
+			want:        &[]string{"margeritta", "diavola", "calzone"},
+		},
+		{
+			req: func() *http.Request {
+				b := &strings.Builder{}
+				multipartBody.Execute(b, []string{"1.3", "8.9", "-4.1"})
+				req := httptest.NewRequest("POST", "/", strings.NewReader(b.String()))
+				req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+				return req
+			}(),
+			placeholder: &[]float64{},
+			want:        &[]float64{1.3, 8.9, -4.1},
+		},
+		{
+			req: func() *http.Request {
+				b := &strings.Builder{}
+				multipartBody.Execute(b, []string{"true", "false", "true"})
+				req := httptest.NewRequest("POST", "/", strings.NewReader(b.String()))
+				req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+				return req
+			}(),
+			placeholder: &[]bool{},
+			want:        &[]bool{true, false, true},
+		},
+	}
+
+	for _, tc := range tests {
+		m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+			form, err := ir.MultipartForm(32 << 20)
+			if err != nil {
+				t.Fatalf(`ir.MultipartForm: got err %v, want nil`, err)
+			}
+
+			form.Slice("pizza", tc.placeholder)
+			if err := form.Err(); err != nil {
+				t.Errorf(`form.Err: got err %v, want nil`, err)
+			}
+
+			if diff := cmp.Diff(tc.want, tc.placeholder); diff != "" {
+				t.Errorf("form.Slice: diff (-want +got): \n%v", diff)
 			}
 			return safehttp.Result{}
 		}, &testDispatcher{})
+
 		rec := newResponseRecorder(&strings.Builder{})
-		m.HandleRequest(rec, req)
-		if want := 200; rec.status != want {
-			t.Errorf("response status: got %v, want %v", rec.status, want)
+		m.HandleRequest(rec, tc.req)
+
+		if respStatus, want := rec.status, 200; respStatus != want {
+			t.Errorf("response status: got %v, want %v", respStatus, want)
 		}
 	}
 }
