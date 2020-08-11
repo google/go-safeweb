@@ -4,4 +4,4 @@ The framework will support plugins that run before and after the request handler
 
 ## Provided plugins
 
-- [HSTS](https://github.com/google/go-safeweb/blob/master/docs/plugins/hsts.md): Automatically redirects HTTP traffic to HTTPS and sets the `Strict-Transport-Security` header.
+- [HSTS](plugins/hsts.md): Automatically redirects HTTP traffic to HTTPS and sets the `Strict-Transport-Security` header.
