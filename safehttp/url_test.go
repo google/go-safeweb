@@ -24,7 +24,7 @@ func TestURLToString(t *testing.T) {
 
 	netURL, err := url.Parse(want)
 	if err != nil {
-		t.Errorf(`url.Parse("http://www.example.com/asdf?fruit=apple") got: %v want: nil`, err)
+		t.Fatalf(`url.Parse("http://www.example.com/asdf?fruit=apple") got: %v want: nil`, err)
 	}
 
 	u := URL{url: netURL}
@@ -55,7 +55,7 @@ func TestURLHost(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			netURL, err := url.Parse(tt.url)
 			if err != nil {
-				t.Errorf("url.Parse(tt.url) got: %v want: nil", err)
+				t.Fatalf("url.Parse(tt.url) got: %v want: nil", err)
 			}
 
 			u := URL{url: netURL}
@@ -93,7 +93,7 @@ func TestURLHostname(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			netURL, err := url.Parse(tt.url)
 			if err != nil {
-				t.Errorf("url.Parse(tt.url) got: %v want: nil", err)
+				t.Fatalf("url.Parse(tt.url) got: %v want: nil", err)
 			}
 
 			u := URL{url: netURL}
@@ -131,7 +131,7 @@ func TestURLPort(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			netURL, err := url.Parse(tt.url)
 			if err != nil {
-				t.Errorf("url.Parse(tt.url) got: %v want: nil", err)
+				t.Fatalf("url.Parse(tt.url) got: %v want: nil", err)
 			}
 
 			u := URL{url: netURL}
@@ -145,7 +145,7 @@ func TestURLPort(t *testing.T) {
 func TestURLPath(t *testing.T) {
 	netURL, err := url.Parse("http://www.example.com/asdf?fruit=apple")
 	if err != nil {
-		t.Errorf(`url.Parse("http://www.example.com/asdf?fruit=apple") got: %v want: nil`, err)
+		t.Fatalf(`url.Parse("http://www.example.com/asdf?fruit=apple") got: %v want: nil`, err)
 	}
 
 	u := URL{url: netURL}
@@ -176,7 +176,7 @@ func TestURLQuery(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			netURL, err := url.Parse(tt.url)
 			if err != nil {
-				t.Errorf("url.Parse(tt.url) got: %v want: nil", err)
+				t.Fatalf("url.Parse(tt.url) got: %v want: nil", err)
 			}
 
 			u := URL{url: netURL}
@@ -195,7 +195,7 @@ func TestURLQuery(t *testing.T) {
 func TestURLInvalidQuery(t *testing.T) {
 	netURL, err := url.Parse("http://www.example.com/asdf?%xx=abc")
 	if err != nil {
-		t.Errorf(`url.Parse("http://www.example.com/asdf?%%xx=abc") got: %v want: nil`, err)
+		t.Fatalf(`url.Parse("http://www.example.com/asdf?%%xx=abc") got: %v want: nil`, err)
 	}
 
 	u := URL{url: netURL}
