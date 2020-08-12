@@ -15,11 +15,7 @@
 package xsrf
 
 import (
-	"fmt"
 	"github.com/google/go-safeweb/safehttp"
-
-	// TODO(@empijei, @kele, @mattiasgrenfeldt, @mihalimara22): decide whether
-	// we want to depend on this package or reimplement thefunctionality
 	"golang.org/x/net/xsrftoken"
 )
 
@@ -32,39 +28,17 @@ const (
 // UserIDStorage stores the web application users' IDs,
 // needed in generating the XSRF token.
 type UserIDStorage interface {
-	// GetUserID returns the ID of the user making the request.
-	// TODO(@mihalimara22): add a *safehttp.IncomingRequest as a parameter to
-	// this function once the method for this is exported.
-	GetUserID() (string, error)
+	GetUserID(*safehttp.IncomingRequest) (string, error)
 }
 
-// Plugin implements XSRF protection.
-// TODO(@mihalimara22): Add Fetch Metadata support
-type Plugin struct {
-	appKey  string
-	storage UserIDStorage
-}
-
-// NewPlugin creates a new XSRF plugin. It requires an application key and a
+// Plugin implements XSRF protection. It requires an application key and a
 // storage service. The appKey uniquely identifies each registered service and
 // should have high entropy. The storage service supports retrieving ID's of the
 // application's users. Both the appKey and user ID are used in the XSRF
 // token generation algorithm.
-func NewPlugin(appKey string, s UserIDStorage) *Plugin {
-	return &Plugin{
-		appKey:  appKey,
-		storage: s,
-	}
-}
-
-// GenerateToken generates a cryptographically safe XSRF token per user, using
-// their ID and the request host and path.
-func (p *Plugin) GenerateToken(host string, path string) (string, error) {
-	userID, err := p.storage.GetUserID()
-	if err != nil {
-		return "", fmt.Errorf("couldn't retrive the user ID: %v", err)
-	}
-	return xsrftoken.Generate(p.appKey, userID, host+path), nil
+type Plugin struct {
+	AppKey  string
+	Storage UserIDStorage
 }
 
 // Before should be executed before directing the safehttp.IncomingRequest to
@@ -72,7 +46,7 @@ func (p *Plugin) GenerateToken(host string, path string) (string, error) {
 // Forgery. It checks for the presence of an xsrf-token in the request body and
 // validates it based on the userID associated with the request.
 func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-	userID, err := p.storage.GetUserID()
+	userID, err := p.Storage.GetUserID(r)
 	if err != nil {
 		return w.ClientError(safehttp.StatusUnauthorized)
 	}
@@ -84,12 +58,15 @@ func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) 
 		}
 		f = &mf.Form
 	}
+
 	tok := f.String(TokenKey, "")
 	if f.Err() != nil || tok == "" {
 		return w.ClientError(safehttp.StatusUnauthorized)
 	}
-	if ok := xsrftoken.Valid(tok, p.appKey, userID, r.Host()+r.Path()); !ok {
+
+	if ok := xsrftoken.Valid(tok, p.AppKey, userID, r.Host()+r.Path()); !ok {
 		return w.ClientError(safehttp.StatusForbidden)
 	}
+
 	return safehttp.Result{}
 }
