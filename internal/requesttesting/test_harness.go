@@ -22,6 +22,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"runtime"
 	"sync"
 )
 
@@ -128,6 +129,18 @@ func MakeRequest(ctx context.Context, req []byte, callback func(*http.Request)) 
 	if n == 4096 {
 		return nil, errors.New("response larger than or equal to 4096 bytes")
 	}
+	listener.clientEndpoint.Close()
 
+	// Don't remove the line below! This line is to stop server.Shutdown from
+	// getting stuck polling for idle connections to close. When we close the
+	// connection on the line above, it takes a little while for the other
+	// goroutines to shut everything down. When server.Shutdown is called it
+	// checks if there are any idle, non-closed connections left and waits for
+	// them to close. It performs this check every 0.5 s. But our connection
+	// above takes a lot less time than 0.5 s to close. Therefore, if we just
+	// give up execution for a moment to let the other goroutines close
+	// everything before calling server.Shutdown, we don't get punished by
+	// having to wait 0.5s every time we try to shut down.
+	runtime.Gosched()
 	return resp[:n], server.Shutdown(ctx)
 }
