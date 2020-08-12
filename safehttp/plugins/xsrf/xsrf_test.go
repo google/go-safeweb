@@ -19,29 +19,30 @@ import (
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/plugins/xsrf"
 	"github.com/google/go-safeweb/safehttp/safehttptest"
+	"golang.org/x/net/xsrftoken"
 	"strings"
 	"testing"
 )
 
-type testUserIDStorage struct{}
+type userIDStorage struct{}
 
-func (testUserIDStorage) GetUserID() (string, error) {
-	return "potato", nil
+func (userIDStorage) GetUserID(r *safehttp.IncomingRequest) (string, error) {
+	return "1234", nil
 }
 
 func TestXSRFTokenPost(t *testing.T) {
 	tests := []struct {
 		name       string
-		target     string
 		host       string
 		path       string
+		userID     string
 		wantStatus int
 		wantHeader map[string][]string
 		wantBody   string
 	}{
 		{
 			name:       "Valid token",
-			target:     "http://foo.com/pizza",
+			userID:     "1234",
 			host:       "foo.com",
 			path:       "/pizza",
 			wantStatus: 200,
@@ -50,7 +51,7 @@ func TestXSRFTokenPost(t *testing.T) {
 		},
 		{
 			name:       "Invalid host in token generation",
-			target:     "http://foo.com/pizza",
+			userID:     "1234",
 			host:       "bar.com",
 			path:       "/pizza",
 			wantStatus: 403,
@@ -62,9 +63,9 @@ func TestXSRFTokenPost(t *testing.T) {
 		},
 		{
 			name:       "Invalid path in token generation",
-			target:     "http://foo.com/pizza",
+			userID:     "1234",
 			host:       "foo.com",
-			path:       "/spaghetti",
+			path:       "spaghetti",
 			wantStatus: 403,
 			wantHeader: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
@@ -72,19 +73,28 @@ func TestXSRFTokenPost(t *testing.T) {
 			},
 			wantBody: "Forbidden\n",
 		},
-		//TODO(@mihalimara22): Add tests for invalid user ID once
-		//UserIDStorage.GetUserID receives a parameter
+		{
+			name:       "Invalid userID in token generation",
+			userID:     "5678",
+			host:       "foo.com",
+			path:       "/pizza",
+			wantStatus: 403,
+			wantHeader: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Forbidden\n",
+		},
 	}
 	for _, test := range tests {
-		p := xsrf.NewPlugin("1234", testUserIDStorage{})
-		tok, err := p.GenerateToken(test.host, test.path)
-		if err != nil {
-			t.Fatalf("p.GenerateToken: got %v, want nil", err)
-		}
-		req := safehttptest.NewRequest("POST", test.target, strings.NewReader(xsrf.TokenKey+"="+tok))
+		p := xsrf.Plugin{AppKey: "xsrf", Storage: userIDStorage{}}
+		tok := xsrftoken.Generate("xsrf", test.userID, test.host+test.path)
+		req := safehttptest.NewRequest("POST", "http://foo.com/pizza", strings.NewReader(xsrf.TokenKey+"="+tok))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
 		rec := safehttptest.NewResponseRecorder()
 		p.Before(rec.ResponseWriter, req)
+
 		if rec.Status() != test.wantStatus {
 			t.Errorf("response status: got %v, want %v", rec.Status(), test.wantStatus)
 		}
@@ -100,16 +110,16 @@ func TestXSRFTokenPost(t *testing.T) {
 func TestXSRFTokenMultipart(t *testing.T) {
 	tests := []struct {
 		name       string
-		target     string
 		host       string
 		path       string
+		userID     string
 		wantStatus int
 		wantHeader map[string][]string
 		wantBody   string
 	}{
 		{
 			name:       "Valid token",
-			target:     "http://foo.com/pizza",
+			userID:     "1234",
 			host:       "foo.com",
 			path:       "/pizza",
 			wantStatus: 200,
@@ -118,7 +128,7 @@ func TestXSRFTokenMultipart(t *testing.T) {
 		},
 		{
 			name:       "Invalid host in token generation",
-			target:     "http://foo.com/pizza",
+			userID:     "1234",
 			host:       "bar.com",
 			path:       "/pizza",
 			wantStatus: 403,
@@ -130,9 +140,9 @@ func TestXSRFTokenMultipart(t *testing.T) {
 		},
 		{
 			name:       "Invalid path in token generation",
-			target:     "http://foo.com/pizza",
+			userID:     "1234",
 			host:       "foo.com",
-			path:       "/spaghetti",
+			path:       "spaghetti",
 			wantStatus: 403,
 			wantHeader: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
@@ -140,24 +150,33 @@ func TestXSRFTokenMultipart(t *testing.T) {
 			},
 			wantBody: "Forbidden\n",
 		},
-		//TODO(@mihalimara22): Add tests for invalid user ID once
-		//UserIDStorage.GetUserID receives a parameter
+		{
+			name:       "Invalid userID in token generation",
+			userID:     "5678",
+			host:       "foo.com",
+			path:       "/pizza",
+			wantStatus: 403,
+			wantHeader: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Forbidden\n",
+		},
 	}
 	for _, test := range tests {
-		p := xsrf.NewPlugin("1234", testUserIDStorage{})
-		tok, err := p.GenerateToken(test.host, test.path)
-		if err != nil {
-			t.Fatalf("p.GenerateToken: got %v, want nil", err)
-		}
-		reqBody := "--123\r\n" +
+		p := xsrf.Plugin{AppKey: "xsrf", Storage: userIDStorage{}}
+		tok := xsrftoken.Generate("xsrf", test.userID, test.host+test.path)
+		b := "--123\r\n" +
 			"Content-Disposition: form-data; name=\"xsrf-token\"\r\n" +
 			"\r\n" +
 			tok + "\r\n" +
 			"--123--\r\n"
-		req := safehttptest.NewRequest("POST", test.target, strings.NewReader(reqBody))
+		req := safehttptest.NewRequest("POST", "http://foo.com/pizza", strings.NewReader(b))
 		req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+
 		rec := safehttptest.NewResponseRecorder()
 		p.Before(rec.ResponseWriter, req)
+
 		if rec.Status() != test.wantStatus {
 			t.Errorf("response status: got %v, want %v", rec.Status(), test.wantStatus)
 		}
@@ -213,9 +232,10 @@ func TestXSRFMissingToken(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		p := xsrf.NewPlugin("1234", testUserIDStorage{})
+		p := xsrf.Plugin{AppKey: "xsrf", Storage: userIDStorage{}}
 		rec := safehttptest.NewResponseRecorder()
 		p.Before(rec.ResponseWriter, test.req)
+
 		if rec.Status() != test.wantStatus {
 			t.Errorf("response status: got %v, want %v", rec.Status(), test.wantStatus)
 		}
