@@ -37,6 +37,7 @@ func (u URL) Query() (Form, error) {
 // The method uses the net/url.EscapedPath method to obtain the path.
 // See the net/url.EscapedPath method for more details.
 func (u URL) String() string {
+	// The escaping is perfomed by u.url.String()
 	return u.url.String()
 }
 
