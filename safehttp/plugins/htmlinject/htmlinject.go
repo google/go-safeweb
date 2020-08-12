@@ -1,4 +1,4 @@
-// Package htmlinject provides utilities to pre-process HTML templates and inject additional parts to them before parsing.
+// Package htmlinject provides utilities to pre-process HTML templates and inject additional parts into them before parsing.
 package htmlinject
 
 import (
@@ -164,8 +164,9 @@ func (r rewriter) processTag() error {
 
 	// Emit the rewritten HTML
 	{
+		attrPos := len(tagname) + 1
 		// Write the "<" symbol and the tag name, e.g. "<script"
-		if _, err := r.out.Write(raw[:len(tagname)+1]); err != nil {
+		if _, err := r.out.Write(raw[:attrPos]); err != nil {
 			return fmt.Errorf("copying beginning of tag: %w", err)
 		}
 		// Write the attributes we have to add
@@ -177,7 +178,7 @@ func (r rewriter) processTag() error {
 			}
 		}
 		// Write the rest of the opening tag, e.g. ` src="foo.js">`
-		if _, err := r.out.Write(raw[len(tagname)+1:]); err != nil {
+		if _, err := r.out.Write(raw[attrPos:]); err != nil {
 			return fmt.Errorf("copying end of tag: %w", err)
 		}
 		// Write the nodes we have to add
