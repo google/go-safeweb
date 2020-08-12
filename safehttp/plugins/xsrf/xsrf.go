@@ -67,37 +67,29 @@ func (p *Plugin) GenerateToken(host string, path string) (string, error) {
 	return xsrftoken.Generate(p.appKey, userID, host+path), nil
 }
 
-// validateToken validates the XSRF token. This should be present in all
-// requests as the value of form parameter xsrf-token.
-func (p *Plugin) validateToken(r *safehttp.IncomingRequest) safehttp.StatusCode {
+// Before should be executed before directing the safehttp.IncomingRequest to
+// the handler to ensure it is not part of the Cross Site Request
+// Forgery. It checks for the presence of an xsrf-token in the request body and
+// validates it based on the userID associated with the request.
+func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 	userID, err := p.storage.GetUserID()
 	if err != nil {
-		return safehttp.StatusUnauthorized
+		return w.ClientError(safehttp.StatusUnauthorized)
 	}
 	f, err := r.PostForm()
 	if err != nil {
 		mf, err := r.MultipartForm(32 << 20)
 		if err != nil {
-			return safehttp.StatusBadRequest
+			return w.ClientError(safehttp.StatusBadRequest)
 		}
 		f = &mf.Form
 	}
 	tok := f.String(TokenKey, "")
 	if f.Err() != nil || tok == "" {
-		return safehttp.StatusUnauthorized
+		return w.ClientError(safehttp.StatusUnauthorized)
 	}
 	if ok := xsrftoken.Valid(tok, p.appKey, userID, r.Host()+r.Path()); !ok {
-		return safehttp.StatusForbidden
-	}
-	return 0
-}
-
-// Before should be executed before directing the request to the handler. The
-// function applies checks to the Incoming Request to ensure this is not part
-// of a Cross-Site Request Forgery.
-func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-	if status := p.validateToken(r); status != 0 {
-		return w.ClientError(status)
+		return w.ClientError(safehttp.StatusForbidden)
 	}
 	return safehttp.Result{}
 }
