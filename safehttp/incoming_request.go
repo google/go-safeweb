@@ -124,3 +124,24 @@ func (r *IncomingRequest) MultipartForm(maxMemory int64) (*MultipartForm, error)
 			}},
 		nil
 }
+
+// Cookie returns the named cookie provided in the request or ErrNoCookie if not
+// found. If multiple cookies match the given name, only one cookie will be
+// returned.
+func (r *IncomingRequest) Cookie(name string) (*Cookie, error) {
+	c, err := r.req.Cookie(name)
+	if err != nil {
+		return nil, err
+	}
+	return &Cookie{wrapped: c}, nil
+}
+
+// Cookies parses and returns the HTTP cookies sent with the request.
+func (r *IncomingRequest) Cookies() []*Cookie {
+	cl := r.req.Cookies()
+	res := make([]*Cookie, 0, len(cl))
+	for _, c := range cl {
+		res = append(res, &Cookie{wrapped: c})
+	}
+	return res
+}
