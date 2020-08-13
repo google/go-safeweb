@@ -163,30 +163,30 @@ func TestMuxHandleSameMethodTwice(t *testing.T) {
 	mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
 }
 
-type validTestInterceptor struct {
+type setHeaderInterceptor struct {
 	name  string
 	value string
 }
 
-func (p validTestInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.IncomingRequest) safehttp.Result {
+func (p setHeaderInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.IncomingRequest) safehttp.Result {
 	if err := w.Header().Set(p.name, p.value); err != nil {
 		return w.ServerError(safehttp.StatusInternalServerError)
 	}
 	return safehttp.Result{}
 }
 
-type errorTestInterceptor struct{}
+type internalErrorInterceptor struct{}
 
-func (errorTestInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.IncomingRequest) safehttp.Result {
+func (internalErrorInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.IncomingRequest) safehttp.Result {
 	return w.ServerError(safehttp.StatusInternalServerError)
 }
 
-type claimTestInterceptor struct {
+type claimHeaderInterceptor struct {
 	headerToClaim string
 	setValue      func([]string)
 }
 
-func (p *claimTestInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.IncomingRequest) safehttp.Result {
+func (p *claimHeaderInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.IncomingRequest) safehttp.Result {
 	f, err := w.Header().Claim(p.headerToClaim)
 	if err != nil {
 		return w.ServerError(safehttp.StatusInternalServerError)
@@ -195,7 +195,7 @@ func (p *claimTestInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.Inc
 	return safehttp.Result{}
 }
 
-func (p *claimTestInterceptor) SetHeader(value string) {
+func (p *claimHeaderInterceptor) SetHeader(value string) {
 	p.setValue([]string{value})
 }
 
@@ -211,7 +211,7 @@ func TestMuxInterceptors(t *testing.T) {
 			name: "Install ServeMux Interceptor before handler registration",
 			mux: func() *safehttp.ServeMux {
 				mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-				mux.Install("test", validTestInterceptor{
+				mux.Install("test", setHeaderInterceptor{
 					name:  "Foo",
 					value: "bar",
 				})
@@ -236,7 +236,7 @@ func TestMuxInterceptors(t *testing.T) {
 				})
 				mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
 
-				mux.Install("test", validTestInterceptor{
+				mux.Install("test", setHeaderInterceptor{
 					name:  "Foo",
 					value: "bar",
 				})
@@ -250,7 +250,7 @@ func TestMuxInterceptors(t *testing.T) {
 			name: "Install Interrupting Interceptor",
 			mux: func() *safehttp.ServeMux {
 				mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-				mux.Install("test", errorTestInterceptor{})
+				mux.Install("test", internalErrorInterceptor{})
 
 				registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
@@ -270,10 +270,10 @@ func TestMuxInterceptors(t *testing.T) {
 			name: "Handler Communication With ServeMux Interceptor",
 			mux: func() *safehttp.ServeMux {
 				mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-				mux.Install("claim", &claimTestInterceptor{headerToClaim: "Foo"})
+				mux.Install("claim", &claimHeaderInterceptor{headerToClaim: "Foo"})
 
 				registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-					p := w.Interceptor("claim").(*claimTestInterceptor)
+					p := w.Interceptor("claim").(*claimHeaderInterceptor)
 					p.SetHeader("bar")
 					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 				})
