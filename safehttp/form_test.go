@@ -15,14 +15,13 @@
 package safehttp_test
 
 import (
-	"errors"
 	"math"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
 	"strings"
 	"testing"
-	txttemplate "text/template"
+	"text/template"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
@@ -1035,7 +1034,7 @@ func TestFormValidSlicePost(t *testing.T) {
 }
 
 func TestFormValidSliceMultipart(t *testing.T) {
-	multipartBody := txttemplate.Must(txttemplate.New("multipart").Parse(
+	multipartBody := template.Must(template.New("multipart").Parse(
 		"{{ range . -}}" +
 			"--123\r\n" +
 			"Content-Disposition: form-data; name=\"pizza\"\r\n" +
