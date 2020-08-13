@@ -177,6 +177,7 @@ Hello world
 			in: `
 <html>
 <head>
+<link rel="stylesheet" href="styles.css">
 <link rel=preload as="script" src="gopher.js">
 </head>
 <body>
@@ -193,6 +194,7 @@ Hello world
 			want: `
 <html>
 <head>
+<link rel="stylesheet" href="styles.css">
 <link nonce="{{CSPNonce}}" rel=preload as="script" src="gopher.js">
 </head>
 <body>
