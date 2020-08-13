@@ -114,15 +114,18 @@ func (h Header) Values(name string) []string {
 	return clone
 }
 
-// SetCookie adds the cookie provided as a Set-Cookie header in the header
-// collection. If the cookie is nil or cookie.Name is invalid, no header is
-// added. This is the only method that can modify the Set-Cookie header.
-// If other methods try to modify the header they will return errors.
-// TODO: Replace http.Cookie with safehttp.Cookie.
-func (h Header) SetCookie(cookie *http.Cookie) {
-	if v := cookie.String(); v != "" {
-		h.wrapped.Add("Set-Cookie", v)
+// addCookie adds the cookie provided as a Set-Cookie header in the header
+// collection. If the cookie is nil or cookie.Name() is invalid, no header is
+// added and an error is returned. This is the only method that can modify the
+// Set-Cookie header. If other methods try to modify the header they will return
+// errors.
+func (h Header) addCookie(c *Cookie) error {
+	v := c.wrapped.String()
+	if v == "" {
+		return errors.New("invalid cookie name")
 	}
+	h.wrapped.Add("Set-Cookie", v)
+	return nil
 }
 
 // TODO: Add Write, WriteSubset and Clone when needed.

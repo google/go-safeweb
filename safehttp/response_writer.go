@@ -107,6 +107,13 @@ func (w ResponseWriter) Header() Header {
 	return w.header
 }
 
+// SetCookie adds a Set-Cookie header to the provided ResponseWriter's headers.
+// The provided cookie must have a valid Name. Otherwise an error will be
+// returned.
+func (w *ResponseWriter) SetCookie(c *Cookie) error {
+	return w.header.addCookie(c)
+}
+
 // Dispatcher TODO
 type Dispatcher interface {
 	Write(rw http.ResponseWriter, resp Response) error
