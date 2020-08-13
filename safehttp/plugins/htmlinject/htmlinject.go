@@ -19,11 +19,11 @@ type Rule struct {
 	// WithAttributes is a filter applied on tags to decide whether to run the Rule:
 	// only tags with the given attributes key:value will be matched.
 	WithAttributes map[string]string
-	// AddAttributes is a list of strings to add to the HTML in place of attributes.
+	// AddAttributes is a list of strings to add to the HTML as attributes.
 	// All the given strings will be appended verbatim after the matched tag so they
 	// should be prefixed with a space.
 	AddAttributes []string
-	// AddNodes is a list of nodes to append immediately after the openin tag that matched.
+	// AddNodes is a list of nodes to append immediately after the opening tag that matched.
 	// This means that for elements that have a matching closing tag the added node will be
 	// a child node, for self-closing tags it will be a sibling.
 	AddNodes []string
@@ -59,7 +59,7 @@ func CSPNonces(nonceAttr string) Config {
 
 // XSRFTokensDefault is the default config to add hidden inputs to forms to provide
 // an anti-XSRF token. The rewritten template expects the XSRFToken Func to be available
-// in the template to provide tokens and sets the name for the sent value to be "xsrftoken".
+// in the template to provide tokens and sets the name for the sent value to be "xsrf-token".
 var XSRFTokensDefault = XSRFTokens(`<input type="hidden" name="xsrf-token" value="{{XSRFToken}}">`)
 
 // XSRFTokens constructs a Config to add the given string as a child node to forms.
@@ -72,7 +72,7 @@ func XSRFTokens(inputTag string) Config {
 
 // Transform rewrites the given template according to the given configs.
 // If the passed io.Rewriter has a `Size() int64` method it will be used to pre-allocate buffers.
-func Transform(src io.Reader, cfg ...Config) (tpl string, _ error) {
+func Transform(src io.Reader, cfg ...Config) (string, error) {
 	rw := rewriter{
 		rules:     map[string][]Rule{},
 		tokenizer: html.NewTokenizer(src),
@@ -87,7 +87,7 @@ func Transform(src io.Reader, cfg ...Config) (tpl string, _ error) {
 		}
 	}
 	if err := rw.rewrite(); err != nil {
-		return "", fmt.Errorf("transforming template: %v", err)
+		return "", err
 	}
 	return rw.out.String(), nil
 }
@@ -148,12 +148,12 @@ func (r rewriter) processTag() error {
 	// Filter rules by attributes
 	var triggeredRules []Rule
 	{
-		rules := r.rules[tagname]
-		for _, r := range rules {
+		for _, r := range r.rules[tagname] {
 			match := true
 			for k, v := range r.WithAttributes {
 				if attributes[k] != v {
 					match = false
+					break
 				}
 			}
 			if match {
