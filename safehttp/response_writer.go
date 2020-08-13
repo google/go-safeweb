@@ -42,7 +42,7 @@ func NewResponseWriter(d Dispatcher, rw http.ResponseWriter, muxInterceps map[st
 	}
 }
 
-// Interceptor returns the plugin associated with the given key.
+// Interceptor returns the interceptor associated with the given key.
 func (w *ResponseWriter) Interceptor(key string) Interceptor {
 	mp, ok := w.muxInterceps[key]
 	if !ok {
