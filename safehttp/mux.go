@@ -118,14 +118,17 @@ func (m *ServeMux) Handle(pattern string, method string, h Handler) {
 	mh.handlers[method] = h
 }
 
-// Install installs interceps which will be applied to all requests coming to
-// the ServeMux. The key is used to access the interceptor and should be unique.
+// Install installs an Interceptor. Interceptor keys need to be unique. If an
+// Interceptor with the same key has already been installed, Install panics.
 //
 // TODO(@empijei, @grenfeldt, @kele, @mihalimara22): Right now you could install
 // the same interceptor twice with different keys, we need to figure out how
 // exactly we want to avoid that and how we define key uniqueness.
-func (m *ServeMux) Install(key string, p Interceptor) {
-	m.interceps[key] = p
+func (m *ServeMux) Install(key string, i Interceptor) {
+	if _, exists := m.interceps[key]; exists {
+		panic("interceptor with same key already installed")
+	}
+	m.interceps[key] = i
 }
 
 // ServeHTTP dispatches the request to the handler whose method matches the
@@ -134,7 +137,7 @@ func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	m.mux.ServeHTTP(w, r)
 }
 
-// methodHandler is collection of handlers based on the request method.
+// methodHandler is a collection of handlers based on the request method.
 type methodHandler struct {
 	// Maps an HTTP method to its handler
 	handlers     map[string]Handler
