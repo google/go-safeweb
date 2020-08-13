@@ -162,3 +162,151 @@ func TestMuxHandleSameMethodTwice(t *testing.T) {
 
 	mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
 }
+
+type validTestInterceptor struct {
+	name  string
+	value string
+}
+
+func (p validTestInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.IncomingRequest) safehttp.Result {
+	if err := w.Header().Set(p.name, p.value); err != nil {
+		return w.ServerError(safehttp.StatusInternalServerError)
+	}
+	return safehttp.Result{}
+}
+
+type errorTestInterceptor struct{}
+
+func (errorTestInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.IncomingRequest) safehttp.Result {
+	return w.ServerError(safehttp.StatusInternalServerError)
+}
+
+type claimTestInterceptor struct {
+	headerToClaim string
+	setValue      func([]string)
+}
+
+func (p *claimTestInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.IncomingRequest) safehttp.Result {
+	f, err := w.Header().Claim(p.headerToClaim)
+	if err != nil {
+		return w.ServerError(safehttp.StatusInternalServerError)
+	}
+	p.setValue = f
+	return safehttp.Result{}
+}
+
+func (p *claimTestInterceptor) SetHeader(value string) {
+	p.setValue([]string{value})
+}
+
+func TestMuxInterceptors(t *testing.T) {
+	tests := []struct {
+		name        string
+		mux         *safehttp.ServeMux
+		wantStatus  int
+		wantHeaders map[string][]string
+		wantBody    string
+	}{
+		{
+			name: "Install ServeMux Interceptor before handler registration",
+			mux: func() *safehttp.ServeMux {
+				mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+				mux.Install("test", validTestInterceptor{
+					name:  "Foo",
+					value: "bar",
+				})
+
+				registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
+				})
+				mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
+				return mux
+			}(),
+			wantStatus:  200,
+			wantHeaders: map[string][]string{"Foo": {"bar"}},
+			wantBody:    "&lt;h1&gt;Hello World!&lt;/h1&gt;",
+		},
+		{
+			name: "Install ServeMux interceptor after handler registration",
+			mux: func() *safehttp.ServeMux {
+				mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+
+				registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
+				})
+				mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
+
+				mux.Install("test", validTestInterceptor{
+					name:  "Foo",
+					value: "bar",
+				})
+				return mux
+			}(),
+			wantStatus:  200,
+			wantHeaders: map[string][]string{"Foo": {"bar"}},
+			wantBody:    "&lt;h1&gt;Hello World!&lt;/h1&gt;",
+		},
+		{
+			name: "Install Interrupting Interceptor",
+			mux: func() *safehttp.ServeMux {
+				mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+				mux.Install("test", errorTestInterceptor{})
+
+				registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
+				})
+				mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
+
+				return mux
+			}(),
+			wantStatus: 500,
+			wantHeaders: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Internal Server Error\n",
+		},
+		{
+			name: "Handler Communication With ServeMux Interceptor",
+			mux: func() *safehttp.ServeMux {
+				mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+				mux.Install("claim", &claimTestInterceptor{headerToClaim: "Foo"})
+
+				registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+					p := w.Interceptor("claim").(*claimTestInterceptor)
+					p.SetHeader("bar")
+					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
+				})
+				mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
+
+				return mux
+			}(),
+			wantStatus:  200,
+			wantHeaders: map[string][]string{"Foo": {"bar"}},
+			wantBody:    "&lt;h1&gt;Hello World!&lt;/h1&gt;",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			b := &strings.Builder{}
+			rw := newResponseRecorder(b)
+
+			req := httptest.NewRequest("GET", "http://foo.com/bar", nil)
+
+			tt.mux.ServeHTTP(rw, req)
+
+			if rw.status != tt.wantStatus {
+				t.Errorf("rw.status: got %v want %v", rw.status, tt.wantStatus)
+			}
+
+			if diff := cmp.Diff(tt.wantHeaders, map[string][]string(rw.header)); diff != "" {
+				t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+			}
+
+			if got := b.String(); got != tt.wantBody {
+				t.Errorf("response body: got %q want %q", got, tt.wantBody)
+			}
+		})
+	}
+}
