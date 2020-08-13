@@ -46,17 +46,6 @@ func TestSetCanonicalization(t *testing.T) {
 	}
 }
 
-func TestSetSetCookie(t *testing.T) {
-	h := newHeader(http.Header{})
-	cookie := &http.Cookie{Name: "x", Value: "y"}
-	h.SetCookie(cookie)
-	if err := h.Set("Set-Cookie", "x=y"); err == nil {
-		t.Error(`h.Set("Set-Cookie", "x=y") got: nil want: error`)
-	}
-	if diff := cmp.Diff([]string{"x=y"}, h.Values("Set-Cookie")); diff != "" {
-		t.Errorf("h.Values(\"Set-Cookie\") mismatch (-want +got):\n%s", diff)
-	}
-}
 func TestSetEmptySetCookie(t *testing.T) {
 	h := newHeader(http.Header{})
 	if err := h.Set("Set-Cookie", "x=y"); err == nil {
@@ -127,17 +116,6 @@ func TestAddCanonicalization(t *testing.T) {
 	}
 }
 
-func TestAddSetCookie(t *testing.T) {
-	h := newHeader(http.Header{})
-	cookie := &http.Cookie{Name: "x", Value: "y"}
-	h.SetCookie(cookie)
-	if err := h.Add("Set-Cookie", "x=y"); err == nil {
-		t.Error(`h.Add("Set-Cookie", "x=y") got: nil want: error`)
-	}
-	if diff := cmp.Diff([]string{"x=y"}, h.Values("Set-Cookie")); diff != "" {
-		t.Errorf("h.Values(\"Set-Cookie\") mismatch (-want +got):\n%s", diff)
-	}
-}
 func TestAddEmptySetCookie(t *testing.T) {
 	h := newHeader(http.Header{})
 	if err := h.Add("Set-Cookie", "x=y"); err == nil {
@@ -208,18 +186,6 @@ func TestDelCanonicalization(t *testing.T) {
 	}
 }
 
-func TestDelSetCookie(t *testing.T) {
-	h := newHeader(http.Header{})
-	cookie := &http.Cookie{Name: "x", Value: "y"}
-	h.SetCookie(cookie)
-	if err := h.Del("Set-Cookie"); err == nil {
-		t.Error(`h.Del("Set-Cookie") got: nil want: error`)
-	}
-	if diff := cmp.Diff([]string{"x=y"}, h.Values("Set-Cookie")); diff != "" {
-		t.Errorf("h.Values(\"Set-Cookie\") mismatch (-want +got):\n%s", diff)
-	}
-}
-
 func TestDelEmptySetCookie(t *testing.T) {
 	h := newHeader(http.Header{})
 	if err := h.Del("Set-Cookie"); err == nil {
@@ -256,24 +222,6 @@ func TestDelEmptyClaimed(t *testing.T) {
 	}
 	if diff := cmp.Diff([]string{}, h.Values("Foo-Key")); diff != "" {
 		t.Errorf("h.Values(\"Foo-Key\") mismatch (-want +got):\n%s", diff)
-	}
-}
-
-func TestSetCookie(t *testing.T) {
-	h := newHeader(http.Header{})
-	c := &http.Cookie{Name: "x", Value: "y"}
-	h.SetCookie(c)
-	if got, want := h.Get("Set-Cookie"), "x=y"; got != want {
-		t.Errorf(`h.Get("Set-Cookie") got: %q want: %q`, got, want)
-	}
-}
-
-func TestSetCookieInvalidName(t *testing.T) {
-	h := newHeader(http.Header{})
-	c := &http.Cookie{Name: "x=", Value: "y"}
-	h.SetCookie(c)
-	if got, want := h.Get("Set-Cookie"), ""; got != want {
-		t.Errorf(`h.Get("Set-Cookie") got: %q want: %q`, got, want)
 	}
 }
 
