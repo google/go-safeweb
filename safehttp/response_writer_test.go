@@ -36,7 +36,7 @@ func TestResponseWriterSetCookie(t *testing.T) {
 		"Set-Cookie": {"foo=bar; HttpOnly; Secure; SameSite=Lax"},
 	}
 	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.header)); diff != "" {
-		t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
+		t.Errorf("rr.header mismatch (-want +got):\n%s", diff)
 	}
 }
 
