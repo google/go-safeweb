@@ -74,6 +74,9 @@ type ServeMux struct {
 
 	// Maps patterns to handlers supporting multiple HTTP methods.
 	handlers map[string]methodHandler
+
+	// Maps interceptor key to interceptor.
+	interceps map[string]Interceptor
 }
 
 // NewServeMux allocates and returns a new ServeMux
@@ -84,10 +87,11 @@ func NewServeMux(d Dispatcher, domains ...string) *ServeMux {
 		dm[host] = true
 	}
 	return &ServeMux{
-		mux:      http.NewServeMux(),
-		domains:  dm,
-		disp:     d,
-		handlers: map[string]methodHandler{},
+		mux:       http.NewServeMux(),
+		domains:   dm,
+		disp:      d,
+		handlers:  map[string]methodHandler{},
+		interceps: map[string]Interceptor{},
 	}
 }
 
@@ -97,9 +101,10 @@ func (m *ServeMux) Handle(pattern string, method string, h Handler) {
 	mh, ok := m.handlers[pattern]
 	if !ok {
 		mh := methodHandler{
-			handlers: map[string]Handler{method: h},
-			domains:  m.domains,
-			disp:     m.disp,
+			handlers:     map[string]Handler{method: h},
+			domains:      m.domains,
+			disp:         m.disp,
+			muxInterceps: m.interceps,
 		}
 
 		m.handlers[pattern] = mh
@@ -113,6 +118,16 @@ func (m *ServeMux) Handle(pattern string, method string, h Handler) {
 	mh.handlers[method] = h
 }
 
+// Install installs interceps which will be applied to all requests coming to
+// the ServeMux. The key is used to access the interceptor and should be unique.
+//
+// TODO(@empijei, @grenfeldt, @kele, @mihalimara22): Right now you could install
+// the same interceptor twice with different keys, we need to figure out how
+// exactly we want to avoid that and how we define key uniqueness.
+func (m *ServeMux) Install(key string, p Interceptor) {
+	m.interceps[key] = p
+}
+
 // ServeHTTP dispatches the request to the handler whose method matches the
 // incoming request and whose pattern most closely matches the request URL.
 func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -122,14 +137,19 @@ func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // methodHandler is collection of handlers based on the request method.
 type methodHandler struct {
 	// Maps an HTTP method to its handler
-	handlers map[string]Handler
-	domains  map[string]bool
-	disp     Dispatcher
+	handlers     map[string]Handler
+	domains      map[string]bool
+	disp         Dispatcher
+	muxInterceps map[string]Interceptor
 }
 
 // ServeHTTP dispatches the request to the handler associated with
-// the incoming request's method.
+// the incoming request's method after calling the Before function of all
+// ServeMux interceptors the handler is registered on.
 func (m methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	rw := NewResponseWriter(m.disp, w, m.muxInterceps)
+	ir := NewIncomingRequest(r)
+
 	if !m.domains[r.Host] {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
@@ -141,5 +161,11 @@ func (m methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.ServeHTTP(NewResponseWriter(m.disp, w), NewIncomingRequest(r))
+	for _, intercep := range m.muxInterceps {
+		if res := intercep.Before(rw, ir); res.written {
+			return
+		}
+	}
+
+	h.ServeHTTP(rw, ir)
 }
