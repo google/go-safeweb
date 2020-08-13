@@ -12,62 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package safehttp
+package safehttp_test
 
 import (
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/safehtml"
-	"github.com/google/safehtml/template"
 )
-
-type testDispatcher struct{}
-
-func (testDispatcher) Write(rw http.ResponseWriter, resp Response) error {
-	switch x := resp.(type) {
-	case safehtml.HTML:
-		_, err := rw.Write([]byte(x.String()))
-		return err
-	default:
-		panic("not a safe response type")
-	}
-}
-
-func (testDispatcher) ExecuteTemplate(rw http.ResponseWriter, t Template, data interface{}) error {
-	switch x := t.(type) {
-	case *template.Template:
-		return x.Execute(rw, data)
-	default:
-		panic("not a safe response type")
-	}
-}
-
-type responseRecorder struct {
-	header http.Header
-	writer io.Writer
-	status int
-}
-
-func newResponseRecorder(w io.Writer) *responseRecorder {
-	return &responseRecorder{header: http.Header{}, writer: w, status: http.StatusOK}
-}
-
-func (r *responseRecorder) Header() http.Header {
-	return r.header
-}
-
-func (r *responseRecorder) WriteHeader(statusCode int) {
-	r.status = statusCode
-}
-
-func (r *responseRecorder) Write(data []byte) (int, error) {
-	return r.writer.Write(data)
-}
 
 func TestMuxOneHandlerOneRequest(t *testing.T) {
 	var test = []struct {
@@ -108,12 +64,12 @@ func TestMuxOneHandlerOneRequest(t *testing.T) {
 
 	for _, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
-			mux := NewServeMux(testDispatcher{}, "foo.com")
+			mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
 
-			h := HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
+			h := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 			})
-			mux.Handle("/", MethodGet, h)
+			mux.Handle("/", safehttp.MethodGet, h)
 
 			b := &strings.Builder{}
 			rw := newResponseRecorder(b)
@@ -139,7 +95,7 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 	var tests = []struct {
 		name        string
 		req         *http.Request
-		hf          HandlerFunc
+		hf          safehttp.Handler
 		wantStatus  int
 		wantHeaders map[string][]string
 		wantBody    string
@@ -147,7 +103,7 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 		{
 			name: "GET Handler",
 			req:  httptest.NewRequest("GET", "http://foo.com/bar", nil),
-			hf: HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
+			hf: safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World! GET</h1>"))
 			}),
 			wantStatus:  200,
@@ -157,7 +113,7 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 		{
 			name: "POST Handler",
 			req:  httptest.NewRequest("POST", "http://foo.com/bar", nil),
-			hf: HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
+			hf: safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World! POST</h1>"))
 			}),
 			wantStatus:  200,
@@ -167,9 +123,9 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 	}
 
 	d := testDispatcher{}
-	mux := NewServeMux(d, "foo.com")
-	mux.Handle("/bar", MethodGet, tests[0].hf)
-	mux.Handle("/bar", MethodPost, tests[1].hf)
+	mux := safehttp.NewServeMux(d, "foo.com")
+	mux.Handle("/bar", safehttp.MethodGet, tests[0].hf)
+	mux.Handle("/bar", safehttp.MethodPost, tests[1].hf)
 
 	for _, test := range tests {
 		b := &strings.Builder{}
@@ -191,12 +147,12 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 
 func TestMuxHandleSameMethodTwice(t *testing.T) {
 	d := testDispatcher{}
-	mux := NewServeMux(d, "foo.com")
+	mux := safehttp.NewServeMux(d, "foo.com")
 
-	registeredHandler := HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
+	registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 	})
-	mux.Handle("/bar", MethodGet, registeredHandler)
+	mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
 
 	defer func() {
 		if r := recover(); r == nil {
@@ -204,5 +160,5 @@ func TestMuxHandleSameMethodTwice(t *testing.T) {
 		}
 	}()
 
-	mux.Handle("/bar", MethodGet, registeredHandler)
+	mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
 }
