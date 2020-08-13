@@ -25,28 +25,30 @@ const (
 	TokenKey = "xsrf-token"
 )
 
-// UserIDStorage stores the web application users' IDs,
+// UserIdentifier provides the web application users' identifiers,
 // needed in generating the XSRF token.
-type UserIDStorage interface {
-	GetUserID(*safehttp.IncomingRequest) (string, error)
+type UserIdentifier interface {
+	// UserID returns the user's identifier based on the
+	// safehttp.IncomingRequest received.
+	UserID(*safehttp.IncomingRequest) (string, error)
 }
 
-// Plugin implements XSRF protection. It requires an application key and a
+// Interceptor implements XSRF protection. It requires an application key and a
 // storage service. The appKey uniquely identifies each registered service and
 // should have high entropy. The storage service supports retrieving ID's of the
 // application's users. Both the appKey and user ID are used in the XSRF
 // token generation algorithm.
-type Plugin struct {
-	AppKey  string
-	Storage UserIDStorage
+type Interceptor struct {
+	AppKey     string
+	Identifier UserIdentifier
 }
 
 // Before should be executed before directing the safehttp.IncomingRequest to
 // the handler to ensure it is not part of the Cross Site Request
 // Forgery. It checks for the presence of an xsrf-token in the request body and
 // validates it based on the userID associated with the request.
-func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-	userID, err := p.Storage.GetUserID(r)
+func (p *Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+	userID, err := p.Identifier.UserID(r)
 	if err != nil {
 		return w.ClientError(safehttp.StatusUnauthorized)
 	}

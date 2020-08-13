@@ -24,9 +24,9 @@ import (
 	"testing"
 )
 
-type userIDStorage struct{}
+type userIdentifier struct{}
 
-func (userIDStorage) GetUserID(r *safehttp.IncomingRequest) (string, error) {
+func (userIdentifier) UserID(r *safehttp.IncomingRequest) (string, error) {
 	return "1234", nil
 }
 
@@ -87,13 +87,13 @@ func TestXSRFTokenPost(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		p := xsrf.Plugin{AppKey: "xsrf", Storage: userIDStorage{}}
+		i := xsrf.Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
 		tok := xsrftoken.Generate("xsrf", test.userID, test.host+test.path)
 		req := safehttptest.NewRequest("POST", "http://foo.com/pizza", strings.NewReader(xsrf.TokenKey+"="+tok))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 		rec := safehttptest.NewResponseRecorder()
-		p.Before(rec.ResponseWriter, req)
+		i.Before(rec.ResponseWriter, req)
 
 		if rec.Status() != test.wantStatus {
 			t.Errorf("response status: got %v, want %v", rec.Status(), test.wantStatus)
@@ -164,7 +164,7 @@ func TestXSRFTokenMultipart(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		p := xsrf.Plugin{AppKey: "xsrf", Storage: userIDStorage{}}
+		i := xsrf.Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
 		tok := xsrftoken.Generate("xsrf", test.userID, test.host+test.path)
 		b := "--123\r\n" +
 			"Content-Disposition: form-data; name=\"xsrf-token\"\r\n" +
@@ -175,7 +175,7 @@ func TestXSRFTokenMultipart(t *testing.T) {
 		req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
 
 		rec := safehttptest.NewResponseRecorder()
-		p.Before(rec.ResponseWriter, req)
+		i.Before(rec.ResponseWriter, req)
 
 		if rec.Status() != test.wantStatus {
 			t.Errorf("response status: got %v, want %v", rec.Status(), test.wantStatus)
@@ -232,9 +232,9 @@ func TestXSRFMissingToken(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		p := xsrf.Plugin{AppKey: "xsrf", Storage: userIDStorage{}}
+		i := xsrf.Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
 		rec := safehttptest.NewResponseRecorder()
-		p.Before(rec.ResponseWriter, test.req)
+		i.Before(rec.ResponseWriter, test.req)
 
 		if rec.Status() != test.wantStatus {
 			t.Errorf("response status: got %v, want %v", rec.Status(), test.wantStatus)
