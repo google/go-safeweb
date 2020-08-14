@@ -23,6 +23,30 @@ import (
 	"github.com/google/go-safeweb/safehttp/safehttptest"
 )
 
+func TestWorkingAsIntended(t *testing.T) {
+	req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
+	rr := safehttptest.NewResponseRecorder()
+
+	p := staticheaders.Plugin{}
+	p.Before(rr.ResponseWriter, req)
+
+	if got, want := rr.Status(), 200; got != want {
+		t.Errorf("rr.Status() got: %v want: %v", got, want)
+	}
+
+	wantHeaders := map[string][]string{
+		"X-Content-Type-Options": {"nosniff"},
+		"X-Xss-Protection":       {"0"},
+	}
+	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
+		t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
+	}
+
+	if got, want := rr.Body(), ""; got != want {
+		t.Errorf("rr.Body() got: %q want: %q", got, want)
+	}
+}
+
 func TestAlreadyClaimed(t *testing.T) {
 	alreadyClaimed := []string{"X-Content-Type-Options", "X-XSS-Protection"}
 
@@ -53,29 +77,5 @@ func TestAlreadyClaimed(t *testing.T) {
 				t.Errorf("rr.Body() got: %q want: %q", got, want)
 			}
 		})
-	}
-}
-
-func TestWorkingAsIntended(t *testing.T) {
-	req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
-	rr := safehttptest.NewResponseRecorder()
-
-	p := staticheaders.Plugin{}
-	p.Before(rr.ResponseWriter, req)
-
-	if got, want := rr.Status(), 200; got != want {
-		t.Errorf("rr.Status() got: %v want: %v", got, want)
-	}
-
-	wantHeaders := map[string][]string{
-		"X-Content-Type-Options": {"nosniff"},
-		"X-Xss-Protection":       {"0"},
-	}
-	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
-		t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
-	}
-
-	if got, want := rr.Body(), ""; got != want {
-		t.Errorf("rr.Body() got: %q want: %q", got, want)
 	}
 }
