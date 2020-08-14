@@ -1,0 +1,2 @@
+# Config for https://github.com/denis-tingajkin/go-header
+template-path: ./source-code-copyright-header.txt
