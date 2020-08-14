@@ -17,6 +17,18 @@
 // The concept of this package is to provide "safe by construction" SQL strings so that code that would accidentally introduce
 // SQL injection vulnerabilities does not compile.
 //
+// Examples
+// Code like the following is trivial to migrate from sql to safesql:
+// 	db.Query("SELECT ...", args...)
+// The only change required would be to promote the string literal to a trusted string:
+// 	db.Query(safesql.New("SELECT ...", args...)
+// For more complicated cases it might be needed to use the helper functions like Join and Concat.
+// If the queries for the service are stored in a trusted runtime-only source that cannot be controlled by a user
+// the uncheckedconversions package can be used to assert that those strings are under the programmer control.
+// Note that unchecked conversions should be very limited, ideally never used, as they pose a security risk.
+//
+// Note on missing documentation
+//
 // For documentation on methods and types that wrap the standard ones please refer to the stdlib package doc instead, as
 // all the types exported by this package are tiny wrappers around the standard ones and thus follow their behavior.
 // The only relevant difference is that functions accept TrustedSQLString instances instead of plain "strings" and that some
