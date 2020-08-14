@@ -111,3 +111,10 @@ func (c *Cookie) Name() string {
 func (c *Cookie) Value() string {
 	return c.wrapped.Value
 }
+
+// String returns the serialization of the cookie for use in a Set-Cookie
+// response header. If c is nil or c.Name() is invalid, the empty string is
+// returned.
+func (c *Cookie) String() string {
+	return c.wrapped.String()
+}
