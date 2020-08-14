@@ -120,7 +120,7 @@ func (h Header) Values(name string) []string {
 // Set-Cookie header. If other methods try to modify the header they will return
 // errors.
 func (h Header) addCookie(c *Cookie) error {
-	v := c.wrapped.String()
+	v := c.String()
 	if v == "" {
 		return errors.New("invalid cookie name")
 	}
