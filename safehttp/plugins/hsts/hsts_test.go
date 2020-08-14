@@ -15,68 +15,20 @@
 package hsts_test
 
 import (
-	"html/template"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/plugins/hsts"
-	"github.com/google/safehtml"
+	"github.com/google/go-safeweb/safehttp/safehttptest"
 )
-
-type testDispatcher struct{}
-
-func (testDispatcher) Write(rw http.ResponseWriter, resp safehttp.Response) error {
-	switch x := resp.(type) {
-	case safehtml.HTML:
-		_, err := rw.Write([]byte(x.String()))
-		return err
-	default:
-		panic("not a safe response type")
-	}
-}
-
-func (testDispatcher) ExecuteTemplate(rw http.ResponseWriter, t safehttp.Template, data interface{}) error {
-	switch x := t.(type) {
-	case *template.Template:
-		return x.Execute(rw, data)
-	default:
-		panic("not a safe response type")
-	}
-}
-
-type responseRecorder struct {
-	header http.Header
-	writer io.Writer
-	status int
-}
-
-func newResponseRecorder(w io.Writer) *responseRecorder {
-	return &responseRecorder{header: http.Header{}, writer: w, status: http.StatusOK}
-}
-
-func (r *responseRecorder) Header() http.Header {
-	return r.header
-}
-
-func (r *responseRecorder) WriteHeader(statusCode int) {
-	r.status = statusCode
-}
-
-func (r *responseRecorder) Write(data []byte) (int, error) {
-	return r.writer.Write(data)
-}
 
 func TestHSTS(t *testing.T) {
 	var test = []struct {
 		name        string
 		plugin      hsts.Plugin
-		req         *http.Request
+		req         *safehttp.IncomingRequest
 		wantStatus  int
 		wantHeaders map[string][]string
 		wantBody    string
@@ -84,7 +36,7 @@ func TestHSTS(t *testing.T) {
 		{
 			name:       "HTTPS",
 			plugin:     hsts.NewPlugin(),
-			req:        httptest.NewRequest("GET", "https://localhost/", nil),
+			req:        safehttptest.NewRequest("GET", "https://localhost/", nil),
 			wantStatus: 200,
 			wantHeaders: map[string][]string{
 				"Strict-Transport-Security": {"max-age=63072000; includeSubDomains"}, // 63072000 seconds is two years
@@ -94,7 +46,7 @@ func TestHSTS(t *testing.T) {
 		{
 			name:       "HTTP",
 			plugin:     hsts.NewPlugin(),
-			req:        httptest.NewRequest("GET", "http://localhost/", nil),
+			req:        safehttptest.NewRequest("GET", "http://localhost/", nil),
 			wantStatus: 301,
 			wantHeaders: map[string][]string{
 				"Content-Type": {"text/html; charset=utf-8"},
@@ -105,7 +57,7 @@ func TestHSTS(t *testing.T) {
 		{
 			name:       "HTTP behind proxy",
 			plugin:     hsts.Plugin{BehindProxy: true},
-			req:        httptest.NewRequest("GET", "http://localhost/", nil),
+			req:        safehttptest.NewRequest("GET", "http://localhost/", nil),
 			wantStatus: 200,
 			wantHeaders: map[string][]string{
 				// max-age=0 tells the browser to expire the HSTS protection.
@@ -116,7 +68,7 @@ func TestHSTS(t *testing.T) {
 		{
 			name:       "Preload",
 			plugin:     hsts.Plugin{Preload: true, DisableIncludeSubDomains: true},
-			req:        httptest.NewRequest("GET", "https://localhost/", nil),
+			req:        safehttptest.NewRequest("GET", "https://localhost/", nil),
 			wantStatus: 200,
 			wantHeaders: map[string][]string{
 				// max-age=0 tells the browser to expire the HSTS protection.
@@ -127,7 +79,7 @@ func TestHSTS(t *testing.T) {
 		{
 			name:       "Preload and IncludeSubDomains",
 			plugin:     hsts.Plugin{Preload: true},
-			req:        httptest.NewRequest("GET", "https://localhost/", nil),
+			req:        safehttptest.NewRequest("GET", "https://localhost/", nil),
 			wantStatus: 200,
 			wantHeaders: map[string][]string{
 				// max-age=0 tells the browser to expire the HSTS protection.
@@ -138,7 +90,7 @@ func TestHSTS(t *testing.T) {
 		{
 			name:       "No preload and no includeSubDomains",
 			plugin:     hsts.Plugin{DisableIncludeSubDomains: true},
-			req:        httptest.NewRequest("GET", "https://localhost/", nil),
+			req:        safehttptest.NewRequest("GET", "https://localhost/", nil),
 			wantStatus: 200,
 			wantHeaders: map[string][]string{
 				// max-age=0 tells the browser to expire the HSTS protection.
@@ -149,7 +101,7 @@ func TestHSTS(t *testing.T) {
 		{
 			name:       "Custom maxage",
 			plugin:     hsts.Plugin{MaxAge: 3600 * time.Second},
-			req:        httptest.NewRequest("GET", "https://localhost/", nil),
+			req:        safehttptest.NewRequest("GET", "https://localhost/", nil),
 			wantStatus: 200,
 			wantHeaders: map[string][]string{
 				"Strict-Transport-Security": {"max-age=3600; includeSubDomains"}, // 3600 seconds is 1 hour
@@ -159,7 +111,7 @@ func TestHSTS(t *testing.T) {
 		{
 			name:       "Negative maxage",
 			plugin:     hsts.Plugin{MaxAge: -1 * time.Second},
-			req:        httptest.NewRequest("GET", "https://localhost/", nil),
+			req:        safehttptest.NewRequest("GET", "https://localhost/", nil),
 			wantStatus: 500,
 			wantHeaders: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
@@ -171,22 +123,19 @@ func TestHSTS(t *testing.T) {
 
 	for _, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
-			m := safehttp.NewMachinery(tt.plugin.Before, &testDispatcher{})
+			rr := safehttptest.NewResponseRecorder()
 
-			b := &strings.Builder{}
-			rr := newResponseRecorder(b)
+			tt.plugin.Before(rr.ResponseWriter, tt.req)
 
-			m.HandleRequest(rr, tt.req)
-
-			if rr.status != tt.wantStatus {
-				t.Errorf("status code got: %v want: %v", rr.status, tt.wantStatus)
+			if rr.Status() != tt.wantStatus {
+				t.Errorf("status code got: %v want: %v", rr.Status(), tt.wantStatus)
 			}
 
 			if diff := cmp.Diff(tt.wantHeaders, map[string][]string(rr.Header())); diff != "" {
 				t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
 			}
 
-			if got := b.String(); got != tt.wantBody {
+			if got := rr.Body(); got != tt.wantBody {
 				t.Errorf("response body got: %q want: %q", got, tt.wantBody)
 			}
 		})
@@ -195,20 +144,16 @@ func TestHSTS(t *testing.T) {
 
 func TestStrictTransportSecurityAlreadyImmutable(t *testing.T) {
 	p := hsts.NewPlugin()
-	m := safehttp.NewMachinery(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-		w.Header().Claim("Strict-Transport-Security")
-		return p.Before(w, r)
-	}, &testDispatcher{})
 
-	req := httptest.NewRequest("GET", "https://localhost/", nil)
+	req := safehttptest.NewRequest("GET", "https://localhost/", nil)
 
-	b := &strings.Builder{}
-	rr := newResponseRecorder(b)
+	rr := safehttptest.NewResponseRecorder()
+	rr.ResponseWriter.Header().Claim("Strict-Transport-Security")
 
-	m.HandleRequest(rr, req)
+	p.Before(rr.ResponseWriter, req)
 
-	if want := 500; rr.status != want {
-		t.Errorf("status code got: %v want: %v", rr.status, want)
+	if want := 500; rr.Status() != want {
+		t.Errorf("status code got: %v want: %v", rr.Status(), want)
 	}
 
 	wantHeaders := map[string][]string{
@@ -219,7 +164,7 @@ func TestStrictTransportSecurityAlreadyImmutable(t *testing.T) {
 		t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
 	}
 
-	if got, want := b.String(), "Internal Server Error\n"; got != want {
+	if got, want := rr.Body(), "Internal Server Error\n"; got != want {
 		t.Errorf("response body got: %q want: %q", got, want)
 	}
 }

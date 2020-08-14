@@ -14,15 +14,12 @@
 
 package safehttp
 
-// StatusCode contains HTTP status codes as registered with IANA.
-// See: https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
-type StatusCode int
-
-const (
-	StatusOK                  StatusCode = 200 // RFC 7231, 6.3.1
-	StatusMovedPermanently    StatusCode = 301 // RFC 7231, 6.4.2
-	StatusBadRequest          StatusCode = 400 // RFC 7231, 6.5.1
-	StatusUnauthorized        StatusCode = 401 // RFC 7231, 3.1
-	StatusForbidden           StatusCode = 403 // RFC 7231, 6.5.3
-	StatusInternalServerError StatusCode = 500 // RFC 7231, 6.6.1
-)
+// Interceptor can be installed on a ServeMux in order to apply its
+// functionality on an IncomingRequest before it is sent to its corresponding
+// handler.
+type Interceptor interface {
+	// Before runs before the IncomingRequest is sent to the handler. If a
+	// response is written to the ResponseWriter, then the remaining
+	// interceptors and the handler won't execute.
+	Before(w ResponseWriter, r *IncomingRequest) Result
+}

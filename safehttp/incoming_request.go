@@ -18,27 +18,44 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 	"sync"
 )
 
 // IncomingRequest TODO
 type IncomingRequest struct {
-	req       *http.Request
-	Header    Header
-	parseOnce sync.Once
-	TLS       *tls.ConnectionState
-	URL       *url.URL
+	req                *http.Request
+	Header             Header
+	postParseOnce      sync.Once
+	multipartParseOnce sync.Once
+	TLS                *tls.ConnectionState
+	URL                *URL
 }
 
-func newIncomingRequest(req *http.Request) *IncomingRequest {
+// NewIncomingRequest creates an IncomingRequest
+// from an http.Request.
+func NewIncomingRequest(req *http.Request) *IncomingRequest {
 	return &IncomingRequest{
 		req:    req,
 		Header: newHeader(req.Header),
 		TLS:    req.TLS,
-		URL:    req.URL,
+		URL:    &URL{url: req.URL},
 	}
+}
+
+// Host returns the host the request is targeted to.
+// TODO(@mihalimara22): Remove this after the safehttp.URL type has been
+// implemented.
+func (r *IncomingRequest) Host() string {
+	return r.req.Host
+}
+
+// Path returns the relative path of the URL in decoded format (e.g. %47%6f%2f
+// becomes /Go/).
+// TODO(@mihalimara22): Remove this after the safehttp.URL type has been     //
+// implemented.
+func (r *IncomingRequest) Path() string {
+	return r.req.URL.Path
 }
 
 // PostForm parses the form parameters provided in the body of a POST, PATCH or
@@ -49,7 +66,7 @@ func newIncomingRequest(req *http.Request) *IncomingRequest {
 // always be used for forms in POST requests.
 func (r *IncomingRequest) PostForm() (*Form, error) {
 	var err error
-	r.parseOnce.Do(func() {
+	r.postParseOnce.Do(func() {
 		if r.req.Method != "POST" && r.req.Method != "PATCH" && r.req.Method != "PUT" {
 			err = fmt.Errorf("got request method %s, want POST/PATCH/PUT", r.req.Method)
 			return
@@ -78,11 +95,11 @@ func (r *IncomingRequest) PostForm() (*Form, error) {
 // used when the user expects a POST request with the Content-Type: multipart/form-data header.
 func (r *IncomingRequest) MultipartForm(maxMemory int64) (*MultipartForm, error) {
 	var err error
-	r.parseOnce.Do(func() {
-		// Ensures no more than 32 MB are stored in memory when a form file is
-		// passed as part of the request. If this is bigger than 32 MB, the rest
-		// will be stored on disk.
-		const defaultMaxMemory = 32 << 20
+	// Ensures no more than 32 MB are stored in memory when a form file is
+	// passed as part of the request. If this is bigger than 32 MB, the rest
+	// will be stored on disk.
+	const defaultMaxMemory = 32 << 20
+	r.multipartParseOnce.Do(func() {
 		if r.req.Method != "POST" && r.req.Method != "PATCH" && r.req.Method != "PUT" {
 			err = fmt.Errorf("got request method %s, want POST/PATCH/PUT", r.req.Method)
 			return
@@ -106,4 +123,25 @@ func (r *IncomingRequest) MultipartForm(maxMemory int64) (*MultipartForm, error)
 				values: r.req.MultipartForm.Value,
 			}},
 		nil
+}
+
+// Cookie returns the named cookie provided in the request or
+// net/http.ErrNoCookie if not found. If multiple cookies match the given name,
+// only one cookie will be returned.
+func (r *IncomingRequest) Cookie(name string) (*Cookie, error) {
+	c, err := r.req.Cookie(name)
+	if err != nil {
+		return nil, err
+	}
+	return &Cookie{wrapped: c}, nil
+}
+
+// Cookies parses and returns the HTTP cookies sent with the request.
+func (r *IncomingRequest) Cookies() []*Cookie {
+	cl := r.req.Cookies()
+	res := make([]*Cookie, 0, len(cl))
+	for _, c := range cl {
+		res = append(res, &Cookie{wrapped: c})
+	}
+	return res
 }

@@ -56,6 +56,7 @@ type responseRecorder struct {
 
 func newResponseRecorder(w io.Writer) *responseRecorder {
 	return &responseRecorder{
+		header: http.Header{},
 		writer: w,
 		status: http.StatusOK,
 	}

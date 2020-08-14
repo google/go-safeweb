@@ -31,7 +31,7 @@ func NewMachinery(h HandleFunc, d Dispatcher) *Machinery {
 
 // HandleRequest TODO
 func (m *Machinery) HandleRequest(w http.ResponseWriter, req *http.Request) {
-	rw := newResponseWriter(m.d, w)
-	ir := newIncomingRequest(req)
+	rw := NewResponseWriter(m.d, w, nil)
+	ir := NewIncomingRequest(req)
 	m.h(rw, ir)
 }

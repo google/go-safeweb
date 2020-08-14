@@ -26,23 +26,42 @@ type ResponseWriter struct {
 	// Having this field unexported is essential for
 	// security. Otherwise one can easily overwrite
 	// the struct bypassing all our safety guarantees.
-	header Header
+	header       Header
+	muxInterceps map[string]Interceptor
 }
 
-func newResponseWriter(d Dispatcher, rw http.ResponseWriter) ResponseWriter {
+// NewResponseWriter creates a ResponseWriter from a safehttp.Dispatcher, an
+// http.ResponseWriter and a list of interceptors associated with a ServeMux.
+func NewResponseWriter(d Dispatcher, rw http.ResponseWriter, muxInterceps map[string]Interceptor) ResponseWriter {
 	header := newHeader(rw.Header())
-	return ResponseWriter{d: d, rw: rw, header: header}
+	return ResponseWriter{
+		d:            d,
+		rw:           rw,
+		header:       header,
+		muxInterceps: muxInterceps,
+	}
+}
+
+// Interceptor returns the interceptor associated with the given key.
+func (w *ResponseWriter) Interceptor(key string) Interceptor {
+	mp, ok := w.muxInterceps[key]
+	if !ok {
+		return nil
+	}
+	return mp
 }
 
 // Result TODO
-type Result struct{}
+type Result struct {
+	written bool
+}
 
 // Write TODO
 func (w *ResponseWriter) Write(resp Response) Result {
 	if err := w.d.Write(w.rw, resp); err != nil {
 		panic("error")
 	}
-	return Result{}
+	return Result{written: true}
 }
 
 // WriteTemplate TODO
@@ -50,7 +69,17 @@ func (w *ResponseWriter) WriteTemplate(t Template, data interface{}) Result {
 	if err := w.d.ExecuteTemplate(w.rw, t, data); err != nil {
 		panic("error")
 	}
-	return Result{}
+	return Result{written: true}
+}
+
+// ClientError TODO
+func (w *ResponseWriter) ClientError(code StatusCode) Result {
+	if code < 400 || code >= 500 {
+		// TODO(@mihalimara22): Replace this when we decide how to handle this case
+		panic("wrong method called")
+	}
+	http.Error(w.rw, http.StatusText(int(code)), int(code))
+	return Result{written: true}
 }
 
 // ServerError TODO
@@ -59,16 +88,16 @@ func (w *ResponseWriter) ServerError(code StatusCode) Result {
 		// TODO(@mattiasgrenfeldt, @mihalimara22, @kele, @empijei): Decide how it should
 		// be communicated to the user of the framework that they've called the wrong
 		// method.
-		return Result{}
+		return Result{written: true}
 	}
 	http.Error(w.rw, http.StatusText(int(code)), int(code))
-	return Result{}
+	return Result{written: true}
 }
 
 // Redirect responds with a redirect to a given url, using code as the status code.
 func (w *ResponseWriter) Redirect(r *IncomingRequest, url string, code StatusCode) Result {
 	http.Redirect(w.rw, r.req, url, int(code))
-	return Result{}
+	return Result{written: true}
 }
 
 // Header returns the collection of headers that will be set
@@ -76,6 +105,13 @@ func (w *ResponseWriter) Redirect(r *IncomingRequest, url string, code StatusCod
 // response (e.g. Write, WriteTemplate).
 func (w ResponseWriter) Header() Header {
 	return w.header
+}
+
+// SetCookie adds a Set-Cookie header to the provided ResponseWriter's headers.
+// The provided cookie must have a valid Name. Otherwise an error will be
+// returned.
+func (w *ResponseWriter) SetCookie(c *Cookie) error {
+	return w.header.addCookie(c)
 }
 
 // Dispatcher TODO
