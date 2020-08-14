@@ -15,11 +15,13 @@
 package safehttp_test
 
 import (
+	"context"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-safeweb/safehttp"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
-
-	"github.com/google/go-safeweb/safehttp"
 )
 
 func TestIncomingRequestCookie(t *testing.T) {
@@ -134,5 +136,81 @@ func TestIncomingRequestCookies(t *testing.T) {
 				}
 			}
 		})
+
+	}
+}
+
+type pizza struct {
+	val string
+}
+
+type notPizza struct {
+}
+
+type pizzaKey string
+
+func TestRequestSetValidContextWithValue(t *testing.T) {
+	tests := []struct {
+		name    string
+		key     pizzaKey
+		wantVal *pizza
+		wantOk  bool
+	}{
+		{
+			name:    "Value set for key",
+			key:     pizzaKey("1234"),
+			wantOk:  true,
+			wantVal: &pizza{val: "margeritta"},
+		},
+		{
+			name:    "Value not set for key",
+			key:     pizzaKey("5678"),
+			wantOk:  false,
+			wantVal: nil,
+		},
+	}
+	for _, test := range tests {
+		m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+			ctx := context.WithValue(ir.Context(), pizzaKey("1234"), &pizza{val: "margeritta"})
+			ir.SetContext(ctx)
+			got, ok := ir.Context().Value(test.key).(*pizza)
+			if ok != test.wantOk {
+				t.Errorf("type match: got %v, want %v", ok, test.wantOk)
+			}
+			if diff := cmp.Diff(test.wantVal, got, cmp.AllowUnexported(pizza{})); diff != "" {
+				t.Errorf("ir.Context().Value(k): mismatch (-want +got): \n%s", diff)
+			}
+
+			return safehttp.Result{}
+		}, &testDispatcher{})
+
+		rec := newResponseRecorder(&strings.Builder{})
+		req := httptest.NewRequest("GET", "/", nil)
+		m.HandleRequest(rec, req)
+
+		if want := 200; rec.status != want {
+			t.Errorf("response status: got %v, want %v", rec.status, want)
+		}
+	}
+}
+
+func TestRequestSetNilContext(t *testing.T) {
+	m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+		ir.SetContext(nil)
+		return safehttp.Result{}
+	}, &testDispatcher{})
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf(`ir.SetContext(nil): expected panic`)
+		}
+	}()
+
+	rec := newResponseRecorder(&strings.Builder{})
+	req := httptest.NewRequest("GET", "/", nil)
+	m.HandleRequest(rec, req)
+
+	if want := 200; rec.status != want {
+		t.Errorf("response status: got %v, want %v", rec.status, want)
 	}
 }
