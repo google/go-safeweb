@@ -15,6 +15,7 @@
 package safehttp
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net/http"
@@ -144,4 +145,25 @@ func (r *IncomingRequest) Cookies() []*Cookie {
 		res = append(res, &Cookie{wrapped: c})
 	}
 	return res
+}
+
+// Context returns the http.Request Context. This is always non-nil and will
+// default to the background context.
+//
+// For outgoing client requests, the context controls cancellation.
+//
+// For incoming server requests, the context is canceled when the client's
+// connection closes, the request is canceled (with HTTP/2), or when the
+// ServeHTTP method returns.
+func (r *IncomingRequest) Context() context.Context {
+	return r.req.Context()
+}
+
+// SetContext sets the context of the safehttp.IncomingRequest to ctx. The
+// provided context must be non-nil, otherwise the method will panic.
+func (r *IncomingRequest) SetContext(ctx context.Context) {
+	if ctx == nil {
+		panic("nil context")
+	}
+	r.req = r.req.WithContext(ctx)
 }
