@@ -8,3 +8,4 @@ responding to incoming requests before they reach the handler.
 
 - [HSTS](plugins/hsts.md): Automatically redirects HTTP traffic to HTTPS and
 sets the `Strict-Transport-Security` header.
+- [staticheaders](plugins/staticheaders.md): Sets the `X-Content-Type-Options` header and the `X-XSS-Protection` header.
