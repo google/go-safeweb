@@ -65,7 +65,7 @@ func NewPlugin() Plugin {
 // The function redirects HTTP requests to HTTPS. When HTTPS traffic
 // is received the Strict-Transport-Security header is applied to the
 // response.
-func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+func (p Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 	if p.MaxAge < 0 {
 		return w.ServerError(safehttp.StatusInternalServerError)
 	}
