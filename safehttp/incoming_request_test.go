@@ -176,19 +176,20 @@ func TestRequestSetValidContextWithValue(t *testing.T) {
 			t.Errorf("type match: got %v, want %v", ok, test.wantOk)
 		}
 		if diff := cmp.Diff(test.wantVal, got, cmp.AllowUnexported(pizza{})); diff != "" {
-			t.Errorf("ir.Context().Value(k): mismatch (-want +got): \n%s", diff)
+			t.Errorf("ir.Context().Value(test.key): mismatch (-want +got): \n%s", diff)
 		}
 	}
 }
 
 func TestRequestSetNilContext(t *testing.T) {
+	req := httptest.NewRequest("GET", "/", nil)
+	ir := safehttp.NewIncomingRequest(req)
+
 	defer func() {
 		if r := recover(); r == nil {
 			t.Errorf(`ir.SetContext(nil): expected panic`)
 		}
 	}()
 
-	req := httptest.NewRequest("GET", "/", nil)
-	ir := safehttp.NewIncomingRequest(req)
 	ir.SetContext(nil)
 }
