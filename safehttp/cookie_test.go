@@ -28,6 +28,16 @@ func TestCookie(t *testing.T) {
 			want:   "foo=bar; HttpOnly; Secure; SameSite=Lax",
 		},
 		{
+			name: "SameSite Lax",
+			cookie: func() *Cookie {
+				c := NewCookie("foo", "bar")
+				c.SetSameSite(SameSiteNoneMode)
+				c.SetSameSite(SameSiteLaxMode)
+				return c
+			}(),
+			want: "foo=bar; HttpOnly; Secure; SameSite=Lax",
+		},
+		{
 			name: "SameSite strict",
 			cookie: func() *Cookie {
 				c := NewCookie("foo", "bar")
