@@ -147,14 +147,13 @@ func (r *IncomingRequest) Cookies() []*Cookie {
 	return res
 }
 
-// Context returns the http.Request Context. This is always non-nil and will
-// default to the background context.
+// Context returns the underlying http.Request context for a
+// safehttp.IncomingRequest. This is always non-nil and will default to the
+// background context.
 //
-// For outgoing client requests, the context controls cancellation.
-//
-// For incoming server requests, the context is canceled when the client's
-// connection closes, the request is canceled (with HTTP/2), or when the
-// ServeHTTP method returns.
+// The context is cancelled when the client's connection
+// closes, the request is canceled (with HTTP/2), or when the ServeHTTP method
+// returns.
 func (r *IncomingRequest) Context() context.Context {
 	return r.req.Context()
 }
