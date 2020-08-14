@@ -75,9 +75,9 @@ func (c *Cookie) SetSameSite(s SameSite) {
 
 // SetMaxAge sets the MaxAge attribute.
 //
-// MaxAge=0 means no 'Max-Age' attribute specified.
-// MaxAge<0 means delete cookie now, equivalently 'Max-Age: 0'
-// MaxAge>0 means Max-Age attribute present and given in seconds
+// MaxAge = 0 means no 'Max-Age' attribute specified.
+// MaxAge < 0 means delete cookie now, equivalently 'Max-Age: 0'
+// MaxAge > 0 means Max-Age attribute present and given in seconds
 func (c *Cookie) SetMaxAge(maxAge int) {
 	c.wrapped.MaxAge = maxAge
 }
