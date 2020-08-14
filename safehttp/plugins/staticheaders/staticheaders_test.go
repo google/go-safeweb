@@ -23,7 +23,7 @@ import (
 	"github.com/google/go-safeweb/safehttp/safehttptest"
 )
 
-func TestWorkingAsIntended(t *testing.T) {
+func TestPlugin(t *testing.T) {
 	req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
 	rr := safehttptest.NewResponseRecorder()
 
