@@ -73,8 +73,7 @@ func TestHSTSServeMuxInstall(t *testing.T) {
 	})
 	mux.Handle("/asdf", safehttp.MethodGet, handler)
 
-	p := hsts.NewPlugin()
-	mux.Install("hsts", &p)
+	mux.Install("hsts", hsts.NewPlugin())
 
 	b := strings.Builder{}
 	rr := newResponseRecorder(&b)
