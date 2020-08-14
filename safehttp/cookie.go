@@ -64,6 +64,8 @@ const (
 // SetSameSite sets the SameSite attribute.
 func (c *Cookie) SetSameSite(s SameSite) {
 	switch s {
+	case SameSiteLaxMode:
+		c.wrapped.SameSite = http.SameSiteLaxMode
 	case SameSiteStrictMode:
 		c.wrapped.SameSite = http.SameSiteStrictMode
 	case SameSiteNoneMode:
