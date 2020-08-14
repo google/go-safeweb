@@ -125,9 +125,9 @@ func (r *IncomingRequest) MultipartForm(maxMemory int64) (*MultipartForm, error)
 		nil
 }
 
-// Cookie returns the named cookie provided in the request or ErrNoCookie if not
-// found. If multiple cookies match the given name, only one cookie will be
-// returned.
+// Cookie returns the named cookie provided in the request or
+// net/http.ErrNoCookie if not found. If multiple cookies match the given name,
+// only one cookie will be returned.
 func (r *IncomingRequest) Cookie(name string) (*Cookie, error) {
 	c, err := r.req.Cookie(name)
 	if err != nil {
