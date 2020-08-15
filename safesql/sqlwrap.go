@@ -120,7 +120,8 @@ func (db DB) QueryRow(query TrustedSQLString, args ...interface{}) *Row {
 func (db DB) QueryRowContext(ctx context.Context, query TrustedSQLString, args ...interface{}) *Row {
 	return db.db.QueryRowContext(ctx, query.s, args)
 }
-func (db DB) SetConnMaxIdleTime(d time.Duration) { db.db.SetConnMaxIdleTime(d) }
+
+// Go 1.15 func (db DB) SetConnMaxIdleTime(d time.Duration) { db.db.SetConnMaxIdleTime(d) }
 func (db DB) SetConnMaxLifetime(d time.Duration) { db.db.SetConnMaxLifetime(d) }
 func (db DB) SetMaxIdleConns(n int)              { db.db.SetMaxIdleConns(n) }
 func (db DB) SetMaxOpenConns(n int)              { db.db.SetMaxOpenConns(n) }
