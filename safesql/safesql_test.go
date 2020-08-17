@@ -95,8 +95,8 @@ func TestTrustedSQLStringSplit(t *testing.T) {
 		{
 			name: "no sep",
 			in:   New("foo"),
-			want: []TrustedSQLString{New("foo")},
 			sep:  New("bar"),
+			want: []TrustedSQLString{New("foo")},
 		},
 		{
 			name: "two words",

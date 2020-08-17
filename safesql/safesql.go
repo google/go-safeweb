@@ -21,7 +21,7 @@
 // Code like the following is trivial to migrate from sql to safesql:
 // 	db.Query("SELECT ...", args...)
 // The only change required would be to promote the string literal to a trusted string:
-// 	db.Query(safesql.New("SELECT ...", args...)
+// 	db.Query(safesql.New("SELECT ..."), args...)
 // For more complicated cases it might be needed to use the helper functions like Join and Concat.
 // If the queries for the service are stored in a trusted runtime-only source that cannot be controlled by a user
 // the uncheckedconversions package can be used to assert that those strings are under the programmer control.
