@@ -23,9 +23,9 @@ import (
 	"github.com/google/go-safeweb/safehttp"
 )
 
-// Plugin implements automatic HSTS functionality.
+// Interceptor implements automatic HSTS functionality.
 // See https://tools.ietf.org/html/rfc6797 for more info.
-type Plugin struct {
+type Interceptor struct {
 	// MaxAge is the duration that the browser should remember
 	// that a site is only to be accessed using HTTPS. MaxAge
 	// must be positive. It will be rounded to seconds before use.
@@ -52,25 +52,25 @@ type Plugin struct {
 	BehindProxy bool
 }
 
-// NewPlugin creates a new HSTS plugin with safe defaults.
+// Default creates a new HSTS interceptor with safe defaults.
 // These safe defaults are:
 //  - max-age set to two years.
 //  - includeSubDomains is enabled.
 //  - preload is disabled.
-func NewPlugin() Plugin {
-	return Plugin{MaxAge: 63072000 * time.Second} // two years in seconds
+func Default() Interceptor {
+	return Interceptor{MaxAge: 63072000 * time.Second} // two years in seconds
 }
 
 // Before should be executed before the request is sent to the handler.
 // The function redirects HTTP requests to HTTPS. When HTTPS traffic
 // is received the Strict-Transport-Security header is applied to the
 // response.
-func (p Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-	if p.MaxAge < 0 {
+func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+	if it.MaxAge < 0 {
 		return w.ServerError(safehttp.StatusInternalServerError)
 	}
 
-	if !p.BehindProxy && r.TLS == nil {
+	if !it.BehindProxy && r.TLS == nil {
 		u, err := url.Parse(r.URL.String())
 		if err != nil {
 			return w.ServerError(safehttp.StatusInternalServerError)
@@ -81,19 +81,17 @@ func (p Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) s
 
 	var value strings.Builder
 	value.WriteString("max-age=")
-	value.WriteString(strconv.FormatInt(int64(p.MaxAge.Seconds()), 10))
-	if !p.DisableIncludeSubDomains {
+	value.WriteString(strconv.FormatInt(int64(it.MaxAge.Seconds()), 10))
+	if !it.DisableIncludeSubDomains {
 		value.WriteString("; includeSubDomains")
 	}
-	if p.Preload {
+	if it.Preload {
 		value.WriteString("; preload")
 	}
-	h := w.Header()
-	if err := h.Set("Strict-Transport-Security", value.String()); err != nil {
+	set, err := w.Header().Claim("Strict-Transport-Security")
+	if err != nil {
 		return w.ServerError(safehttp.StatusInternalServerError)
 	}
-	if _, err := h.Claim("Strict-Transport-Security"); err != nil {
-		return w.ServerError(safehttp.StatusInternalServerError)
-	}
+	set([]string{value.String()})
 	return safehttp.Result{}
 }
