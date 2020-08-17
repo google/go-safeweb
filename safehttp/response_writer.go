@@ -23,9 +23,8 @@ type ResponseWriter struct {
 	d  Dispatcher
 	rw http.ResponseWriter
 
-	// Having this field unexported is essential for
-	// security. Otherwise one can easily overwrite
-	// the struct bypassing all our safety guarantees.
+	// Having this field unexported is essential for security. Otherwise one can
+	// easily overwrite the struct bypassing all our safety guarantees.
 	header       Header
 	muxInterceps map[string]Interceptor
 }
