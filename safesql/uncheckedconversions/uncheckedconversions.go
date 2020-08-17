@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package uncheckedconversions provides functions to create values of package safesql types from plain strings.
-// Use of these functions could potentially result in instances of safesql types that violate their type contracts, and hence result in security vulnerabilities.
+// Uses of these functions could potentially result in instances of safesql types that violate their type contracts, and hence result in security vulnerabilities.
 package uncheckedconversions
 
 import (

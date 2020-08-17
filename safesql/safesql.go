@@ -58,12 +58,12 @@ type TrustedSQLString struct {
 // a string literal or an untyped string const.
 func New(text stringConstant) TrustedSQLString { return TrustedSQLString{string(text)} }
 
-// NewFromUint64 constructs a TrustedSQLString from an int64.
+// NewFromUint64 constructs a TrustedSQLString from a uint64.
 func NewFromUint64(i uint64) TrustedSQLString { return TrustedSQLString{strconv.FormatUint(i, 10)} }
 
 // TrustedSQLStringConcat concatenates the given trusted SQL strings into a trusted string.
 //
-// Note: this function should not be abused to create arbitrary queries from user input, but it is just
+// Note: this function should not be abused to create arbitrary queries from user input, it is just
 // intended as a helper to compose queries at runtime to avoid redundant constants.
 func TrustedSQLStringConcat(ss ...TrustedSQLString) TrustedSQLString {
 	return TrustedSQLStringJoin(ss, TrustedSQLString{})
@@ -71,7 +71,7 @@ func TrustedSQLStringConcat(ss ...TrustedSQLString) TrustedSQLString {
 
 // TrustedSQLStringJoin joins the given trusted SQL with the given separator the same way strings.Join would.
 //
-// Note: this function should not be abused to create arbitrary queries from user input, but it is just
+// Note: this function should not be abused to create arbitrary queries from user input, it is just
 // intended as a helper to compose queries at runtime to avoid redundant constants.
 func TrustedSQLStringJoin(ss []TrustedSQLString, sep TrustedSQLString) TrustedSQLString {
 	accum := make([]string, 0, len(ss))
