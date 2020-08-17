@@ -18,7 +18,7 @@ import (
 	"github.com/google/go-safeweb/safehttp"
 )
 
-// Plugin claims and sets static headers on outgoing responses.
+// Plugin claims and sets static headers on responses.
 type Plugin struct{}
 
 // Before claims and sets the following headers:
