@@ -13,8 +13,14 @@
 // limitations under the License.
 
 // Package raw is used to provide a bypass mechanism to implement unchecked and legacy conversions packages.
+// This package works as a proxy between safesql and any other "conversions" package.
+//
+// The way it functions is to expect safesql to provide the unexported constructors for TrustedSQLString at init() time.
+// Since this package is in internal/ it can only be imported by a parent package, so it is known at compile time that
+// these constructors are not unsafely passed around.
 package raw
 
 // TrustedSQLString is the constructor for a TrustedSQLString to be used by the unchecked and legacy conversions packages.
 // This variable will be assigned by the safesql package at init time.
+// The reason why this is an empty interface is to avoid cyclic dependency between safeslq and this package.
 var TrustedSQLString interface{}
