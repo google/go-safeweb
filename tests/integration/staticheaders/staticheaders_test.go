@@ -88,7 +88,7 @@ func TestServeMuxInstallStaticHeaders(t *testing.T) {
 
 	mux.ServeHTTP(rr, req)
 
-	if want := 200; rr.status != want {
+	if want := int(safehttp.StatusOK); rr.status != want {
 		t.Errorf("rr.status got: %v want: %v", rr.status, want)
 	}
 
