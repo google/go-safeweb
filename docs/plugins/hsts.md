@@ -5,7 +5,7 @@ _Authors: grenfeldt@google.com_
 HSTS<sup>1</sup> (HTTP Strict Transport Security) informs browsers that a
 website should only be accessed using HTTPS and not HTTP. This plugin enforces
 HSTS by redirecting all HTTP traffic to HTTPS and by setting the
-`Strict-Transport-Security` header on all outgoing HTTPS traffic.
+`Strict-Transport-Security` header on all HTTPS responses.
 
 1) HSTS: [RFC](https://tools.ietf.org/html/rfc6797),
 [MDN](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security),
