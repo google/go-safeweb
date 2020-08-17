@@ -66,15 +66,16 @@ func (r *responseRecorder) Write(data []byte) (int, error) {
 }
 
 func TestAccessIncomingHeaders(t *testing.T) {
-	m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-		if got, want := r.Header.Get("A"), "B"; got != want {
-			t.Errorf(`r.Header.Get("A") got: %v want: %v`, got, want)
+	mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+	mux.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+		if got, want := ir.Header.Get("A"), "B"; got != want {
+			t.Errorf(`ir.Header.Get("A") got: %v want: %v`, got, want)
 		}
 		return rw.Write(safehtml.HTMLEscaped("hello"))
-	}, &testDispatcher{})
+	}))
 
 	request := "GET / HTTP/1.1\r\n" +
-		"Host: localhost:8080\r\n" +
+		"Host: foo.com\r\n" +
 		"A: B\r\n\r\n"
 	req, err := http.ReadRequest(bufio.NewReader(strings.NewReader(request)))
 	if err != nil {
@@ -84,21 +85,22 @@ func TestAccessIncomingHeaders(t *testing.T) {
 	b := &strings.Builder{}
 	rw := newResponseRecorder(b)
 
-	m.HandleRequest(rw, req)
+	mux.ServeHTTP(rw, req)
 }
 
 func TestChangingResponseHeaders(t *testing.T) {
-	m := safehttp.NewMachinery(func(rw safehttp.ResponseWriter, _ *safehttp.IncomingRequest) safehttp.Result {
+	mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+	mux.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 		rw.Header().Set("pIZZA", "Pasta")
 		return rw.Write(safehtml.HTMLEscaped("hello"))
-	}, &testDispatcher{})
+	}))
 
-	req := httptest.NewRequest("GET", "/", nil)
+	req := httptest.NewRequest("GET", "http://foo.com/", nil)
 
 	b := &strings.Builder{}
 	rw := newResponseRecorder(b)
 
-	m.HandleRequest(rw, req)
+	mux.ServeHTTP(rw, req)
 
 	want := []string{"Pasta"}
 	if diff := cmp.Diff(want, rw.Header()["Pizza"]); diff != "" {
