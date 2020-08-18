@@ -15,94 +15,84 @@
 package csp
 
 import (
+	"context"
+	"os"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/safehttptest"
-
-	"github.com/google/go-cmp/cmp"
 )
 
-func readRand(b []byte) (int, error) {
+type dummyReader struct{}
+
+func (dummyReader) Read(b []byte) (int, error) {
 	for i := range b {
-		b[i] = byte(i)
+		b[i] = 41
 	}
 	return len(b), nil
+}
+
+func TestMain(m *testing.M) {
+	randReader = dummyReader{}
+	os.Exit(m.Run())
 }
 
 func TestSerialize(t *testing.T) {
 	tests := []struct {
 		name       string
-		policy     *Policy
+		policy     Policy
 		wantString string
-		wantNonces map[Directive]string
+		wantNonce  string
 	}{
 		{
-			name:       "Empty",
-			policy:     &Policy{},
-			wantString: "",
-			wantNonces: map[Directive]string{},
+			name:       "StrictCSP",
+			policy:     NewStrictCSP(false, false, false, "", ""),
+			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSk='; base-uri 'none'",
+			wantNonce:  "KSkpKSkpKSk=",
 		},
 		{
-			name: "Default",
-			policy: func() *Policy {
-				p := NewPolicy("https://foo.com/collector")
-				p.readRand = readRand
-				return p
-			}(),
-			wantString: "object-src 'none'; script-src 'nonce-AAECAwQFBgc=' 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:; base-uri 'none'; report-uri https://foo.com/collector",
-			wantNonces: map[Directive]string{DirectiveScriptSrc: "AAECAwQFBgc="},
+			name:       "StrictCSP with strict-dynamic",
+			policy:     NewStrictCSP(false, true, false, "", ""),
+			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSk=' 'strict-dynamic'; base-uri 'none'",
+			wantNonce:  "KSkpKSkpKSk=",
 		},
 		{
-			name: "Empty Directive",
-			policy: &Policy{
-				Directives: []*PolicyDirective{
-					{Directive: DirectiveScriptSrc, Values: nil, AddNonce: false},
-				},
-			},
-			wantString: "script-src ",
-			wantNonces: map[Directive]string{},
+			name:       "StrictCSP with unsafe-eval",
+			policy:     NewStrictCSP(false, false, true, "", ""),
+			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSk=' 'unsafe-eval'; base-uri 'none'",
+			wantNonce:  "KSkpKSkpKSk=",
 		},
 		{
-			name: "No nonces",
-			policy: &Policy{
-				Directives: []*PolicyDirective{
-					{Directive: DirectiveScriptSrc, Values: []string{ValueUnsafeEval}, AddNonce: false},
-				},
-			},
-			wantString: "script-src 'unsafe-eval'",
-			wantNonces: map[Directive]string{},
+			name:       "StrictCSP with set base-uri",
+			policy:     NewStrictCSP(false, false, false, "https://example.com", ""),
+			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSk='; base-uri https://example.com",
+			wantNonce:  "KSkpKSkpKSk=",
 		},
 		{
-			name: "Two nonces",
-			policy: func() *Policy {
-				p := &Policy{
-					Directives: []*PolicyDirective{
-						{Directive: DirectiveScriptSrc, Values: []string{ValueUnsafeEval}, AddNonce: true},
-						{Directive: DirectiveStyleSrc, Values: []string{ValueUnsafeEval}, AddNonce: true},
-					},
-				}
-				p.readRand = readRand
-				return p
-			}(),
-			wantString: "script-src 'nonce-AAECAwQFBgc=' 'unsafe-eval'; style-src 'nonce-AAECAwQFBgc=' 'unsafe-eval'",
-			wantNonces: map[Directive]string{
-				DirectiveScriptSrc: "AAECAwQFBgc=",
-				DirectiveStyleSrc:  "AAECAwQFBgc=",
-			},
+			name:       "StrictCSP with report-uri",
+			policy:     NewStrictCSP(false, false, true, "", "https://example.com/collector"),
+			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSk=' 'unsafe-eval'; base-uri 'none'; report-uri https://example.com/collector",
+			wantNonce:  "KSkpKSkpKSk=",
+		},
+		{
+			name:       "FramingCSP",
+			policy:     NewFramingCSP(false),
+			wantString: "frame-ancestors 'self'",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s, nonces := tt.policy.Serialize()
+			s, ctx := tt.policy.serialize(context.Background())
 
-			if got := s; got != tt.wantString {
-				t.Errorf("tt.policy.Serialize() got: %q want: %q", got, tt.wantString)
+			if s != tt.wantString {
+				t.Errorf("tt.policy.serialize() got: %q want: %q", s, tt.wantString)
 			}
 
-			if diff := cmp.Diff(tt.wantNonces, nonces); diff != "" {
-				t.Errorf("nonces mismatch (-want +got):\n%s", diff)
+			if got := Nonce(ctx); got != tt.wantNonce {
+				t.Errorf("Nonce(ctx) got: %q want: %q", got, tt.wantNonce)
 			}
 		})
 	}
@@ -113,60 +103,47 @@ func TestBefore(t *testing.T) {
 		name                  string
 		interceptor           Interceptor
 		wantEnforcementPolicy []string
-		wantReportPolicy      []string
+		wantReportOnlyPolicy  []string
+		wantNonce             string
 	}{
 		{
 			name:        "No policies",
 			interceptor: Interceptor{},
 		},
 		{
-			name: "Default policy",
-			interceptor: func() Interceptor {
-				p := Default("https://foo.com/collector")
-				p.EnforcementPolicy.readRand = readRand
-				return p
-			}(),
-			wantEnforcementPolicy: []string{"object-src 'none'; script-src 'nonce-AAECAwQFBgc=' 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:; base-uri 'none'; report-uri https://foo.com/collector"},
+			name:        "Default policies",
+			interceptor: Default(""),
+			wantEnforcementPolicy: []string{
+				"object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSk='; base-uri 'none'",
+				"frame-ancestors 'self'",
+			},
+			wantNonce: "KSkpKSkpKSk=",
 		},
 		{
-			name: "Report",
-			interceptor: Interceptor{
-				ReportOnlyPolicy: &Policy{
-					Directives: []*PolicyDirective{
-						{Directive: DirectiveScriptSrc, Values: []string{ValueUnsafeInline}, AddNonce: false},
-					},
-				},
+			name:        "Default policies with reporting URI",
+			interceptor: Default("https://example.com/collector"),
+			wantEnforcementPolicy: []string{
+				"object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSk='; base-uri 'none'; report-uri https://example.com/collector",
+				"frame-ancestors 'self'",
 			},
-			wantReportPolicy: []string{"script-src 'unsafe-inline'"},
+			wantNonce: "KSkpKSkpKSk=",
 		},
 		{
-			name: "Report with nonces",
+			name: "StrictCSP reportonly",
 			interceptor: Interceptor{
-				ReportOnlyPolicy: func() *Policy {
-					p := NewPolicy("https://foo.com/collector")
-					p.readRand = readRand
-					return p
-				}(),
+				Policies: []Policy{
+					NewStrictCSP(true, false, false, "", "https://example.com/collector"),
+				},
 			},
-			wantReportPolicy: []string{"object-src 'none'; script-src 'nonce-AAECAwQFBgc=' 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:; base-uri 'none'; report-uri https://foo.com/collector"},
+			wantReportOnlyPolicy: []string{
+				"object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSk='; base-uri 'none'; report-uri https://example.com/collector",
+			},
+			wantNonce: "KSkpKSkpKSk=",
 		},
 		{
-			name: "Report and enforce",
-			interceptor: Interceptor{
-				ReportOnlyPolicy: &Policy{
-					Directives: []*PolicyDirective{
-						{Directive: DirectiveScriptSrc, Values: []string{ValueUnsafeInline}, AddNonce: false},
-						{Directive: DirectiveBaseURI, Values: []string{ValueNone}, AddNonce: false},
-					},
-				},
-				EnforcementPolicy: &Policy{
-					Directives: []*PolicyDirective{
-						{Directive: DirectiveScriptSrc, Values: []string{ValueUnsafeInline}, AddNonce: false},
-					},
-				},
-			},
-			wantEnforcementPolicy: []string{"script-src 'unsafe-inline'"},
-			wantReportPolicy:      []string{"script-src 'unsafe-inline'; base-uri 'none'"},
+			name:                 "FramingCSP reportonly",
+			interceptor:          Interceptor{Policies: []Policy{NewFramingCSP(true)}},
+			wantReportOnlyPolicy: []string{"frame-ancestors 'self'"},
 		},
 	}
 
@@ -178,12 +155,16 @@ func TestBefore(t *testing.T) {
 			tt.interceptor.Before(rr.ResponseWriter, req)
 
 			h := rr.Header()
-			if diff := cmp.Diff(tt.wantEnforcementPolicy, h.Values("Content-Security-Policy")); diff != "" {
+			if diff := cmp.Diff(tt.wantEnforcementPolicy, h.Values("Content-Security-Policy"), cmpopts.EquateEmpty()); diff != "" {
 				t.Errorf("h.Values(\"Content-Security-Policy\") mismatch (-want +got):\n%s", diff)
 			}
 
-			if diff := cmp.Diff(tt.wantReportPolicy, h.Values("Content-Security-Policy-Report-Only")); diff != "" {
+			if diff := cmp.Diff(tt.wantReportOnlyPolicy, h.Values("Content-Security-Policy-Report-Only"), cmpopts.EquateEmpty()); diff != "" {
 				t.Errorf("h.Values(\"Content-Security-Policy-Report-Only\") mismatch (-want +got):\n%s", diff)
+			}
+
+			if got := Nonce(req.Context()); got != tt.wantNonce {
+				t.Errorf("Nonce(req.Context()) got: %q want: %q", got, tt.wantNonce)
 			}
 		})
 	}
