@@ -100,7 +100,7 @@ func NewPolicy(reportURI string) *Policy {
 
 // Serialize serializes this policy for use in a Content-Security-Policy header
 // or in a Content-Security-Policy-Report-Only header. The nonces generated for
-// each directive is also returned.
+// each directive are also returned.
 func (p Policy) Serialize() (csp string, nonces map[Directive]string) {
 	nonces = make(map[Directive]string)
 	b := strings.Builder{}
@@ -132,8 +132,8 @@ type Interceptor struct {
 	// EnforcementPolicy will be applied as the Content-Security-Policy header.
 	EnforcementPolicy *Policy
 
-	// ReportOnlyPolicy will be applied as the
-	// Content-Security-Policy-Report-Only header.
+	// ReportOnlyPolicy will be applied as the Content-Security-Policy-Report-Only
+	// header.
 	ReportOnlyPolicy *Policy
 }
 
