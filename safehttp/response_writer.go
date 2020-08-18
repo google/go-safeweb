@@ -82,7 +82,7 @@ func (w *ResponseWriter) WriteTemplate(t Template, data interface{}) Result {
 	return Result{}
 }
 
-// NoContent writes a 204 No Content response.
+// NoContent responds with a 204 No Content response.
 func (w *ResponseWriter) NoContent() Result {
 	w.markWritten()
 	w.rw.WriteHeader(int(StatusNoContent))
