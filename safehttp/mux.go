@@ -164,6 +164,12 @@ func (m methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	defer func() {
+		if r := recover(); r != nil {
+			rw.ServerError(StatusInternalServerError)
+		}
+	}()
+
 	for _, intercep := range m.muxInterceps {
 		if res := intercep.Before(rw, ir); res.written {
 			return

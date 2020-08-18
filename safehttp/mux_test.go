@@ -199,6 +199,17 @@ func (p *claimHeaderInterceptor) SetHeader(value string) {
 	p.setValue([]string{value})
 }
 
+type panickingInterceptor struct{}
+
+func (panickingInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.IncomingRequest) safehttp.Result {
+	// Don't remove this if-statement, then "go vet" will complain about
+	// unreachable code.
+	if true {
+		panic("bad")
+	}
+	return safehttp.Result{}
+}
+
 func TestMuxInterceptors(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -284,6 +295,26 @@ func TestMuxInterceptors(t *testing.T) {
 			wantStatus:  200,
 			wantHeaders: map[string][]string{"Foo": {"bar"}},
 			wantBody:    "&lt;h1&gt;Hello World!&lt;/h1&gt;",
+		},
+		{
+			name: "Panicking interceptor recovered by ServeMux",
+			mux: func() *safehttp.ServeMux {
+				mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+				mux.Install("panic", panickingInterceptor{})
+
+				registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
+				})
+				mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
+
+				return mux
+			}(),
+			wantStatus: 500,
+			wantHeaders: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Internal Server Error\n",
 		},
 	}
 
