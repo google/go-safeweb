@@ -180,7 +180,7 @@ func TestAlreadyClaimed(t *testing.T) {
 		t.Run(h, func(t *testing.T) {
 			rr := safehttptest.NewResponseRecorder()
 			if _, err := rr.ResponseWriter.Header().Claim(h); err != nil {
-				t.Fatalf("rr.ResponseWriter.Header().Claim(h) got: %v want: nil", err)
+				t.Fatalf("rr.ResponseWriter.Header().Claim(h) got err: %v want: nil", err)
 			}
 			req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
 
