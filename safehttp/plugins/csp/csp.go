@@ -26,7 +26,7 @@ import (
 var randReader = rand.Reader
 
 // nonceSize is the size of the nonces in bytes.
-const nonceSize = 8
+const nonceSize = 20
 
 func generateNonce() string {
 	b := make([]byte, nonceSize)
