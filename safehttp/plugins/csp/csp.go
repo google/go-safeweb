@@ -62,11 +62,22 @@ func Nonce(ctx context.Context) (string, context.Context) {
 	return v.(string), ctx
 }
 
-// NewStrictCSP creates a new strict, nonce-based CSP.
+// StrictCSPBuilder can be used to build a strict, nonce-based CSP.
 // See https://csp.withgoogle.com/docs/strict-csp.html for more info.
-func NewStrictCSP(reportOnly bool, strictDynamic bool, unsafeEval bool, baseURI string, reportURI string) Policy {
+//
+// If BaseURI is an empty string the base-uri directive will be set to 'none'.
+type StrictCSPBuilder struct {
+	ReportOnly    bool
+	StrictDynamic bool
+	UnsafeEval    bool
+	BaseURI       string
+	ReportURI     string
+}
+
+// Build creates a Policy based on the specified options.
+func (s StrictCSPBuilder) Build() Policy {
 	return Policy{
-		reportOnly: reportOnly,
+		reportOnly: s.ReportOnly,
 		serialize: func(ctx context.Context) (string, context.Context) {
 			var b strings.Builder
 
@@ -75,23 +86,23 @@ func NewStrictCSP(reportOnly bool, strictDynamic bool, unsafeEval bool, baseURI 
 			b.WriteString(n)
 			b.WriteString("'")
 
-			if strictDynamic {
+			if s.StrictDynamic {
 				b.WriteString(" 'strict-dynamic'")
 			}
-			if unsafeEval {
+			if s.UnsafeEval {
 				b.WriteString(" 'unsafe-eval'")
 			}
 
 			b.WriteString("; base-uri ")
-			if baseURI == "" {
+			if s.BaseURI == "" {
 				b.WriteString("'none'")
 			} else {
-				b.WriteString(baseURI)
+				b.WriteString(s.BaseURI)
 			}
 
-			if reportURI != "" {
+			if s.ReportURI != "" {
 				b.WriteString("; report-uri ")
-				b.WriteString(reportURI)
+				b.WriteString(s.ReportURI)
 			}
 
 			return b.String(), ctx
@@ -121,7 +132,7 @@ type Interceptor struct {
 func Default(reportURI string) Interceptor {
 	return Interceptor{
 		Policies: []Policy{
-			NewStrictCSP(false, false, false, "", reportURI),
+			StrictCSPBuilder{ReportURI: reportURI}.Build(),
 			NewFramingCSP(false),
 		},
 	}
