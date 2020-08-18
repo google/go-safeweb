@@ -28,10 +28,10 @@ type Directive string
 
 const (
 	DirectiveScriptSrc Directive = "script-src"
-	DirectiveStyleSrc  Directive = "style-src"
-	DirectiveObjectSrc Directive = "object-src"
-	DirectiveBaseURI   Directive = "base-uri"
-	DirectiveReportURI Directive = "report-uri"
+	DirectiveStyleSrc            = "style-src"
+	DirectiveObjectSrc           = "object-src"
+	DirectiveBaseURI             = "base-uri"
+	DirectiveReportURI           = "report-uri"
 )
 
 const (
