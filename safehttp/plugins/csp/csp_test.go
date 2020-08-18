@@ -49,32 +49,32 @@ func TestSerialize(t *testing.T) {
 		{
 			name:       "StrictCSP",
 			policy:     NewStrictCSP(false, false, false, "", ""),
-			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSk='; base-uri 'none'",
-			wantNonce:  "KSkpKSkpKSk=",
+			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk='; base-uri 'none'",
+			wantNonce:  "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
 		{
 			name:       "StrictCSP with strict-dynamic",
 			policy:     NewStrictCSP(false, true, false, "", ""),
-			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSk=' 'strict-dynamic'; base-uri 'none'",
-			wantNonce:  "KSkpKSkpKSk=",
+			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk=' 'strict-dynamic'; base-uri 'none'",
+			wantNonce:  "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
 		{
 			name:       "StrictCSP with unsafe-eval",
 			policy:     NewStrictCSP(false, false, true, "", ""),
-			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSk=' 'unsafe-eval'; base-uri 'none'",
-			wantNonce:  "KSkpKSkpKSk=",
+			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk=' 'unsafe-eval'; base-uri 'none'",
+			wantNonce:  "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
 		{
 			name:       "StrictCSP with set base-uri",
 			policy:     NewStrictCSP(false, false, false, "https://example.com", ""),
-			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSk='; base-uri https://example.com",
-			wantNonce:  "KSkpKSkpKSk=",
+			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk='; base-uri https://example.com",
+			wantNonce:  "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
 		{
 			name:       "StrictCSP with report-uri",
 			policy:     NewStrictCSP(false, false, true, "", "https://example.com/collector"),
-			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSk=' 'unsafe-eval'; base-uri 'none'; report-uri https://example.com/collector",
-			wantNonce:  "KSkpKSkpKSk=",
+			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk=' 'unsafe-eval'; base-uri 'none'; report-uri https://example.com/collector",
+			wantNonce:  "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
 		{
 			name:       "FramingCSP",
@@ -114,19 +114,19 @@ func TestBefore(t *testing.T) {
 			name:        "Default policies",
 			interceptor: Default(""),
 			wantEnforcementPolicy: []string{
-				"object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSk='; base-uri 'none'",
+				"object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk='; base-uri 'none'",
 				"frame-ancestors 'self'",
 			},
-			wantNonce: "KSkpKSkpKSk=",
+			wantNonce: "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
 		{
 			name:        "Default policies with reporting URI",
 			interceptor: Default("https://example.com/collector"),
 			wantEnforcementPolicy: []string{
-				"object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSk='; base-uri 'none'; report-uri https://example.com/collector",
+				"object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk='; base-uri 'none'; report-uri https://example.com/collector",
 				"frame-ancestors 'self'",
 			},
-			wantNonce: "KSkpKSkpKSk=",
+			wantNonce: "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
 		{
 			name: "StrictCSP reportonly",
@@ -136,9 +136,9 @@ func TestBefore(t *testing.T) {
 				},
 			},
 			wantReportOnlyPolicy: []string{
-				"object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSk='; base-uri 'none'; report-uri https://example.com/collector",
+				"object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk='; base-uri 'none'; report-uri https://example.com/collector",
 			},
-			wantNonce: "KSkpKSkpKSk=",
+			wantNonce: "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
 		{
 			name:                 "FramingCSP reportonly",
