@@ -127,15 +127,15 @@ type Interceptor struct {
 	Policies []Policy
 }
 
+// NewInterceptor creates an interceptor from the provided policies.
+func NewInterceptor(p ...Policy) Interceptor {
+	return Interceptor{Policies: p}
+}
+
 // Default creates a new CSP interceptor with a strict nonce-based policy and a
 // framing policy, both in enforcement mode.
 func Default(reportURI string) Interceptor {
-	return Interceptor{
-		Policies: []Policy{
-			StrictCSPBuilder{ReportURI: reportURI}.Build(),
-			NewFramingCSP(false),
-		},
-	}
+	return NewInterceptor(StrictCSPBuilder{ReportURI: reportURI}.Build(), NewFramingCSP(false))
 }
 
 // Before claims and sets the Content-Security-Policy header and the
