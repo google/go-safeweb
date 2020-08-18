@@ -15,7 +15,6 @@
 package csp
 
 import (
-	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
@@ -152,11 +151,9 @@ func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 		return w.ServerError(safehttp.StatusInternalServerError)
 	}
 	if it.EnforcementPolicy != nil {
-		s, nonces := it.EnforcementPolicy.Serialize()
+		s, _ := it.EnforcementPolicy.Serialize()
+		// TODO: add nonces to context.
 		setCSP([]string{s})
-		if len(nonces) != 0 {
-			r.SetContext(context.WithValue(r.Context(), ctxKey("enforce"), nonces))
-		}
 	}
 
 	setCSPReportOnly, err := h.Claim("Content-Security-Policy-Report-Only")
@@ -164,11 +161,9 @@ func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 		return w.ServerError(safehttp.StatusInternalServerError)
 	}
 	if it.ReportOnlyPolicy != nil {
-		s, nonces := it.ReportOnlyPolicy.Serialize()
+		s, _ := it.ReportOnlyPolicy.Serialize()
+		// TODO: add nonces to context.
 		setCSPReportOnly([]string{s})
-		if len(nonces) != 0 {
-			r.SetContext(context.WithValue(r.Context(), ctxKey("report"), nonces))
-		}
 	}
 
 	return safehttp.Result{}

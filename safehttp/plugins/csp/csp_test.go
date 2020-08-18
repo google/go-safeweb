@@ -114,8 +114,6 @@ func TestBefore(t *testing.T) {
 		interceptor           Interceptor
 		wantEnforcementPolicy []string
 		wantReportPolicy      []string
-		wantEnforcementNonces map[Directive]string
-		wantReportNonces      map[Directive]string
 	}{
 		{
 			name:        "No policies",
@@ -129,7 +127,6 @@ func TestBefore(t *testing.T) {
 				return p
 			}(),
 			wantEnforcementPolicy: []string{"object-src 'none'; script-src 'nonce-AAECAwQFBgc=' 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:; base-uri 'none'; report-uri https://foo.com/collector"},
-			wantEnforcementNonces: map[Directive]string{DirectiveScriptSrc: "AAECAwQFBgc="},
 		},
 		{
 			name: "Report",
@@ -152,7 +149,6 @@ func TestBefore(t *testing.T) {
 				}(),
 			},
 			wantReportPolicy: []string{"object-src 'none'; script-src 'nonce-AAECAwQFBgc=' 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:; base-uri 'none'; report-uri https://foo.com/collector"},
-			wantReportNonces: map[Directive]string{DirectiveScriptSrc: "AAECAwQFBgc="},
 		},
 		{
 			name: "Report and enforce",
@@ -188,17 +184,6 @@ func TestBefore(t *testing.T) {
 
 			if diff := cmp.Diff(tt.wantReportPolicy, h.Values("Content-Security-Policy-Report-Only")); diff != "" {
 				t.Errorf("h.Values(\"Content-Security-Policy-Report-Only\") mismatch (-want +got):\n%s", diff)
-			}
-
-			ctx := req.Context()
-			en := ctx.Value(ctxKey("enforce"))
-			if diff := cmp.Diff(tt.wantEnforcementNonces, en); !(en == nil && tt.wantEnforcementNonces == nil) && diff != "" {
-				t.Errorf("ctx.Value(ctxKey(\"enforce\")) mismatch (-want +got):\n%s", diff)
-			}
-
-			rn := ctx.Value(ctxKey("report"))
-			if diff := cmp.Diff(tt.wantReportNonces, rn); !(rn == nil && tt.wantReportNonces == nil) && diff != "" {
-				t.Errorf("ctx.Value(ctxKey(\"report\")) mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
