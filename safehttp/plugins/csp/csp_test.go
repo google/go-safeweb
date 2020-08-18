@@ -60,7 +60,7 @@ func TestSerialize(t *testing.T) {
 					{Directive: DirectiveScriptSrc, Values: nil, AddNonce: false},
 				},
 			},
-			wantString: "script-src",
+			wantString: "script-src ",
 			wantNonces: map[Directive]string{},
 		},
 		{

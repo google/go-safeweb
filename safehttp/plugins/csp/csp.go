@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 	"strings"
 
 	"github.com/google/go-safeweb/safehttp"
@@ -103,28 +104,25 @@ func NewPolicy(reportURI string) *Policy {
 // each directive are also returned.
 func (p Policy) Serialize() (csp string, nonces map[Directive]string) {
 	nonces = make(map[Directive]string)
-	b := strings.Builder{}
+	values := make([]string, 0, len(p.Directives))
 
-	for i, d := range p.Directives {
-		if i != 0 {
-			b.WriteString("; ")
-		}
+	for _, d := range p.Directives {
+		var b strings.Builder
 		b.WriteString(string(d.Directive))
 
 		if d.AddNonce {
 			n := generateNonce(p.readRand)
-			b.WriteString(" 'nonce-")
-			b.WriteString(n)
-			b.WriteString("'")
+			b.WriteString(fmt.Sprintf(" 'nonce-%s'", n))
 			nonces[d.Directive] = n
 		}
 
-		for _, v := range d.Values {
-			b.WriteString(" ")
-			b.WriteString(v)
-		}
+		b.WriteString(" ")
+		b.WriteString(strings.Join(d.Values, " "))
+
+		values = append(values, b.String())
 	}
-	return b.String(), nonces
+
+	return strings.Join(values, "; "), nonces
 }
 
 // Interceptor intercepts requests and applies CSP policies.
