@@ -45,41 +45,32 @@ const (
 
 // PolicyDirective contains a single CSP directive.
 type PolicyDirective struct {
-	dir       Directive
-	vals      []string
-	nonces    bool
-	lastNonce string
-	// readRand is used for dependency injection in tests.
-	readRand func([]byte) (int, error)
-}
-
-// NewPolicyDirective creates a new PolicyDirective given the directive, the
-// values and whether or not a nonce directive should be added.
-func NewPolicyDirective(d Directive, values []string, nonces bool) *PolicyDirective {
-	return &PolicyDirective{
-		dir:      d,
-		vals:     values,
-		nonces:   nonces,
-		readRand: rand.Read,
-	}
+	Directive Directive
+	Values    []string
+	AddNonce  bool
 }
 
 // nonceSize is the size of the nonces in bytes.
 const nonceSize = 8
 
-func (pd *PolicyDirective) generateNonce() {
+func generateNonce(readRand func([]byte) (int, error)) string {
+	if readRand == nil {
+		readRand = rand.Read
+	}
 	b := make([]byte, nonceSize)
-	_, err := pd.readRand(b)
+	_, err := readRand(b)
 	if err != nil {
 		// TODO: handle this better, what should happen here?
 		panic(err)
 	}
-	pd.lastNonce = base64.StdEncoding.EncodeToString(b)
+	return base64.StdEncoding.EncodeToString(b)
 }
 
 // Policy defines a CSP policy, containing many directives.
 type Policy struct {
 	Directives []*PolicyDirective
+	// readRand is used for dependency injection in tests.
+	readRand func([]byte) (int, error)
 }
 
 // NewPolicy creates a new strict, nonce-based CSP.
@@ -89,16 +80,20 @@ type Policy struct {
 func NewPolicy(reportURI string) *Policy {
 	return &Policy{
 		Directives: []*PolicyDirective{
-			NewPolicyDirective(DirectiveObjectSrc, []string{ValueNone}, false),
-			NewPolicyDirective(DirectiveScriptSrc, []string{
-				ValueUnsafeInline,
-				ValueUnsafeEval,
-				ValueStrictDynamic,
-				ValueHTTPS,
-				ValueHTTP,
-			}, true),
-			NewPolicyDirective(DirectiveBaseURI, []string{ValueNone}, false),
-			NewPolicyDirective(DirectiveReportURI, []string{reportURI}, false),
+			{Directive: DirectiveObjectSrc, Values: []string{ValueNone}, AddNonce: false},
+			{
+				Directive: DirectiveScriptSrc,
+				Values: []string{
+					ValueUnsafeInline,
+					ValueUnsafeEval,
+					ValueStrictDynamic,
+					ValueHTTPS,
+					ValueHTTP,
+				},
+				AddNonce: true,
+			},
+			{Directive: DirectiveBaseURI, Values: []string{ValueNone}, AddNonce: false},
+			{Directive: DirectiveReportURI, Values: []string{reportURI}, AddNonce: false},
 		},
 	}
 }
@@ -114,17 +109,17 @@ func (p Policy) Serialize() (csp string, nonces map[Directive]string) {
 		if i != 0 {
 			b.WriteString("; ")
 		}
-		b.WriteString(string(d.dir))
+		b.WriteString(string(d.Directive))
 
-		if d.nonces {
-			d.generateNonce()
+		if d.AddNonce {
+			n := generateNonce(p.readRand)
 			b.WriteString(" 'nonce-")
-			b.WriteString(d.lastNonce)
+			b.WriteString(n)
 			b.WriteString("'")
-			nonces[d.dir] = d.lastNonce
+			nonces[d.Directive] = n
 		}
 
-		for _, v := range d.vals {
+		for _, v := range d.Values {
 			b.WriteString(" ")
 			b.WriteString(v)
 		}
