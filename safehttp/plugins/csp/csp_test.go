@@ -30,15 +30,6 @@ func readRand(b []byte) (int, error) {
 	return len(b), nil
 }
 
-func (p *Policy) insertTestRandom(f func([]byte) (int, error)) {
-	if p == nil {
-		return
-	}
-	for i := range p.Directives {
-		p.Directives[i].readRand = f
-	}
-}
-
 func TestSerialize(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -56,7 +47,7 @@ func TestSerialize(t *testing.T) {
 			name: "Default",
 			policy: func() *Policy {
 				p := NewPolicy("https://foo.com/collector")
-				p.insertTestRandom(readRand)
+				p.readRand = readRand
 				return p
 			}(),
 			wantString: "object-src 'none'; script-src 'nonce-AAECAwQFBgc=' 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:; base-uri 'none'; report-uri https://foo.com/collector",
@@ -66,7 +57,7 @@ func TestSerialize(t *testing.T) {
 			name: "Empty Directive",
 			policy: &Policy{
 				Directives: []*PolicyDirective{
-					NewPolicyDirective(DirectiveScriptSrc, nil, false),
+					{Directive: DirectiveScriptSrc, Values: nil, AddNonce: false},
 				},
 			},
 			wantString: "script-src",
@@ -76,7 +67,7 @@ func TestSerialize(t *testing.T) {
 			name: "No nonces",
 			policy: &Policy{
 				Directives: []*PolicyDirective{
-					NewPolicyDirective(DirectiveScriptSrc, []string{ValueUnsafeEval}, false),
+					{Directive: DirectiveScriptSrc, Values: []string{ValueUnsafeEval}, AddNonce: false},
 				},
 			},
 			wantString: "script-src 'unsafe-eval'",
@@ -87,11 +78,11 @@ func TestSerialize(t *testing.T) {
 			policy: func() *Policy {
 				p := &Policy{
 					Directives: []*PolicyDirective{
-						NewPolicyDirective(DirectiveScriptSrc, []string{ValueUnsafeEval}, true),
-						NewPolicyDirective(DirectiveStyleSrc, []string{ValueUnsafeEval}, true),
+						{Directive: DirectiveScriptSrc, Values: []string{ValueUnsafeEval}, AddNonce: true},
+						{Directive: DirectiveStyleSrc, Values: []string{ValueUnsafeEval}, AddNonce: true},
 					},
 				}
-				p.insertTestRandom(readRand)
+				p.readRand = readRand
 				return p
 			}(),
 			wantString: "script-src 'nonce-AAECAwQFBgc=' 'unsafe-eval'; style-src 'nonce-AAECAwQFBgc=' 'unsafe-eval'",
@@ -134,8 +125,7 @@ func TestBefore(t *testing.T) {
 			name: "Default policy",
 			interceptor: func() Interceptor {
 				p := Default("https://foo.com/collector")
-				p.EnforcementPolicy.insertTestRandom(readRand)
-				p.ReportOnlyPolicy.insertTestRandom(readRand)
+				p.EnforcementPolicy.readRand = readRand
 				return p
 			}(),
 			wantEnforcementPolicy: []string{"object-src 'none'; script-src 'nonce-AAECAwQFBgc=' 'unsafe-inline' 'unsafe-eval' 'strict-dynamic' https: http:; base-uri 'none'; report-uri https://foo.com/collector"},
@@ -146,7 +136,7 @@ func TestBefore(t *testing.T) {
 			interceptor: Interceptor{
 				ReportOnlyPolicy: &Policy{
 					Directives: []*PolicyDirective{
-						NewPolicyDirective(DirectiveScriptSrc, []string{ValueUnsafeInline}, false),
+						{Directive: DirectiveScriptSrc, Values: []string{ValueUnsafeInline}, AddNonce: false},
 					},
 				},
 			},
@@ -157,7 +147,7 @@ func TestBefore(t *testing.T) {
 			interceptor: Interceptor{
 				ReportOnlyPolicy: func() *Policy {
 					p := NewPolicy("https://foo.com/collector")
-					p.insertTestRandom(readRand)
+					p.readRand = readRand
 					return p
 				}(),
 			},
@@ -169,13 +159,13 @@ func TestBefore(t *testing.T) {
 			interceptor: Interceptor{
 				ReportOnlyPolicy: &Policy{
 					Directives: []*PolicyDirective{
-						NewPolicyDirective(DirectiveScriptSrc, []string{ValueUnsafeInline}, false),
-						NewPolicyDirective(DirectiveBaseURI, []string{ValueNone}, false),
+						{Directive: DirectiveScriptSrc, Values: []string{ValueUnsafeInline}, AddNonce: false},
+						{Directive: DirectiveBaseURI, Values: []string{ValueNone}, AddNonce: false},
 					},
 				},
 				EnforcementPolicy: &Policy{
 					Directives: []*PolicyDirective{
-						NewPolicyDirective(DirectiveScriptSrc, []string{ValueUnsafeInline}, false),
+						{Directive: DirectiveScriptSrc, Values: []string{ValueUnsafeInline}, AddNonce: false},
 					},
 				},
 			},
