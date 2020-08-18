@@ -15,50 +15,22 @@
 package csp
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
-	"fmt"
 	"strings"
 
 	"github.com/google/go-safeweb/safehttp"
 )
 
-// Directive is the name of a single CSP directive.
-type Directive string
-
-const (
-	DirectiveScriptSrc Directive = "script-src"
-	DirectiveStyleSrc            = "style-src"
-	DirectiveObjectSrc           = "object-src"
-	DirectiveBaseURI             = "base-uri"
-	DirectiveReportURI           = "report-uri"
-)
-
-const (
-	ValueHTTPS         = "https:"
-	ValueHTTP          = "http:"
-	ValueUnsafeEval    = "'unsafe-eval'"
-	ValueUnsafeInline  = "'unsafe-inline'"
-	ValueNone          = "'none'"
-	ValueStrictDynamic = "'strict-dynamic'"
-)
-
-// PolicyDirective contains a single CSP directive.
-type PolicyDirective struct {
-	Directive Directive
-	Values    []string
-	AddNonce  bool
-}
+var randReader = rand.Reader
 
 // nonceSize is the size of the nonces in bytes.
 const nonceSize = 8
 
-func generateNonce(readRand func([]byte) (int, error)) string {
-	if readRand == nil {
-		readRand = rand.Read
-	}
+func generateNonce() string {
 	b := make([]byte, nonceSize)
-	_, err := readRand(b)
+	_, err := randReader.Read(b)
 	if err != nil {
 		// TODO: handle this better, what should happen here?
 		panic(err)
@@ -66,81 +38,97 @@ func generateNonce(readRand func([]byte) (int, error)) string {
 	return base64.StdEncoding.EncodeToString(b)
 }
 
-// Policy defines a CSP policy, containing many directives.
+// Policy defines a CSP policy.
 type Policy struct {
-	Directives []*PolicyDirective
-	// readRand is used for dependency injection in tests.
-	readRand func([]byte) (int, error)
+	reportOnly bool
+
+	// serialize serializes this policy for use in a Content-Security-Policy header
+	// or in a Content-Security-Policy-Report-Only header. If the given context
+	// contains a nonce, it is used, otherwise a new one is generated and placed
+	// in the context.
+	serialize func(context.Context) (string, context.Context)
 }
 
-// NewPolicy creates a new strict, nonce-based CSP.
+type ctxKey struct{}
+
+// Nonce retrieves the nonce from the given context. If there is no nonce stored
+// in the context, an empty string is returned.
+func Nonce(ctx context.Context) string {
+	v := ctx.Value(ctxKey{})
+	if v == nil {
+		return ""
+	}
+	return v.(string)
+}
+
+// NewStrictCSP creates a new strict, nonce-based CSP.
 // See https://csp.withgoogle.com/docs/strict-csp.html for more info.
-//
-// TODO: maybe reportURI should be safehttp.URL?
-func NewPolicy(reportURI string) *Policy {
-	return &Policy{
-		Directives: []*PolicyDirective{
-			{Directive: DirectiveObjectSrc, Values: []string{ValueNone}, AddNonce: false},
-			{
-				Directive: DirectiveScriptSrc,
-				Values: []string{
-					ValueUnsafeInline,
-					ValueUnsafeEval,
-					ValueStrictDynamic,
-					ValueHTTPS,
-					ValueHTTP,
-				},
-				AddNonce: true,
-			},
-			{Directive: DirectiveBaseURI, Values: []string{ValueNone}, AddNonce: false},
-			{Directive: DirectiveReportURI, Values: []string{reportURI}, AddNonce: false},
+func NewStrictCSP(reportOnly bool, strictDynamic bool, unsafeEval bool, baseURI string, reportURI string) Policy {
+	return Policy{
+		reportOnly: reportOnly,
+		serialize: func(ctx context.Context) (string, context.Context) {
+			var b strings.Builder
+
+			b.WriteString("object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-")
+			n := Nonce(ctx)
+			if n == "" {
+				n = generateNonce()
+				ctx = context.WithValue(ctx, ctxKey{}, n)
+			}
+			b.WriteString(n)
+			b.WriteString("'")
+
+			if strictDynamic {
+				b.WriteString(" 'strict-dynamic'")
+			}
+			if unsafeEval {
+				b.WriteString(" 'unsafe-eval'")
+			}
+
+			b.WriteString("; base-uri ")
+			if baseURI == "" {
+				b.WriteString("'none'")
+			} else {
+				b.WriteString(baseURI)
+			}
+
+			if reportURI != "" {
+				b.WriteString("; report-uri ")
+				b.WriteString(reportURI)
+			}
+
+			return b.String(), ctx
 		},
 	}
 }
 
-// Serialize serializes this policy for use in a Content-Security-Policy header
-// or in a Content-Security-Policy-Report-Only header. The nonces generated for
-// each directive are also returned.
-func (p Policy) Serialize() (csp string, nonces map[Directive]string) {
-	nonces = make(map[Directive]string)
-	values := make([]string, 0, len(p.Directives))
-
-	for _, d := range p.Directives {
-		var b strings.Builder
-		b.WriteString(string(d.Directive))
-
-		if d.AddNonce {
-			n := generateNonce(p.readRand)
-			b.WriteString(fmt.Sprintf(" 'nonce-%s'", n))
-			nonces[d.Directive] = n
-		}
-
-		b.WriteString(" ")
-		b.WriteString(strings.Join(d.Values, " "))
-
-		values = append(values, b.String())
+// NewFramingCSP creates a new CSP policy with frame-ancestors set to 'self'.
+//
+// TODO: allow relaxation on specific endpoints according to #77.
+func NewFramingCSP(reportOnly bool) Policy {
+	return Policy{
+		reportOnly: reportOnly,
+		serialize: func(ctx context.Context) (string, context.Context) {
+			return "frame-ancestors 'self'", ctx
+		},
 	}
-
-	return strings.Join(values, "; "), nonces
 }
 
 // Interceptor intercepts requests and applies CSP policies.
 type Interceptor struct {
-	// EnforcementPolicy will be applied as the Content-Security-Policy header.
-	EnforcementPolicy *Policy
-
-	// ReportOnlyPolicy will be applied as the Content-Security-Policy-Report-Only
-	// header.
-	ReportOnlyPolicy *Policy
+	Policies []Policy
 }
 
-// Default creates a new CSP interceptor with a strict nonce-based policy in
-// enforcement mode.
+// Default creates a new CSP interceptor with a strict nonce-based policy and a
+// framing policy, both in enforcement mode.
 func Default(reportURI string) Interceptor {
-	return Interceptor{EnforcementPolicy: NewPolicy(reportURI)}
+	return Interceptor{
+		Policies: []Policy{
+			NewStrictCSP(false, false, false, "", reportURI),
+			NewFramingCSP(false),
+		},
+	}
 }
-
-type ctxKey string
 
 // Before claims and sets the Content-Security-Policy header and the
 // Content-Security-Policy-Report-Only header.
@@ -150,21 +138,25 @@ func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 	if err != nil {
 		return w.ServerError(safehttp.StatusInternalServerError)
 	}
-	if it.EnforcementPolicy != nil {
-		s, _ := it.EnforcementPolicy.Serialize()
-		// TODO: add nonces to context.
-		setCSP([]string{s})
-	}
 
 	setCSPReportOnly, err := h.Claim("Content-Security-Policy-Report-Only")
 	if err != nil {
 		return w.ServerError(safehttp.StatusInternalServerError)
 	}
-	if it.ReportOnlyPolicy != nil {
-		s, _ := it.ReportOnlyPolicy.Serialize()
-		// TODO: add nonces to context.
-		setCSPReportOnly([]string{s})
+
+	csps := make([]string, 0)
+	reportCsps := make([]string, 0)
+	for _, p := range it.Policies {
+		v, ctx := p.serialize(r.Context())
+		r.SetContext(ctx)
+		if p.reportOnly {
+			reportCsps = append(reportCsps, v)
+		} else {
+			csps = append(csps, v)
+		}
 	}
+	setCSP(csps)
+	setCSPReportOnly(reportCsps)
 
 	return safehttp.Result{}
 }
