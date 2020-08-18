@@ -20,6 +20,8 @@ package safehttp
 type Interceptor interface {
 	// Before runs before the IncomingRequest is sent to the handler. If a
 	// response is written to the ResponseWriter, then the remaining
-	// interceptors and the handler won't execute.
+	// interceptors and the handler won't execute. If the interceptor panics
+	// during the execution of Before, the panic will be recovered and the ServeMux
+	// will responds with 500 Internal Server Error.
 	Before(w ResponseWriter, r *IncomingRequest) Result
 }

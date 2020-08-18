@@ -16,6 +16,7 @@ package csp
 
 import (
 	"context"
+	"errors"
 	"os"
 	"testing"
 
@@ -209,4 +210,20 @@ func TestAlreadyClaimed(t *testing.T) {
 			}
 		})
 	}
+}
+
+type errorReader struct{}
+
+func (errorReader) Read(b []byte) (int, error) {
+	return 0, errors.New("bad")
+}
+
+func TestPanicWhileGeneratingNonce(t *testing.T) {
+	randReader = errorReader{}
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("Nonce(context.Background()) expected panic")
+		}
+	}()
+	Nonce(context.Background())
 }
