@@ -48,32 +48,32 @@ func TestSerialize(t *testing.T) {
 	}{
 		{
 			name:       "StrictCSP",
-			policy:     NewStrictCSP(false, false, false, "", ""),
+			policy:     StrictCSPBuilder{}.Build(),
 			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk='; base-uri 'none'",
 			wantNonce:  "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
 		{
 			name:       "StrictCSP with strict-dynamic",
-			policy:     NewStrictCSP(false, true, false, "", ""),
+			policy:     StrictCSPBuilder{StrictDynamic: true}.Build(),
 			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk=' 'strict-dynamic'; base-uri 'none'",
 			wantNonce:  "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
 		{
 			name:       "StrictCSP with unsafe-eval",
-			policy:     NewStrictCSP(false, false, true, "", ""),
+			policy:     StrictCSPBuilder{UnsafeEval: true}.Build(),
 			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk=' 'unsafe-eval'; base-uri 'none'",
 			wantNonce:  "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
 		{
 			name:       "StrictCSP with set base-uri",
-			policy:     NewStrictCSP(false, false, false, "https://example.com", ""),
+			policy:     StrictCSPBuilder{BaseURI: "https://example.com"}.Build(),
 			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk='; base-uri https://example.com",
 			wantNonce:  "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
 		{
 			name:       "StrictCSP with report-uri",
-			policy:     NewStrictCSP(false, false, true, "", "https://example.com/collector"),
-			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk=' 'unsafe-eval'; base-uri 'none'; report-uri https://example.com/collector",
+			policy:     StrictCSPBuilder{ReportURI: "https://example.com/collector"}.Build(),
+			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk='; base-uri 'none'; report-uri https://example.com/collector",
 			wantNonce:  "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
 		{
@@ -136,7 +136,7 @@ func TestBefore(t *testing.T) {
 			name: "StrictCSP reportonly",
 			interceptor: Interceptor{
 				Policies: []Policy{
-					NewStrictCSP(true, false, false, "", "https://example.com/collector"),
+					StrictCSPBuilder{ReportOnly: true, ReportURI: "https://example.com/collector"}.Build(),
 				},
 			},
 			wantReportOnlyPolicy: []string{
