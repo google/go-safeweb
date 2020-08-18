@@ -91,8 +91,12 @@ func TestSerialize(t *testing.T) {
 				t.Errorf("tt.policy.serialize() got: %q want: %q", s, tt.wantString)
 			}
 
-			if got := Nonce(ctx); got != tt.wantNonce {
-				t.Errorf("Nonce(ctx) got: %q want: %q", got, tt.wantNonce)
+			v := ctx.Value(ctxKey{})
+			if v == nil {
+				v = ""
+			}
+			if got := v.(string); got != tt.wantNonce {
+				t.Errorf("ctx.Value(ctxKey{}) got: %q want: %q", got, tt.wantNonce)
 			}
 		})
 	}
@@ -163,8 +167,13 @@ func TestBefore(t *testing.T) {
 				t.Errorf("h.Values(\"Content-Security-Policy-Report-Only\") mismatch (-want +got):\n%s", diff)
 			}
 
-			if got := Nonce(req.Context()); got != tt.wantNonce {
-				t.Errorf("Nonce(req.Context()) got: %q want: %q", got, tt.wantNonce)
+			ctx := req.Context()
+			v := ctx.Value(ctxKey{})
+			if v == nil {
+				v = ""
+			}
+			if got := v.(string); got != tt.wantNonce {
+				t.Errorf("ctx.Value(ctxKey{}) got: %q want: %q", got, tt.wantNonce)
 			}
 		})
 	}

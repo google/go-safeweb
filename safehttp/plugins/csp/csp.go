@@ -52,13 +52,14 @@ type Policy struct {
 type ctxKey struct{}
 
 // Nonce retrieves the nonce from the given context. If there is no nonce stored
-// in the context, an empty string is returned.
-func Nonce(ctx context.Context) string {
+// in the context, a new nonce is generated and placed in the context.
+func Nonce(ctx context.Context) (string, context.Context) {
 	v := ctx.Value(ctxKey{})
 	if v == nil {
-		return ""
+		v = generateNonce()
+		ctx = context.WithValue(ctx, ctxKey{}, v)
 	}
-	return v.(string)
+	return v.(string), ctx
 }
 
 // NewStrictCSP creates a new strict, nonce-based CSP.
@@ -70,11 +71,7 @@ func NewStrictCSP(reportOnly bool, strictDynamic bool, unsafeEval bool, baseURI 
 			var b strings.Builder
 
 			b.WriteString("object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-")
-			n := Nonce(ctx)
-			if n == "" {
-				n = generateNonce()
-				ctx = context.WithValue(ctx, ctxKey{}, n)
-			}
+			n, ctx := Nonce(ctx)
 			b.WriteString(n)
 			b.WriteString("'")
 
