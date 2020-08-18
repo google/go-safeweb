@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"sync"
@@ -44,7 +45,13 @@ func NewIncomingRequest(req *http.Request) *IncomingRequest {
 	}
 }
 
-// Method specifies the HTTP method of an IncomingRequest.
+// Body returns the request body reader. It is always non-nil but will return
+// EOF immediately when no body is present.
+func (r *IncomingRequest) Body() io.ReadCloser {
+	return r.req.Body
+}
+
+// Method returns the HTTP method of the request.
 func (r *IncomingRequest) Method() string {
 	return r.req.Method
 }
