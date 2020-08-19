@@ -41,25 +41,24 @@ func generateNonce() string {
 // Policy defines a CSP policy.
 type Policy struct {
 	reportOnly bool
+	needsNonce bool
 
 	// serialize serializes this policy for use in a Content-Security-Policy header
-	// or in a Content-Security-Policy-Report-Only header. If the given context
-	// contains a nonce, it is used, otherwise a new one is generated and placed
-	// in the context.
-	serialize func(context.Context) (string, context.Context)
+	// or in a Content-Security-Policy-Report-Only header. If needsNonce is true,
+	// a nonce will be provided to serialize.
+	serialize func(nonce string) string
 }
 
 type ctxKey struct{}
 
 // Nonce retrieves the nonce from the given context. If there is no nonce stored
-// in the context, a new nonce is generated and placed in the context.
-func Nonce(ctx context.Context) (string, context.Context) {
+// in the context, an empty string is returned.
+func Nonce(ctx context.Context) string {
 	v := ctx.Value(ctxKey{})
 	if v == nil {
-		v = generateNonce()
-		ctx = context.WithValue(ctx, ctxKey{}, v)
+		return ""
 	}
-	return v.(string), ctx
+	return v.(string)
 }
 
 // StrictCSPBuilder can be used to build a strict, nonce-based CSP.
@@ -78,12 +77,12 @@ type StrictCSPBuilder struct {
 func (s StrictCSPBuilder) Build() Policy {
 	return Policy{
 		reportOnly: s.ReportOnly,
-		serialize: func(ctx context.Context) (string, context.Context) {
+		needsNonce: true,
+		serialize: func(nonce string) string {
 			var b strings.Builder
 
 			b.WriteString("object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-")
-			n, ctx := Nonce(ctx)
-			b.WriteString(n)
+			b.WriteString(nonce)
 			b.WriteString("'")
 
 			if s.StrictDynamic {
@@ -105,7 +104,7 @@ func (s StrictCSPBuilder) Build() Policy {
 				b.WriteString(s.ReportURI)
 			}
 
-			return b.String(), ctx
+			return b.String()
 		},
 	}
 }
@@ -116,7 +115,7 @@ func (s StrictCSPBuilder) Build() Policy {
 func FramingPolicy(reportOnly bool, reportURI string) Policy {
 	return Policy{
 		reportOnly: reportOnly,
-		serialize: func(ctx context.Context) (string, context.Context) {
+		serialize: func(_ string) string {
 			var b strings.Builder
 			b.WriteString("frame-ancestors 'self'")
 
@@ -125,7 +124,7 @@ func FramingPolicy(reportOnly bool, reportURI string) Policy {
 				b.WriteString(reportURI)
 			}
 
-			return b.String(), ctx
+			return b.String()
 		},
 	}
 }
@@ -151,14 +150,20 @@ func Default(reportURI string) Interceptor {
 func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 	var csps []string
 	var reportCsps []string
+	nonce := ""
 	for _, p := range it.Policies {
-		v, ctx := p.serialize(r.Context())
-		r.SetContext(ctx)
+		if p.needsNonce && nonce == "" {
+			nonce = generateNonce()
+		}
+		v := p.serialize(nonce)
 		if p.reportOnly {
 			reportCsps = append(reportCsps, v)
 		} else {
 			csps = append(csps, v)
 		}
+	}
+	if nonce != "" {
+		r.SetContext(context.WithValue(r.Context(), ctxKey{}, nonce))
 	}
 
 	h := w.Header()
