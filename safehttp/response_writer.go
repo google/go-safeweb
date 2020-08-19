@@ -27,6 +27,7 @@ type ResponseWriter struct {
 	// easily overwrite the struct bypassing all our safety guarantees.
 	header       Header
 	muxInterceps map[string]Interceptor
+	written      bool
 }
 
 // NewResponseWriter creates a ResponseWriter from a safehttp.Dispatcher, an
@@ -51,52 +52,63 @@ func (w *ResponseWriter) Interceptor(key string) Interceptor {
 }
 
 // Result TODO
-type Result struct {
-	written bool
-}
+type Result struct{}
 
 // Write TODO
 func (w *ResponseWriter) Write(resp Response) Result {
+	w.markWritten()
 	if err := w.d.Write(w.rw, resp); err != nil {
 		panic("error")
 	}
-	return Result{written: true}
+	return Result{}
 }
 
 // WriteTemplate TODO
 func (w *ResponseWriter) WriteTemplate(t Template, data interface{}) Result {
+	w.markWritten()
 	if err := w.d.ExecuteTemplate(w.rw, t, data); err != nil {
 		panic("error")
 	}
-	return Result{written: true}
+	return Result{}
 }
 
 // ClientError TODO
 func (w *ResponseWriter) ClientError(code StatusCode) Result {
+	w.markWritten()
 	if code < 400 || code >= 500 {
 		// TODO(@mihalimara22): Replace this when we decide how to handle this case
 		panic("wrong method called")
 	}
 	http.Error(w.rw, http.StatusText(int(code)), int(code))
-	return Result{written: true}
+	return Result{}
 }
 
 // ServerError TODO
 func (w *ResponseWriter) ServerError(code StatusCode) Result {
+	w.markWritten()
 	if code < 500 || code >= 600 {
 		// TODO(@mattiasgrenfeldt, @mihalimara22, @kele, @empijei): Decide how it should
 		// be communicated to the user of the framework that they've called the wrong
 		// method.
-		return Result{written: true}
+		return Result{}
 	}
 	http.Error(w.rw, http.StatusText(int(code)), int(code))
-	return Result{written: true}
+	return Result{}
 }
 
 // Redirect responds with a redirect to a given url, using code as the status code.
 func (w *ResponseWriter) Redirect(r *IncomingRequest, url string, code StatusCode) Result {
+	w.markWritten()
 	http.Redirect(w.rw, r.req, url, int(code))
-	return Result{written: true}
+	return Result{}
+}
+
+// markWritten sets written to true. If written was already true, it panics.
+func (w *ResponseWriter) markWritten() {
+	if w.written {
+		panic("ResponseWriter already written to")
+	}
+	w.written = true
 }
 
 // Header returns the collection of headers that will be set
