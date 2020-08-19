@@ -113,11 +113,19 @@ func (s StrictCSPBuilder) Build() Policy {
 // FramingPolicy creates a new CSP policy with frame-ancestors set to 'self'.
 //
 // TODO: allow relaxation on specific endpoints according to #77.
-func FramingPolicy(reportOnly bool) Policy {
+func FramingPolicy(reportOnly bool, reportURI string) Policy {
 	return Policy{
 		reportOnly: reportOnly,
 		serialize: func(ctx context.Context) (string, context.Context) {
-			return "frame-ancestors 'self'", ctx
+			var b strings.Builder
+			b.WriteString("frame-ancestors 'self'")
+
+			if reportURI != "" {
+				b.WriteString("; report-uri ")
+				b.WriteString(reportURI)
+			}
+
+			return b.String(), ctx
 		},
 	}
 }
@@ -135,7 +143,7 @@ func NewInterceptor(p ...Policy) Interceptor {
 // Default creates a new CSP interceptor with a strict nonce-based policy and a
 // framing policy, both in enforcement mode.
 func Default(reportURI string) Interceptor {
-	return NewInterceptor(StrictCSPBuilder{ReportURI: reportURI}.Build(), FramingPolicy(false))
+	return NewInterceptor(StrictCSPBuilder{ReportURI: reportURI}.Build(), FramingPolicy(false, reportURI))
 }
 
 // Before claims and sets the Content-Security-Policy header and the
