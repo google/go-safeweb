@@ -79,7 +79,7 @@ func TestSerialize(t *testing.T) {
 		},
 		{
 			name:       "FramingCSP",
-			policy:     NewFramingCSP(false),
+			policy:     FramingPolicy(false),
 			wantString: "frame-ancestors 'self'",
 		},
 	}
@@ -143,7 +143,7 @@ func TestBefore(t *testing.T) {
 		},
 		{
 			name:                 "FramingCSP reportonly",
-			interceptor:          NewInterceptor(NewFramingCSP(true)),
+			interceptor:          NewInterceptor(FramingPolicy(true)),
 			wantReportOnlyPolicy: []string{"frame-ancestors 'self'"},
 		},
 	}
