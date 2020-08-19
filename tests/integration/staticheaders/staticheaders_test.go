@@ -74,7 +74,7 @@ func (r *responseRecorder) Write(data []byte) (int, error) {
 func TestServeMuxInstallStaticHeaders(t *testing.T) {
 	mux := safehttp.NewServeMux(dispatcher{}, "foo.com")
 
-	handler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+	handler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 	})
 	mux.Handle("/asdf", safehttp.MethodGet, handler)

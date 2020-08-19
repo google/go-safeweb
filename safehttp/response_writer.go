@@ -31,9 +31,9 @@ type ResponseWriter struct {
 
 // NewResponseWriter creates a ResponseWriter from a safehttp.Dispatcher, an
 // http.ResponseWriter and a list of interceptors associated with a ServeMux.
-func NewResponseWriter(d Dispatcher, rw http.ResponseWriter, muxInterceps map[string]Interceptor) ResponseWriter {
+func NewResponseWriter(d Dispatcher, rw http.ResponseWriter, muxInterceps map[string]Interceptor) *ResponseWriter {
 	header := newHeader(rw.Header())
-	return ResponseWriter{
+	return &ResponseWriter{
 		d:            d,
 		rw:           rw,
 		header:       header,
