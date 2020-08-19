@@ -34,16 +34,14 @@ type Report struct {
 	ViolatedDirective  string `json:"violated-directive"`
 }
 
-// Collector is a reports collector.
-type Collector interface {
-	Collect(Report)
-}
+// ReportsHandler is a reports handler.
+type ReportsHandler func(Report)
 
-// Handler creates a safehttp.Handler which calls collector when a violation
-// report is received. Make sure to register the handler to receive POST
+// Handler creates a safehttp.Handler which calls the given ReportsHandler when a
+// violation report is received. Make sure to register the handler to receive POST
 // requests. If the handler recieves anything other that POST requests it will
 // respond with a 405 Method Not Allowed.
-func Handler(c Collector) safehttp.Handler {
+func Handler(rh ReportsHandler) safehttp.Handler {
 	return safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 		if ir.Method() != safehttp.MethodPost {
 			return w.ClientError(safehttp.StatusMethodNotAllowed)
@@ -58,7 +56,7 @@ func Handler(c Collector) safehttp.Handler {
 		if err := d.Decode(&r); err != nil {
 			return w.ClientError(safehttp.StatusBadRequest)
 		}
-		c.Collect(r)
+		rh(r)
 
 		return w.NoContent()
 	})
