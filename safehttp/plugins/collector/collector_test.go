@@ -24,12 +24,6 @@ import (
 	"github.com/google/go-safeweb/safehttp/safehttptest"
 )
 
-type collectorFunc func(r collector.Report)
-
-func (c collectorFunc) Collect(r collector.Report) {
-	c(r)
-}
-
 func TestReport(t *testing.T) {
 	report := `{
 		"blocked-uri": "https://evil.com/",
@@ -54,12 +48,11 @@ func TestReport(t *testing.T) {
 		ViolatedDirective:  "script-src",
 	}
 
-	c := collectorFunc(func(r collector.Report) {
+	h := collector.Handler(func(r collector.Report) {
 		if diff := cmp.Diff(want, r); diff != "" {
 			t.Errorf("report mismatch (-want +got):\n%s", diff)
 		}
 	})
-	h := collector.Handler(c)
 
 	req := safehttptest.NewRequest(safehttp.MethodPost, "/collector", strings.NewReader(report))
 	req.Header.Set("Content-Type", "application/json")
@@ -128,10 +121,9 @@ func TestInvalidRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := collectorFunc(func(r collector.Report) {
+			h := collector.Handler(func(r collector.Report) {
 				t.Errorf("expected collector to not be called")
 			})
-			h := collector.Handler(c)
 
 			rr := safehttptest.NewResponseRecorder()
 			h.ServeHTTP(rr.ResponseWriter, tt.req)
