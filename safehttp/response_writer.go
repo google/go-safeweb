@@ -91,7 +91,6 @@ func (w *ResponseWriter) ServerError(code StatusCode) Result {
 		// be communicated to the user of the framework that they've called the wrong
 		// method.
 		panic("wrong method called")
-		return Result{}
 	}
 	http.Error(w.rw, http.StatusText(int(code)), int(code))
 	return Result{}
