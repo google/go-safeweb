@@ -61,7 +61,7 @@ func TestFormValidInt(t *testing.T) {
 
 	for _, test := range tests {
 		mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-		mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+		mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 			var form *safehttp.Form
 			if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
 				var err error
@@ -150,7 +150,7 @@ func TestFormInvalidInt(t *testing.T) {
 	for _, test := range tests {
 		for _, req := range test.reqs {
 			mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-			mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+			mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 				var form *safehttp.Form
 				if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
 					var err error
@@ -221,7 +221,7 @@ func TestFormValidUint(t *testing.T) {
 
 	for _, test := range tests {
 		mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-		mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+		mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 			var form *safehttp.Form
 			if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
 				var err error
@@ -308,7 +308,7 @@ func TestFormInvalidUint(t *testing.T) {
 	for _, test := range tests {
 		for _, req := range test.reqs {
 			mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-			mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+			mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 				var form *safehttp.Form
 				if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
 					var err error
@@ -390,7 +390,7 @@ func TestFormValidString(t *testing.T) {
 	for _, test := range tests {
 		for idx, req := range test.reqs {
 			mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-			mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+			mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 				var form *safehttp.Form
 				if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
 					var err error
@@ -473,7 +473,7 @@ func TestFormValidFloat64(t *testing.T) {
 	for _, test := range tests {
 		for idx, req := range test.reqs {
 			mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-			mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+			mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 				var form *safehttp.Form
 				if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
 					var err error
@@ -561,7 +561,7 @@ func TestFormInvalidFloat64(t *testing.T) {
 	for _, test := range tests {
 		for _, req := range test.reqs {
 			mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-			mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+			mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 				var form *safehttp.Form
 				if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
 					var err error
@@ -653,7 +653,7 @@ func TestFormValidBool(t *testing.T) {
 	for _, test := range tests {
 		for idx, req := range test.reqs {
 			mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-			mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+			mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 				var form *safehttp.Form
 				if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
 					var err error
@@ -735,7 +735,7 @@ func TestFormInvalidBool(t *testing.T) {
 	for _, test := range tests {
 		for _, req := range test.reqs {
 			mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-			mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+			mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 				var form *safehttp.Form
 				if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
 					var err error
@@ -833,7 +833,7 @@ func TestFormInvalidSlice(t *testing.T) {
 	for _, test := range tests {
 		for _, req := range test.reqs {
 			mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-			mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+			mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 				var form *safehttp.Form
 				if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
 					var err error
@@ -908,7 +908,7 @@ func TestFormErrorHandling(t *testing.T) {
 
 	for _, tc := range tests {
 		mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-		mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+		mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 			var form *safehttp.Form
 			if !strings.HasPrefix(ir.Header.Get("Content-Type"), "multipart/form-data") {
 				var err error
@@ -1017,7 +1017,7 @@ func TestFormValidSlicePost(t *testing.T) {
 
 	for _, tc := range tests {
 		mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-		mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+		mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 			form, err := ir.PostForm()
 			if err != nil {
 				t.Fatalf(`ir.PostForm: got err %v, want nil`, err)
@@ -1119,7 +1119,7 @@ func TestFormValidSliceMultipart(t *testing.T) {
 
 	for _, tc := range tests {
 		mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-		mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+		mux.Handle("/", safehttp.MethodPost, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 			form, err := ir.MultipartForm(32 << 20)
 			if err != nil {
 				t.Fatalf(`ir.MultipartForm: got err %v, want nil`, err)

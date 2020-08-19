@@ -49,7 +49,7 @@ func (testDispatcher) ExecuteTemplate(rw http.ResponseWriter, t safehttp.Templat
 // mutations for later inspection in tests. The safehttp.ResponseWriter
 // should be passed as part of the handler function in tests.
 type ResponseRecorder struct {
-	safehttp.ResponseWriter
+	*safehttp.ResponseWriter
 	rw *responseWriter
 	b  *strings.Builder
 }
