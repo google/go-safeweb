@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package reportscollector_test
+package collector_test
 
 import (
 	"strings"
@@ -20,13 +20,13 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
-	"github.com/google/go-safeweb/safehttp/plugins/reportscollector"
+	"github.com/google/go-safeweb/safehttp/plugins/collector"
 	"github.com/google/go-safeweb/safehttp/safehttptest"
 )
 
-type collectorFunc func(r reportscollector.Report)
+type collectorFunc func(r collector.Report)
 
-func (c collectorFunc) Collect(r reportscollector.Report) {
+func (c collectorFunc) Collect(r collector.Report) {
 	c(r)
 }
 
@@ -42,7 +42,7 @@ func TestReport(t *testing.T) {
 		"status-code": 200,
 		"violated-directive": "script-src"
 	}`
-	want := reportscollector.Report{
+	want := collector.Report{
 		BlockedURI:         "https://evil.com/",
 		Disposition:        "enforce",
 		DocumentURI:        "https://example.com/blah/blah",
@@ -54,12 +54,12 @@ func TestReport(t *testing.T) {
 		ViolatedDirective:  "script-src",
 	}
 
-	c := collectorFunc(func(r reportscollector.Report) {
+	c := collectorFunc(func(r collector.Report) {
 		if diff := cmp.Diff(want, r); diff != "" {
 			t.Errorf("report mismatch (-want +got):\n%s", diff)
 		}
 	})
-	h := reportscollector.Handler(c)
+	h := collector.Handler(c)
 
 	req := safehttptest.NewRequest(safehttp.MethodPost, "/collector", strings.NewReader(report))
 	req.Header.Set("Content-Type", "application/json")
@@ -128,10 +128,10 @@ func TestInvalidRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := collectorFunc(func(r reportscollector.Report) {
+			c := collectorFunc(func(r collector.Report) {
 				t.Errorf("expected collector to not be called")
 			})
-			h := reportscollector.Handler(c)
+			h := collector.Handler(c)
 
 			rr := safehttptest.NewResponseRecorder()
 			h.ServeHTTP(rr.ResponseWriter, tt.req)
