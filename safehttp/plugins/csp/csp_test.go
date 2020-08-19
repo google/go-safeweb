@@ -45,37 +45,31 @@ func TestSerialize(t *testing.T) {
 		name       string
 		policy     Policy
 		wantString string
-		wantNonce  string
 	}{
 		{
 			name:       "StrictCSP",
 			policy:     StrictCSPBuilder{}.Build(),
-			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk='; base-uri 'none'",
-			wantNonce:  "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
+			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-super-secret'; base-uri 'none'",
 		},
 		{
 			name:       "StrictCSP with strict-dynamic",
 			policy:     StrictCSPBuilder{StrictDynamic: true}.Build(),
-			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk=' 'strict-dynamic'; base-uri 'none'",
-			wantNonce:  "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
+			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-super-secret' 'strict-dynamic'; base-uri 'none'",
 		},
 		{
 			name:       "StrictCSP with unsafe-eval",
 			policy:     StrictCSPBuilder{UnsafeEval: true}.Build(),
-			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk=' 'unsafe-eval'; base-uri 'none'",
-			wantNonce:  "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
+			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-super-secret' 'unsafe-eval'; base-uri 'none'",
 		},
 		{
 			name:       "StrictCSP with set base-uri",
 			policy:     StrictCSPBuilder{BaseURI: "https://example.com"}.Build(),
-			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk='; base-uri https://example.com",
-			wantNonce:  "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
+			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-super-secret'; base-uri https://example.com",
 		},
 		{
 			name:       "StrictCSP with report-uri",
 			policy:     StrictCSPBuilder{ReportURI: "https://example.com/collector"}.Build(),
-			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk='; base-uri 'none'; report-uri https://example.com/collector",
-			wantNonce:  "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
+			wantString: "object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-super-secret'; base-uri 'none'; report-uri https://example.com/collector",
 		},
 		{
 			name:       "FramingCSP",
@@ -91,18 +85,10 @@ func TestSerialize(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s, ctx := tt.policy.serialize(context.Background())
+			s := tt.policy.serialize("super-secret")
 
 			if s != tt.wantString {
 				t.Errorf("tt.policy.serialize() got: %q want: %q", s, tt.wantString)
-			}
-
-			v := ctx.Value(ctxKey{})
-			if v == nil {
-				v = ""
-			}
-			if got := v.(string); got != tt.wantNonce {
-				t.Errorf("ctx.Value(ctxKey{}) got: %q want: %q", got, tt.wantNonce)
 			}
 		})
 	}
@@ -227,8 +213,22 @@ func TestPanicWhileGeneratingNonce(t *testing.T) {
 	randReader = errorReader{}
 	defer func() {
 		if r := recover(); r == nil {
-			t.Error("Nonce(context.Background()) expected panic")
+			t.Error("generateNonce() expected panic")
 		}
 	}()
-	Nonce(context.Background())
+	generateNonce()
+}
+
+func TestNonce(t *testing.T) {
+	ctx := context.WithValue(context.Background(), ctxKey{}, "nonce")
+	if got, want := Nonce(ctx), "nonce"; got != want {
+		t.Errorf("Nonce(ctx) got: %v want: %v", got, want)
+	}
+}
+
+func TestNonceEmptyContext(t *testing.T) {
+	ctx := context.Background()
+	if got, want := Nonce(ctx), ""; got != want {
+		t.Errorf("Nonce(ctx) got: %v want: %v", got, want)
+	}
 }
