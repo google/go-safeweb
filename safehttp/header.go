@@ -49,6 +49,9 @@ func (h Header) Claim(name string) (set func([]string), err error) {
 	}
 	h.claimed[name] = true
 	return func(v []string) {
+		if v == nil {
+			return
+		}
 		h.wrapped[name] = v
 	}, nil
 }

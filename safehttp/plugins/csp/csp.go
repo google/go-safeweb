@@ -141,19 +141,8 @@ func Default(reportURI string) Interceptor {
 // Before claims and sets the Content-Security-Policy header and the
 // Content-Security-Policy-Report-Only header.
 func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-	h := w.Header()
-	setCSP, err := h.Claim("Content-Security-Policy")
-	if err != nil {
-		return w.ServerError(safehttp.StatusInternalServerError)
-	}
-
-	setCSPReportOnly, err := h.Claim("Content-Security-Policy-Report-Only")
-	if err != nil {
-		return w.ServerError(safehttp.StatusInternalServerError)
-	}
-
-	csps := make([]string, 0)
-	reportCsps := make([]string, 0)
+	var csps []string
+	var reportCsps []string
 	for _, p := range it.Policies {
 		v, ctx := p.serialize(r.Context())
 		r.SetContext(ctx)
@@ -163,7 +152,18 @@ func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 			csps = append(csps, v)
 		}
 	}
+
+	h := w.Header()
+	setCSP, err := h.Claim("Content-Security-Policy")
+	if err != nil {
+		return w.ServerError(safehttp.StatusInternalServerError)
+	}
 	setCSP(csps)
+
+	setCSPReportOnly, err := h.Claim("Content-Security-Policy-Report-Only")
+	if err != nil {
+		return w.ServerError(safehttp.StatusInternalServerError)
+	}
 	setCSPReportOnly(reportCsps)
 
 	return safehttp.Result{}
