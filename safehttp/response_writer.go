@@ -90,6 +90,7 @@ func (w *ResponseWriter) ServerError(code StatusCode) Result {
 		// TODO(@mattiasgrenfeldt, @mihalimara22, @kele, @empijei): Decide how it should
 		// be communicated to the user of the framework that they've called the wrong
 		// method.
+		panic("wrong method called")
 		return Result{}
 	}
 	http.Error(w.rw, http.StatusText(int(code)), int(code))
@@ -99,6 +100,9 @@ func (w *ResponseWriter) ServerError(code StatusCode) Result {
 // Redirect responds with a redirect to a given url, using code as the status code.
 func (w *ResponseWriter) Redirect(r *IncomingRequest, url string, code StatusCode) Result {
 	w.markWritten()
+	if code < 300 || code >= 400 {
+		panic("wrong method called")
+	}
 	http.Redirect(w.rw, r.req, url, int(code))
 	return Result{}
 }
