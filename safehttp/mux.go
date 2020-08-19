@@ -164,6 +164,7 @@ func (m methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO: run After/Commit stages if Before panics.
 	defer func() {
 		if r := recover(); r != nil {
 			rw.ServerError(StatusInternalServerError)
