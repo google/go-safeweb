@@ -34,8 +34,6 @@ type Report struct {
 	ViolatedDirective  string `json:"violated-directive"`
 }
 
-type report struct{}
-
 // Collector is a reports collector.
 type Collector interface {
 	Collect(Report)
