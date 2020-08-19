@@ -17,9 +17,12 @@ package safehttp_test
 import (
 	"strings"
 	"testing"
+	"text/template"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
+	"github.com/google/go-safeweb/safehttp/safehttptest"
+	"github.com/google/safehtml"
 )
 
 func TestResponseWriterSetCookie(t *testing.T) {
@@ -48,5 +51,59 @@ func TestResponseWriterSetInvalidCookie(t *testing.T) {
 	err := rw.SetCookie(c)
 	if err == nil {
 		t.Error("rw.SetCookie(c) got: nil want: error")
+	}
+}
+
+func TestResponseWriterWriteTwicePanic(t *testing.T) {
+	tests := []struct {
+		name  string
+		write func(w *safehttp.ResponseWriter)
+	}{
+		{
+			name: "Write",
+			write: func(w *safehttp.ResponseWriter) {
+				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
+			},
+		},
+		{
+			name: "WriteTemplate",
+			write: func(w *safehttp.ResponseWriter) {
+				w.WriteTemplate(template.Must(template.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
+			},
+		},
+		{
+			name: "ClientError",
+			write: func(w *safehttp.ResponseWriter) {
+				w.ClientError(safehttp.StatusBadRequest)
+			},
+		},
+		{
+			name: "ServerError",
+			write: func(w *safehttp.ResponseWriter) {
+				w.ServerError(safehttp.StatusInternalServerError)
+			},
+		},
+		{
+			name: "Redirect",
+			write: func(w *safehttp.ResponseWriter) {
+				ir := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
+				w.Redirect(ir, "/asdf", safehttp.StatusMovedPermanently)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := safehttp.NewResponseWriter(testDispatcher{}, newResponseRecorder(&strings.Builder{}), nil)
+			tt.write(w)
+
+			defer func() {
+				if r := recover(); r == nil {
+					t.Errorf("tt.write(w) expected panic")
+				}
+			}()
+
+			tt.write(w)
+		})
 	}
 }

@@ -178,7 +178,8 @@ func (m methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	for _, intercep := range m.muxInterceps {
-		if res := intercep.Before(rw, ir); res.written {
+		intercep.Before(rw, ir)
+		if rw.written {
 			return
 		}
 	}
