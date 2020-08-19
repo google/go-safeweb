@@ -67,7 +67,7 @@ func (r *responseRecorder) Write(data []byte) (int, error) {
 
 func TestAccessIncomingHeaders(t *testing.T) {
 	mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-	mux.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+	mux.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 		if got, want := ir.Header.Get("A"), "B"; got != want {
 			t.Errorf(`ir.Header.Get("A") got: %v want: %v`, got, want)
 		}
@@ -90,7 +90,7 @@ func TestAccessIncomingHeaders(t *testing.T) {
 
 func TestChangingResponseHeaders(t *testing.T) {
 	mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-	mux.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+	mux.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 		rw.Header().Set("pIZZA", "Pasta")
 		return rw.Write(safehtml.HTMLEscaped("hello"))
 	}))

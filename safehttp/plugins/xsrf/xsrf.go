@@ -47,7 +47,7 @@ type Interceptor struct {
 // the handler to ensure it is not part of the Cross Site Request
 // Forgery. It checks for the presence of an xsrf-token in the request body and
 // validates it based on the userID associated with the request.
-func (p *Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+func (p *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 	userID, err := p.Identifier.UserID(r)
 	if err != nil {
 		return w.ClientError(safehttp.StatusUnauthorized)

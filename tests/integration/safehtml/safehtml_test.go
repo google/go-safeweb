@@ -71,7 +71,7 @@ func (r *responseRecorder) Write(data []byte) (int, error) {
 
 func TestHandleRequestWrite(t *testing.T) {
 	mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-	mux.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+	mux.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 		return rw.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
 	}))
 
@@ -91,7 +91,7 @@ func TestHandleRequestWrite(t *testing.T) {
 
 func TestHandleRequestWriteTemplate(t *testing.T) {
 	mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-	mux.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+	mux.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 		return rw.WriteTemplate(template.Must(template.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
 	}))
 

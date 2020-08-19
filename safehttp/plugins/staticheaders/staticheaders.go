@@ -24,7 +24,7 @@ type Plugin struct{}
 // Before claims and sets the following headers:
 //  - X-Content-Type-Options: nosniff
 //  - X-XSS-Protection: 0
-func (Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+func (Plugin) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 	h := w.Header()
 	setXCTO, err := h.Claim("X-Content-Type-Options")
 	if err != nil {
