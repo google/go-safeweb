@@ -157,13 +157,12 @@ func TestBefore(t *testing.T) {
 				t.Errorf("h.Values(\"Content-Security-Policy-Report-Only\") mismatch (-want +got):\n%s", diff)
 			}
 
-			ctx := req.Context()
-			v := ctx.Value(ctxKey{})
+			v := req.Context().Value(ctxKey{})
 			if v == nil {
-				v = ""
+				t.Fatalf("req.Context().Value(ctxKey{}) got: nil want: %q", tt.wantNonce)
 			}
 			if got := v.(string); got != tt.wantNonce {
-				t.Errorf("ctx.Value(ctxKey{}) got: %q want: %q", got, tt.wantNonce)
+				t.Errorf("v.(string) got: %q want: %q", got, tt.wantNonce)
 			}
 		})
 	}
