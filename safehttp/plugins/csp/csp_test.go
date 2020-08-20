@@ -73,12 +73,12 @@ func TestSerialize(t *testing.T) {
 		},
 		{
 			name:       "FramingCSP",
-			policy:     FramingPolicy(false, ""),
+			policy:     FramingPolicyBuilder{}.Build(),
 			wantString: "frame-ancestors 'self'",
 		},
 		{
 			name:       "FramingCSP with report-uri",
-			policy:     FramingPolicy(false, "httsp://example.com/collector"),
+			policy:     FramingPolicyBuilder{ReportURI: "httsp://example.com/collector"}.Build(),
 			wantString: "frame-ancestors 'self'; report-uri httsp://example.com/collector",
 		},
 	}
@@ -135,7 +135,7 @@ func TestBefore(t *testing.T) {
 		},
 		{
 			name:                 "FramingCSP reportonly",
-			interceptor:          NewInterceptor(FramingPolicy(true, "https://example.com/collector")),
+			interceptor:          NewInterceptor(FramingPolicyBuilder{ReportOnly: true, ReportURI: "https://example.com/collector"}.Build()),
 			wantReportOnlyPolicy: []string{"frame-ancestors 'self'; report-uri https://example.com/collector"},
 			wantNonce:            "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
