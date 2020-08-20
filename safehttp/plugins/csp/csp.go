@@ -41,7 +41,6 @@ func generateNonce() string {
 // Policy defines a CSP policy.
 type Policy struct {
 	reportOnly bool
-	needsNonce bool
 
 	// serialize serializes this policy for use in a Content-Security-Policy header
 	// or in a Content-Security-Policy-Report-Only header. If needsNonce is true,
@@ -77,7 +76,6 @@ type StrictCSPBuilder struct {
 func (s StrictCSPBuilder) Build() Policy {
 	return Policy{
 		reportOnly: s.ReportOnly,
-		needsNonce: true,
 		serialize: func(nonce string) string {
 			var b strings.Builder
 
@@ -150,20 +148,15 @@ func Default(reportURI string) Interceptor {
 func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 	var csps []string
 	var reportCsps []string
-	nonce := ""
+	nonce := generateNonce()
+	r.SetContext(context.WithValue(r.Context(), ctxKey{}, nonce))
 	for _, p := range it.Policies {
-		if p.needsNonce && nonce == "" {
-			nonce = generateNonce()
-		}
 		v := p.serialize(nonce)
 		if p.reportOnly {
 			reportCsps = append(reportCsps, v)
 		} else {
 			csps = append(csps, v)
 		}
-	}
-	if nonce != "" {
-		r.SetContext(context.WithValue(r.Context(), ctxKey{}, nonce))
 	}
 
 	h := w.Header()
