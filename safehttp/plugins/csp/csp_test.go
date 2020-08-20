@@ -105,6 +105,7 @@ func TestBefore(t *testing.T) {
 		{
 			name:        "No policies",
 			interceptor: Interceptor{},
+			wantNonce:   "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
 		{
 			name:        "Default policies",
@@ -136,6 +137,7 @@ func TestBefore(t *testing.T) {
 			name:                 "FramingCSP reportonly",
 			interceptor:          NewInterceptor(FramingPolicy(true, "https://example.com/collector")),
 			wantReportOnlyPolicy: []string{"frame-ancestors 'self'; report-uri https://example.com/collector"},
+			wantNonce:            "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
 	}
 
