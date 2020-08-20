@@ -164,7 +164,9 @@ func (m methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// TODO: run After/Commit stages if Before panics.
+	// The `net/http` package recovers handler panics, but we cannot rely on that behavior here.
+	// The reason is, we might need to run After/Commit stages of the interceptors before we
+	// respond with a 500 Internal Server Error.
 	defer func() {
 		if r := recover(); r != nil {
 			rw.ServerError(StatusInternalServerError)
