@@ -51,6 +51,12 @@ func (r *IncomingRequest) Body() io.ReadCloser {
 	return r.req.Body
 }
 
+// Host returns the host the request is targeted to. This value comes from the
+// Host header.
+func (r *IncomingRequest) Host() string {
+	return r.req.Host
+}
+
 // Method returns the HTTP method of the IncomingRequest.
 func (r *IncomingRequest) Method() string {
 	return r.req.Method
