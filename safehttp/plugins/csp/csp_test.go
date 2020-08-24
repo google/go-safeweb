@@ -96,11 +96,11 @@ func TestSerialize(t *testing.T) {
 
 func TestBefore(t *testing.T) {
 	tests := []struct {
-		name                  string
-		interceptor           Interceptor
-		wantEnforcementPolicy []string
-		wantReportOnlyPolicy  []string
-		wantNonce             string
+		name                 string
+		interceptor          Interceptor
+		wantEnforcPolicy     []string
+		wantReportOnlyPolicy []string
+		wantNonce            string
 	}{
 		{
 			name:        "No policies",
@@ -110,7 +110,7 @@ func TestBefore(t *testing.T) {
 		{
 			name:        "Default policies",
 			interceptor: Default(""),
-			wantEnforcementPolicy: []string{
+			wantEnforcPolicy: []string{
 				"object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk='; base-uri 'none'",
 				"frame-ancestors 'self'",
 			},
@@ -119,14 +119,14 @@ func TestBefore(t *testing.T) {
 		{
 			name:        "Default policies with reporting URI",
 			interceptor: Default("https://example.com/collector"),
-			wantEnforcementPolicy: []string{
+			wantEnforcPolicy: []string{
 				"object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk='; base-uri 'none'; report-uri https://example.com/collector",
 				"frame-ancestors 'self'; report-uri https://example.com/collector",
 			},
 			wantNonce: "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
 		{
-			name:        "StrictCSP reportonly",
+			name:        "StrictCSP Report Only",
 			interceptor: NewInterceptor(StrictCSPBuilder{ReportOnly: true, ReportURI: "https://example.com/collector"}.Build()),
 			wantReportOnlyPolicy: []string{
 				"object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk='; base-uri 'none'; report-uri https://example.com/collector",
@@ -134,7 +134,7 @@ func TestBefore(t *testing.T) {
 			wantNonce: "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
 		{
-			name:                 "FramingCSP reportonly",
+			name:                 "FramingCSP Report Only",
 			interceptor:          NewInterceptor(FramingPolicyBuilder{ReportOnly: true, ReportURI: "https://example.com/collector"}.Build()),
 			wantReportOnlyPolicy: []string{"frame-ancestors 'self'; report-uri https://example.com/collector"},
 			wantNonce:            "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
@@ -149,7 +149,7 @@ func TestBefore(t *testing.T) {
 			tt.interceptor.Before(rr.ResponseWriter, req)
 
 			h := rr.Header()
-			if diff := cmp.Diff(tt.wantEnforcementPolicy, h.Values("Content-Security-Policy"), cmpopts.EquateEmpty()); diff != "" {
+			if diff := cmp.Diff(tt.wantEnforcPolicy, h.Values("Content-Security-Policy"), cmpopts.EquateEmpty()); diff != "" {
 				t.Errorf("h.Values(\"Content-Security-Policy\") mismatch (-want +got):\n%s", diff)
 			}
 
@@ -220,7 +220,7 @@ func TestPanicWhileGeneratingNonce(t *testing.T) {
 	generateNonce()
 }
 
-func TestNonce(t *testing.T) {
+func TestValidNonce(t *testing.T) {
 	ctx := context.WithValue(context.Background(), ctxKey{}, "nonce")
 	if got, want := Nonce(ctx), "nonce"; got != want {
 		t.Errorf("Nonce(ctx) got: %v want: %v", got, want)
