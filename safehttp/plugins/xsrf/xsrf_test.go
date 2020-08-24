@@ -15,13 +15,14 @@
 package xsrf_test
 
 import (
+	"strings"
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/plugins/xsrf"
 	"github.com/google/go-safeweb/safehttp/safehttptest"
 	"golang.org/x/net/xsrftoken"
-	"strings"
-	"testing"
 )
 
 type userIdentifier struct{}
@@ -36,7 +37,7 @@ func TestXSRFTokenPost(t *testing.T) {
 		host       string
 		path       string
 		userID     string
-		wantStatus int
+		wantStatus safehttp.StatusCode
 		wantHeader map[string][]string
 		wantBody   string
 	}{
@@ -45,7 +46,7 @@ func TestXSRFTokenPost(t *testing.T) {
 			userID:     "1234",
 			host:       "foo.com",
 			path:       "/pizza",
-			wantStatus: 200,
+			wantStatus: safehttp.StatusOK,
 			wantHeader: map[string][]string{},
 			wantBody:   "",
 		},
@@ -54,7 +55,7 @@ func TestXSRFTokenPost(t *testing.T) {
 			userID:     "1234",
 			host:       "bar.com",
 			path:       "/pizza",
-			wantStatus: 403,
+			wantStatus: safehttp.StatusForbidden,
 			wantHeader: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
 				"X-Content-Type-Options": {"nosniff"},
@@ -66,7 +67,7 @@ func TestXSRFTokenPost(t *testing.T) {
 			userID:     "1234",
 			host:       "foo.com",
 			path:       "spaghetti",
-			wantStatus: 403,
+			wantStatus: safehttp.StatusForbidden,
 			wantHeader: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
 				"X-Content-Type-Options": {"nosniff"},
@@ -78,7 +79,7 @@ func TestXSRFTokenPost(t *testing.T) {
 			userID:     "5678",
 			host:       "foo.com",
 			path:       "/pizza",
-			wantStatus: 403,
+			wantStatus: safehttp.StatusForbidden,
 			wantHeader: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
 				"X-Content-Type-Options": {"nosniff"},
@@ -113,7 +114,7 @@ func TestXSRFTokenMultipart(t *testing.T) {
 		host       string
 		path       string
 		userID     string
-		wantStatus int
+		wantStatus safehttp.StatusCode
 		wantHeader map[string][]string
 		wantBody   string
 	}{
@@ -122,7 +123,7 @@ func TestXSRFTokenMultipart(t *testing.T) {
 			userID:     "1234",
 			host:       "foo.com",
 			path:       "/pizza",
-			wantStatus: 200,
+			wantStatus: safehttp.StatusOK,
 			wantHeader: map[string][]string{},
 			wantBody:   "",
 		},
@@ -131,7 +132,7 @@ func TestXSRFTokenMultipart(t *testing.T) {
 			userID:     "1234",
 			host:       "bar.com",
 			path:       "/pizza",
-			wantStatus: 403,
+			wantStatus: safehttp.StatusForbidden,
 			wantHeader: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
 				"X-Content-Type-Options": {"nosniff"},
@@ -143,7 +144,7 @@ func TestXSRFTokenMultipart(t *testing.T) {
 			userID:     "1234",
 			host:       "foo.com",
 			path:       "spaghetti",
-			wantStatus: 403,
+			wantStatus: safehttp.StatusForbidden,
 			wantHeader: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
 				"X-Content-Type-Options": {"nosniff"},
@@ -155,7 +156,7 @@ func TestXSRFTokenMultipart(t *testing.T) {
 			userID:     "5678",
 			host:       "foo.com",
 			path:       "/pizza",
-			wantStatus: 403,
+			wantStatus: safehttp.StatusForbidden,
 			wantHeader: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
 				"X-Content-Type-Options": {"nosniff"},
@@ -193,7 +194,7 @@ func TestXSRFMissingToken(t *testing.T) {
 	tests := []struct {
 		name       string
 		req        *safehttp.IncomingRequest
-		wantStatus int
+		wantStatus safehttp.StatusCode
 		wantHeader map[string][]string
 		wantBody   string
 	}{
@@ -204,7 +205,7 @@ func TestXSRFMissingToken(t *testing.T) {
 				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 				return req
 			}(),
-			wantStatus: 401,
+			wantStatus: safehttp.StatusUnauthorized,
 			wantHeader: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
 				"X-Content-Type-Options": {"nosniff"},
@@ -223,7 +224,7 @@ func TestXSRFMissingToken(t *testing.T) {
 				req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
 				return req
 			}(),
-			wantStatus: 401,
+			wantStatus: safehttp.StatusUnauthorized,
 			wantHeader: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
 				"X-Content-Type-Options": {"nosniff"},

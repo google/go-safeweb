@@ -83,8 +83,8 @@ func (r *ResponseRecorder) Header() http.Header {
 }
 
 // Status returns the recorded response status code.
-func (r *ResponseRecorder) Status() int {
-	return r.rw.status
+func (r *ResponseRecorder) Status() safehttp.StatusCode {
+	return safehttp.StatusCode(r.rw.status)
 }
 
 // Body returns the recorded response body.
