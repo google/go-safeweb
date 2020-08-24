@@ -139,7 +139,7 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 func (it *Interceptor) preflight(setHeaders func(), w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 	rh := r.Header
 	method := rh.Get("Access-Control-Request-Method")
-	if disallowedMethods[method] {
+	if method == "" || disallowedMethods[method] {
 		return w.ClientError(safehttp.StatusForbidden)
 	}
 	wh := w.Header()
