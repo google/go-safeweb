@@ -22,20 +22,16 @@ import (
 	"testing"
 )
 
-func TestEnforceMode(t *testing.T) {
+func TestDefaultPolicy(t *testing.T) {
 	tests := []struct {
-		name        string
-		req         *safehttp.IncomingRequest
-		wantStatus  int
-		wantHeaders map[string][]string
-		wantBody    string
+		name    string
+		req     *safehttp.IncomingRequest
+		allowed bool
 	}{
 		{
-			name:        `Sec-Fetch-Site: ""`,
-			req:         safehttptest.NewRequest("POST", "/", nil),
-			wantStatus:  200,
-			wantHeaders: map[string][]string{},
-			wantBody:    "",
+			name:    `Sec-Fetch-Site: ""`,
+			req:     safehttptest.NewRequest("POST", "/", nil),
+			allowed: true,
 		},
 		{
 			name: "Sec-Fetch-Site: same-origin",
@@ -44,9 +40,7 @@ func TestEnforceMode(t *testing.T) {
 				req.Header.Add("Sec-Fetch-Site", "same-origin")
 				return req
 			}(),
-			wantStatus:  200,
-			wantHeaders: map[string][]string{},
-			wantBody:    "",
+			allowed: true,
 		},
 		{
 			name: "Sec-Fetch-Site: same-site",
@@ -55,9 +49,7 @@ func TestEnforceMode(t *testing.T) {
 				req.Header.Add("Sec-Fetch-Site", "same-site")
 				return req
 			}(),
-			wantStatus:  200,
-			wantHeaders: map[string][]string{},
-			wantBody:    "",
+			allowed: true,
 		},
 		{
 			name: "Sec-Fetch-Site: none",
@@ -66,9 +58,7 @@ func TestEnforceMode(t *testing.T) {
 				req.Header.Add("Sec-Fetch-Site", "none")
 				return req
 			}(),
-			wantStatus:  200,
-			wantHeaders: map[string][]string{},
-			wantBody:    "",
+			allowed: true,
 		},
 		{
 			name: "Sec-Fetch-Site: cross-site",
@@ -77,12 +67,7 @@ func TestEnforceMode(t *testing.T) {
 				req.Header.Add("Sec-Fetch-Site", "cross-site")
 				return req
 			}(),
-			wantStatus: 403,
-			wantHeaders: map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			},
-			wantBody: "Forbidden\n",
+			allowed: false,
 		},
 		{
 			name: "GET request with Sec-Fetch-Mode: navigate from image",
@@ -93,9 +78,7 @@ func TestEnforceMode(t *testing.T) {
 				req.Header.Add("Sec-Fetch-Dest", "image")
 				return req
 			}(),
-			wantStatus:  200,
-			wantHeaders: map[string][]string{},
-			wantBody:    "",
+			allowed: true,
 		},
 		{
 			name: "POST request with Sec-Fetch-Mode: navigate from image",
@@ -106,12 +89,7 @@ func TestEnforceMode(t *testing.T) {
 				req.Header.Add("Sec-Fetch-Dest", "image")
 				return req
 			}(),
-			wantStatus: 403,
-			wantHeaders: map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			},
-			wantBody: "Forbidden\n",
+			allowed: false,
 		},
 		{
 			name: "GET request with Sec-Fetch-Mode: navigate from object",
@@ -122,12 +100,7 @@ func TestEnforceMode(t *testing.T) {
 				req.Header.Add("Sec-Fetch-Dest", "object")
 				return req
 			}(),
-			wantStatus: 403,
-			wantHeaders: map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			},
-			wantBody: "Forbidden\n",
+			allowed: false,
 		},
 		{
 			name: "GET request with Sec-Fetch-Mode: navigate from embed",
@@ -136,6 +109,46 @@ func TestEnforceMode(t *testing.T) {
 				req.Header.Add("Sec-Fetch-Site", "cross-site")
 				req.Header.Add("Sec-Fetch-Mode", "navigate")
 				req.Header.Add("Sec-Fetch-Dest", "embed")
+				return req
+			}(),
+			allowed: false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			p := fetchmetadata.NewPlugin()
+			got := p.Policy(test.req)
+
+			if want := test.allowed; want != got {
+				t.Errorf("p.Policy(test.req): got %v, want %v", got, want)
+			}
+		})
+	}
+}
+
+func TestEnforceMode(t *testing.T) {
+	tests := []struct {
+		name        string
+		req         *safehttp.IncomingRequest
+		wantStatus  int
+		wantHeaders map[string][]string
+		wantBody    string
+	}{
+		{
+			name:        "Allowed Request",
+			req:         safehttptest.NewRequest("POST", "/", nil),
+			wantStatus:  200,
+			wantHeaders: map[string][]string{},
+			wantBody:    "",
+		},
+		{
+			name: "Rejected Request",
+			req: func() *safehttp.IncomingRequest {
+				req := safehttptest.NewRequest("POST", "/", nil)
+				req.Header.Add("Sec-Fetch-Site", "cross-site")
+				req.Header.Add("Sec-Fetch-Mode", "navigate")
+				req.Header.Add("Sec-Fetch-Dest", "image")
 				return req
 			}(),
 			wantStatus: 403,
@@ -153,7 +166,6 @@ func TestEnforceMode(t *testing.T) {
 			rec := safehttptest.NewResponseRecorder()
 
 			p.Before(rec.ResponseWriter, test.req)
-
 			if status := rec.Status(); status != test.wantStatus {
 				t.Errorf("status code got: %v want: %v", status, test.wantStatus)
 			}
@@ -165,7 +177,6 @@ func TestEnforceMode(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestReportModeWithLogger(t *testing.T) {
@@ -381,7 +392,7 @@ func TestCustomPolicy(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			p := fetchmetadata.NewPlugin()
-			p.SetPolicy(policy)
+			p.Policy = policy
 			rec := safehttptest.NewResponseRecorder()
 
 			p.Before(rec.ResponseWriter, test.req)
@@ -397,5 +408,4 @@ func TestCustomPolicy(t *testing.T) {
 			}
 		})
 	}
-
 }
