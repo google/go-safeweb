@@ -50,8 +50,7 @@ func (r *IncomingRequest) Method() string {
 }
 
 // Host returns the host the request is targeted to.
-// Method specifies the HTTP method of an IncomingRequest.
-// TODO(@mihalimara22): Remove this after the safehttp.URL type has been    implemented
+// TODO(@mihalimara22): Remove this after the safehttp.URL type has been implemented
 func (r *IncomingRequest) Host() string {
 	return r.req.Host
 }
