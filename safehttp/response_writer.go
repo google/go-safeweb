@@ -106,10 +106,11 @@ func (w *ResponseWriter) Redirect(r *IncomingRequest, url string, code StatusCod
 	return Result{}
 }
 
-// markWritten sets written to true. If written was already true, it panics.
+// markWritten ensures that the ResponseWriter is only written to once by panicking
+// if it is written more than once.
 func (w *ResponseWriter) markWritten() {
 	if w.written {
-		panic("ResponseWriter already written to")
+		panic("ResponseWriter was already written to")
 	}
 	w.written = true
 }
