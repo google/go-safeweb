@@ -29,7 +29,7 @@ func TestHSTS(t *testing.T) {
 		name        string
 		interceptor hsts.Interceptor
 		req         *safehttp.IncomingRequest
-		wantStatus  int
+		wantStatus  safehttp.StatusCode
 		wantHeaders map[string][]string
 		wantBody    string
 	}{
@@ -37,7 +37,7 @@ func TestHSTS(t *testing.T) {
 			name:        "HTTPS",
 			interceptor: hsts.Default(),
 			req:         safehttptest.NewRequest("GET", "https://localhost/", nil),
-			wantStatus:  200,
+			wantStatus:  safehttp.StatusOK,
 			wantHeaders: map[string][]string{
 				"Strict-Transport-Security": {"max-age=63072000; includeSubDomains"}, // 63072000 seconds is two years
 			},
@@ -47,7 +47,7 @@ func TestHSTS(t *testing.T) {
 			name:        "HTTP",
 			interceptor: hsts.Default(),
 			req:         safehttptest.NewRequest("GET", "http://localhost/", nil),
-			wantStatus:  301,
+			wantStatus:  safehttp.StatusMovedPermanently,
 			wantHeaders: map[string][]string{
 				"Content-Type": {"text/html; charset=utf-8"},
 				"Location":     {"https://localhost/"},
@@ -58,7 +58,7 @@ func TestHSTS(t *testing.T) {
 			name:        "HTTP behind proxy",
 			interceptor: hsts.Interceptor{BehindProxy: true},
 			req:         safehttptest.NewRequest("GET", "http://localhost/", nil),
-			wantStatus:  200,
+			wantStatus:  safehttp.StatusOK,
 			wantHeaders: map[string][]string{
 				// max-age=0 tells the browser to expire the HSTS protection.
 				"Strict-Transport-Security": {"max-age=0; includeSubDomains"},
@@ -69,7 +69,7 @@ func TestHSTS(t *testing.T) {
 			name:        "Preload",
 			interceptor: hsts.Interceptor{Preload: true, DisableIncludeSubDomains: true},
 			req:         safehttptest.NewRequest("GET", "https://localhost/", nil),
-			wantStatus:  200,
+			wantStatus:  safehttp.StatusOK,
 			wantHeaders: map[string][]string{
 				// max-age=0 tells the browser to expire the HSTS protection.
 				"Strict-Transport-Security": {"max-age=0; preload"},
@@ -80,7 +80,7 @@ func TestHSTS(t *testing.T) {
 			name:        "Preload and IncludeSubDomains",
 			interceptor: hsts.Interceptor{Preload: true},
 			req:         safehttptest.NewRequest("GET", "https://localhost/", nil),
-			wantStatus:  200,
+			wantStatus:  safehttp.StatusOK,
 			wantHeaders: map[string][]string{
 				// max-age=0 tells the browser to expire the HSTS protection.
 				"Strict-Transport-Security": {"max-age=0; includeSubDomains; preload"},
@@ -91,7 +91,7 @@ func TestHSTS(t *testing.T) {
 			name:        "No preload and no includeSubDomains",
 			interceptor: hsts.Interceptor{DisableIncludeSubDomains: true},
 			req:         safehttptest.NewRequest("GET", "https://localhost/", nil),
-			wantStatus:  200,
+			wantStatus:  safehttp.StatusOK,
 			wantHeaders: map[string][]string{
 				// max-age=0 tells the browser to expire the HSTS protection.
 				"Strict-Transport-Security": {"max-age=0"},
@@ -102,7 +102,7 @@ func TestHSTS(t *testing.T) {
 			name:        "Custom maxage",
 			interceptor: hsts.Interceptor{MaxAge: 3600 * time.Second},
 			req:         safehttptest.NewRequest("GET", "https://localhost/", nil),
-			wantStatus:  200,
+			wantStatus:  safehttp.StatusOK,
 			wantHeaders: map[string][]string{
 				"Strict-Transport-Security": {"max-age=3600; includeSubDomains"}, // 3600 seconds is 1 hour
 			},
@@ -152,7 +152,7 @@ func TestStrictTransportSecurityAlreadyImmutable(t *testing.T) {
 
 	p.Before(rr.ResponseWriter, req)
 
-	if want := 500; rr.Status() != want {
+	if want := safehttp.StatusInternalServerError; rr.Status() != want {
 		t.Errorf("status code got: %v want: %v", rr.Status(), want)
 	}
 
