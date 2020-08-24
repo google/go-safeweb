@@ -60,31 +60,31 @@ func TestResponseWriterWriteTwicePanic(t *testing.T) {
 		write func(w *safehttp.ResponseWriter)
 	}{
 		{
-			name: "Write",
+			name: "Call Write twice",
 			write: func(w *safehttp.ResponseWriter) {
 				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
 			},
 		},
 		{
-			name: "WriteTemplate",
+			name: "Call WriteTemplate twice",
 			write: func(w *safehttp.ResponseWriter) {
 				w.WriteTemplate(template.Must(template.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
 			},
 		},
 		{
-			name: "ClientError",
+			name: "Call ClientError twice",
 			write: func(w *safehttp.ResponseWriter) {
 				w.ClientError(safehttp.StatusBadRequest)
 			},
 		},
 		{
-			name: "ServerError",
+			name: "Call ServerError twice",
 			write: func(w *safehttp.ResponseWriter) {
 				w.ServerError(safehttp.StatusInternalServerError)
 			},
 		},
 		{
-			name: "Redirect",
+			name: "Call Redirect twice",
 			write: func(w *safehttp.ResponseWriter) {
 				ir := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
 				w.Redirect(ir, "/asdf", safehttp.StatusMovedPermanently)
