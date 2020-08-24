@@ -131,14 +131,14 @@ func TestEnforceMode(t *testing.T) {
 	tests := []struct {
 		name        string
 		req         *safehttp.IncomingRequest
-		wantStatus  int
+		wantStatus  safehttp.StatusCode
 		wantHeaders map[string][]string
 		wantBody    string
 	}{
 		{
 			name:        "Allowed Request",
 			req:         safehttptest.NewRequest("POST", "/", nil),
-			wantStatus:  200,
+			wantStatus:  safehttp.StatusOK,
 			wantHeaders: map[string][]string{},
 			wantBody:    "",
 		},
@@ -151,7 +151,7 @@ func TestEnforceMode(t *testing.T) {
 				req.Header.Add("Sec-Fetch-Dest", "image")
 				return req
 			}(),
-			wantStatus: 403,
+			wantStatus: safehttp.StatusForbidden,
 			wantHeaders: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
 				"X-Content-Type-Options": {"nosniff"},
@@ -166,7 +166,7 @@ func TestEnforceMode(t *testing.T) {
 			rec := safehttptest.NewResponseRecorder()
 
 			p.Before(rec.ResponseWriter, test.req)
-			if status := rec.Status(); status != test.wantStatus {
+			if status := safehttp.StatusCode(rec.Status()); status != test.wantStatus {
 				t.Errorf("status code got: %v want: %v", status, test.wantStatus)
 			}
 			if diff := cmp.Diff(test.wantHeaders, map[string][]string(rec.Header())); diff != "" {
@@ -179,11 +179,19 @@ func TestEnforceMode(t *testing.T) {
 	}
 }
 
+type fooLog struct {
+	report string
+}
+
+func (l *fooLog) Log(r *safehttp.IncomingRequest) {
+	l.report = r.Method() + " " + r.URL.Path()
+}
+
 func TestReportModeWithLogger(t *testing.T) {
 	tests := []struct {
 		name        string
 		req         *safehttp.IncomingRequest
-		wantStatus  int
+		wantStatus  safehttp.StatusCode
 		wantHeaders map[string][]string
 		wantBody    string
 		wantReport  string
@@ -197,7 +205,7 @@ func TestReportModeWithLogger(t *testing.T) {
 				req.Header.Add("Sec-Fetch-Dest", "image")
 				return req
 			}(),
-			wantStatus:  200,
+			wantStatus:  safehttp.StatusOK,
 			wantHeaders: map[string][]string{},
 			wantBody:    "",
 			wantReport:  "",
@@ -209,7 +217,7 @@ func TestReportModeWithLogger(t *testing.T) {
 				req.Header.Add("Sec-Fetch-Site", "cross-site")
 				return req
 			}(),
-			wantStatus:  200,
+			wantStatus:  safehttp.StatusOK,
 			wantHeaders: map[string][]string{},
 			wantBody:    "",
 			wantReport:  "POST /pizza",
@@ -223,7 +231,7 @@ func TestReportModeWithLogger(t *testing.T) {
 				req.Header.Add("Sec-Fetch-Dest", "image")
 				return req
 			}(),
-			wantStatus:  200,
+			wantStatus:  safehttp.StatusOK,
 			wantHeaders: map[string][]string{},
 			wantBody:    "",
 			wantReport:  "POST /pizza",
@@ -237,7 +245,7 @@ func TestReportModeWithLogger(t *testing.T) {
 				req.Header.Add("Sec-Fetch-Dest", "object")
 				return req
 			}(),
-			wantStatus:  200,
+			wantStatus:  safehttp.StatusOK,
 			wantHeaders: map[string][]string{},
 			wantBody:    "",
 			wantReport:  "GET /pizza",
@@ -251,7 +259,7 @@ func TestReportModeWithLogger(t *testing.T) {
 				req.Header.Add("Sec-Fetch-Dest", "embed")
 				return req
 			}(),
-			wantStatus:  200,
+			wantStatus:  safehttp.StatusOK,
 			wantHeaders: map[string][]string{},
 			wantBody:    "",
 			wantReport:  "GET /pizza",
@@ -260,14 +268,14 @@ func TestReportModeWithLogger(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			logger := &fooLog{}
 			p := fetchmetadata.NewPlugin()
+			logger := &fooLog{}
 			p.SetReportMode(logger)
 			rec := safehttptest.NewResponseRecorder()
 
 			p.Before(rec.ResponseWriter, test.req)
 
-			if status := rec.Status(); status != test.wantStatus {
+			if status := safehttp.StatusCode(rec.Status()); status != test.wantStatus {
 				t.Errorf("status code got: %v want: %v", status, test.wantStatus)
 			}
 			if diff := cmp.Diff(test.wantHeaders, map[string][]string(rec.Header())); diff != "" {
@@ -293,14 +301,6 @@ func TestReportModeMissingLogger(t *testing.T) {
 	p.SetReportMode(nil)
 }
 
-type fooLog struct {
-	report string
-}
-
-func (l *fooLog) Log(r *safehttp.IncomingRequest) {
-	l.report = r.Method() + " " + r.URL.Path()
-}
-
 func TestChangeMode(t *testing.T) {
 	logger := &fooLog{}
 	p := fetchmetadata.NewPlugin()
@@ -311,8 +311,8 @@ func TestChangeMode(t *testing.T) {
 
 	p.Before(rec.ResponseWriter, req)
 
-	if status := rec.Status(); status != 403 {
-		t.Errorf("status code got: %v want: %v", status, 403)
+	if want, got := safehttp.StatusForbidden, safehttp.StatusCode(rec.Status()); want != got {
+		t.Errorf("status code got: %v want: %v", got, want)
 	}
 	wantHeaders := map[string][]string{
 		"Content-Type":           {"text/plain; charset=utf-8"},
@@ -321,9 +321,8 @@ func TestChangeMode(t *testing.T) {
 	if diff := cmp.Diff(wantHeaders, map[string][]string(rec.Header())); diff != "" {
 		t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
 	}
-
-	if wantBody, got := "Forbidden\n", rec.Body(); got != wantBody {
-		t.Errorf("response body got: %q want: %q", got, wantBody)
+	if want, got := "Forbidden\n", rec.Body(); got != want {
+		t.Errorf("response body got: %q want: %q", got, want)
 	}
 
 	req = safehttptest.NewRequest("POST", "/pizza", nil)
@@ -334,14 +333,14 @@ func TestChangeMode(t *testing.T) {
 
 	p.Before(rec.ResponseWriter, req)
 
-	if status := rec.Status(); status != 200 {
-		t.Errorf("status code got: %v want: %v", status, 200)
+	if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); want != got {
+		t.Errorf("status code got: %v want: %v", got, want)
 	}
 	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
 		t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
 	}
-	if wantBody, got := "", rec.Body(); got != wantBody {
-		t.Errorf("response body got: %q want: %q", got, wantBody)
+	if want, got := "", rec.Body(); got != want {
+		t.Errorf("response body got: %q want: %q", got, want)
 	}
 	if want := "POST /pizza"; logger.report != want {
 		t.Errorf("logger.report: got %s, want %s", logger.report, want)
@@ -358,7 +357,7 @@ func TestCustomPolicy(t *testing.T) {
 	tests := []struct {
 		name        string
 		req         *safehttp.IncomingRequest
-		wantStatus  int
+		wantStatus  safehttp.StatusCode
 		wantHeaders map[string][]string
 		wantBody    string
 	}{
@@ -369,7 +368,7 @@ func TestCustomPolicy(t *testing.T) {
 				req.Header.Add("Sec-Fetch-Mode", "cors")
 				return req
 			}(),
-			wantStatus:  200,
+			wantStatus:  safehttp.StatusOK,
 			wantHeaders: map[string][]string{},
 			wantBody:    "",
 		},
@@ -380,7 +379,7 @@ func TestCustomPolicy(t *testing.T) {
 				req.Header.Add("Sec-Fetch-Mode", "navigate")
 				return req
 			}(),
-			wantStatus: 403,
+			wantStatus: safehttp.StatusForbidden,
 			wantHeaders: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
 				"X-Content-Type-Options": {"nosniff"},
@@ -397,7 +396,7 @@ func TestCustomPolicy(t *testing.T) {
 
 			p.Before(rec.ResponseWriter, test.req)
 
-			if status := rec.Status(); status != test.wantStatus {
+			if status := safehttp.StatusCode(rec.Status()); status != test.wantStatus {
 				t.Errorf("status code got: %v want: %v", status, test.wantStatus)
 			}
 			if diff := cmp.Diff(test.wantHeaders, map[string][]string(rec.Header())); diff != "" {
