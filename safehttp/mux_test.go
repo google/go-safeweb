@@ -202,12 +202,7 @@ func (p *claimHeaderInterceptor) SetHeader(value string) {
 type panickingInterceptor struct{}
 
 func (panickingInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.IncomingRequest) safehttp.Result {
-	// Don't remove this if-statement, then "go vet" will complain about
-	// unreachable code.
-	if true {
-		panic("bad")
-	}
-	return safehttp.Result{}
+	panic("bad")
 }
 
 func TestMuxInterceptors(t *testing.T) {
