@@ -117,7 +117,7 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 		return w.ClientError(safehttp.StatusForbidden)
 	}
 
-	// Used to set headers in preflight() or actualRequest() if no error occurs.
+	// Used to set headers in preflight() or request() if no error occurs.
 	setHeaders := func() {
 		allowOrigin([]string{origin})
 		vary([]string{"Origin"})
@@ -131,7 +131,7 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 	if r.Method() == safehttp.MethodOptions {
 		return it.preflight(setHeaders, w, r)
 	} else {
-		return it.actualRequest(setHeaders, w, r)
+		return it.request(setHeaders, w, r)
 	}
 }
 
@@ -180,8 +180,8 @@ func (it *Interceptor) preflight(setHeaders func(), w *safehttp.ResponseWriter, 
 	return w.NoContent()
 }
 
-// actualRequest handles all requests that are not preflight requests.
-func (it *Interceptor) actualRequest(setHeaders func(), w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+// request handles all requests that are not preflight requests.
+func (it *Interceptor) request(setHeaders func(), w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 	h := r.Header
 	if h.Get("Sec-Fetch-Mode") != "cors" && h.Get(customHeader) != "1" {
 		return w.ClientError(safehttp.StatusPreconditionFailed)
