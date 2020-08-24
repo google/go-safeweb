@@ -500,6 +500,7 @@ func TestInvalidAccessControlRequestMethod(t *testing.T) {
 		safehttp.MethodGet,
 		safehttp.MethodHead,
 		safehttp.MethodPost,
+		"",
 	}
 
 	for _, m := range methods {
