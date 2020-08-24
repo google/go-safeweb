@@ -24,7 +24,7 @@ import (
 	"github.com/google/go-safeweb/safehttp/safehttptest"
 )
 
-func TestReport(t *testing.T) {
+func TestValidReport(t *testing.T) {
 	report := `{
 		"blocked-uri": "https://evil.com/",
 		"disposition": "enforce",
