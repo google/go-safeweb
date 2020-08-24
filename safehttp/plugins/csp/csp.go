@@ -61,15 +61,31 @@ func Nonce(ctx context.Context) string {
 }
 
 // StrictCSPBuilder can be used to build a strict, nonce-based CSP.
-// See https://csp.withgoogle.com/docs/strict-csp.html for more info.
 //
-// If BaseURI is an empty string the base-uri directive will be set to 'none'.
+// See https://csp.withgoogle.com/docs/strict-csp.html for more info.
 type StrictCSPBuilder struct {
-	ReportOnly    bool
+	// ReportOnly controls whether this policy should be set as a Content-Security-Policy
+	// header or a Content-Security-Policy-Report-Only header.
+	ReportOnly bool
+	// StrictDynamic controls whether script-src should contain the 'strict-dynamic'
+	// value.
+	//
+	// See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#strict-dynamic
+	// for more info.
 	StrictDynamic bool
-	UnsafeEval    bool
-	BaseURI       string
-	ReportURI     string
+	// UnsafeEval controls whether script-src should contain the 'unsafe-eval' value.
+	// If enabled, the eval() JavaScript function is allowed.
+	UnsafeEval bool
+	// BaseURI controls the base-uri directive. If BaseURI is an empty string the
+	// directive will be set to 'none'. The base-uri directive restricts the URLs
+	// which can be used in a document's <base> element.
+	//
+	// See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/base-uri
+	// for more info.
+	BaseURI string
+	// ReportURI controls the report-uri directive. If ReportUri is empty, no report-uri
+	// directive will be set.
+	ReportURI string
 }
 
 // Build creates a Policy based on the specified options.
@@ -112,8 +128,12 @@ func (s StrictCSPBuilder) Build() Policy {
 //
 // TODO: allow relaxation on specific endpoints according to #77.
 type FramingPolicyBuilder struct {
+	// ReportOnly controls whether this policy should be set as a Content-Security-Policy
+	// header or a Content-Security-Policy-Report-Only header.
 	ReportOnly bool
-	ReportURI  string
+	// ReportURI controls the report-uri directive. If ReportUri is empty, no report-uri
+	// directive will be set.
+	ReportURI string
 }
 
 // Build creates a Policy based on the specified options.
