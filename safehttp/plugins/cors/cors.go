@@ -36,14 +36,19 @@ var disallowedContentTypes = map[string]bool{
 	"text/plain":                        true,
 }
 
-// Interceptor handles CORS requests based on its settings. The request methods
-// GET, HEAD and POST are banned and will be responded to with 405 Method Not Allowed.
-// The content types "application/x-www-form-urlencoded", "multipart/form-data"
-// and "text/plain" are also banned and will be responded to with 415 Unsupported
-// Media Type. Each CORS request must contain the header "X-Cors: 1" or
-// "Sec-Fetch-Mode: cors". All of this is to prevent XSRF.
+// Interceptor handles CORS requests based on its settings.
 //
 // For more info about CORS, see: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
+//
+// Constraints
+//
+// - The request methods GET, HEAD and POST are banned and will result in a 405
+//   Method Not Allowed response.
+// - The content types "application/x-www-form-urlencoded", "multipart/form-data"
+//   and "text/plain" are also banned and will result in a  415 Unsupported Media
+//   Type response.
+// - Each CORS request must contain the header "X-Cors: 1" or "Sec-Fetch-Mode: cors".
+// All of this is to prevent XSRF.
 type Interceptor struct {
 	// AllowedOrigins determines which origins should be allowed in the
 	// Access-Control-Allow-Origin header.
@@ -87,7 +92,7 @@ func (it *Interceptor) SetAllowedHeaders(headers ...string) {
 	}
 }
 
-// Before handle the incoming request and sets headers or responds with an error
+// Before handles the incoming request and sets headers or responds with an error
 // accordingly.
 func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 	origin := r.Header.Get("Origin")
