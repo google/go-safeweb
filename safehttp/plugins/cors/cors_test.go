@@ -23,7 +23,7 @@ import (
 	"github.com/google/go-safeweb/safehttp/safehttptest"
 )
 
-func TestActualRequest(t *testing.T) {
+func TestRequest(t *testing.T) {
 	tests := []struct {
 		name             string
 		req              *safehttp.IncomingRequest
@@ -167,7 +167,7 @@ func TestActualRequest(t *testing.T) {
 	}
 }
 
-func TestActualRequestNoSFMOrXCorsHeader(t *testing.T) {
+func TestRequestNoSFMOrXCorsHeader(t *testing.T) {
 	req := safehttptest.NewRequest(safehttp.MethodPut, "http://bar.com/asdf", nil)
 	req.Header.Set("Origin", "https://foo.com")
 
@@ -191,7 +191,7 @@ func TestActualRequestNoSFMOrXCorsHeader(t *testing.T) {
 	}
 }
 
-func TestActualRequestInvalidMethod(t *testing.T) {
+func TestRequestInvalidMethod(t *testing.T) {
 	methods := []string{
 		safehttp.MethodGet,
 		safehttp.MethodHead,
@@ -226,7 +226,7 @@ func TestActualRequestInvalidMethod(t *testing.T) {
 	}
 }
 
-func TestActualRequestDisallowedContentTypes(t *testing.T) {
+func TestRequestDisallowedContentTypes(t *testing.T) {
 	contentTypes := []string{
 		"application/x-www-form-urlencoded",
 		"multipart/form-data",
