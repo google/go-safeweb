@@ -29,7 +29,7 @@ type LoggingService interface {
 type Plugin struct {
 	// Policy is the Fetch Metadata policy that decides whether a request should
 	// be allowed to pass or be rejected. This will be set to a default Resource
-	// Isolation Policy by default but can be changed by the user.
+	// Isolation Policy, but can be changed by the user.
 	Policy     func(*safehttp.IncomingRequest) bool
 	reportOnly bool
 	logger     LoggingService
@@ -62,7 +62,7 @@ func defaultPolicy(r *safehttp.IncomingRequest) bool {
 		// allowed to pass.
 		return true
 	}
-	if m := r.Method(); h.Get("Sec-Fetch-Mode") == "navigate" && (m == "GET" || m == "HEAD") {
+	if m := r.Method(); h.Get("Sec-Fetch-Mode") == "navigate" && (m == safehttp.MethodGet || m == safehttp.MethodHead) {
 		if dest := h.Get("Sec-Fetch-Dest"); dest == "object" || dest == "embed" {
 			// The request is cross-site and originates from <object> or <embed>
 			// so it is rejected.
