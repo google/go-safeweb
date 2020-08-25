@@ -22,287 +22,135 @@ import (
 	"testing"
 )
 
-func TestDefaultPolicy(t *testing.T) {
+func TestResourceIsolationEnforceMode(t *testing.T) {
 	tests := []struct {
-		name    string
-		origins map[string]bool
-		req     *safehttp.IncomingRequest
-		allowed bool
+		name        string
+		req         *safehttp.IncomingRequest
+		wantStatus  safehttp.StatusCode
+		wantHeaders map[string][]string
+		wantBody    string
 	}{
 		{
-			name:    `Sec-Fetch-Site: ""`,
-			origins: map[string]bool{},
-			req:     safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil),
-			allowed: true,
+			name:        `Sec-Fetch-Site: ""`,
+			req:         safehttptest.NewRequest("POST", "/", nil),
+			wantStatus:  safehttp.StatusOK,
+			wantHeaders: map[string][]string{},
+			wantBody:    "",
 		},
 		{
-			name:    "Sec-Fetch-Site: same-origin",
-			origins: map[string]bool{},
+			name: "Sec-Fetch-Site: same-origin",
 			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil)
+				req := safehttptest.NewRequest("POST", "/", nil)
 				req.Header.Add("Sec-Fetch-Site", "same-origin")
 				return req
 			}(),
-			allowed: true,
+			wantStatus:  safehttp.StatusOK,
+			wantHeaders: map[string][]string{},
+			wantBody:    "",
 		},
 		{
-			name:    "Sec-Fetch-Site: same-site",
-			origins: map[string]bool{},
+			name: "Sec-Fetch-Site: same-site",
 			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil)
+				req := safehttptest.NewRequest("POST", "/", nil)
 				req.Header.Add("Sec-Fetch-Site", "same-site")
 				return req
 			}(),
-			allowed: true,
+			wantStatus:  safehttp.StatusOK,
+			wantHeaders: map[string][]string{},
+			wantBody:    "",
 		},
 		{
-			name:    "Sec-Fetch-Site: none",
-			origins: map[string]bool{},
+			name: "Sec-Fetch-Site: none",
 			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil)
+				req := safehttptest.NewRequest("POST", "/", nil)
 				req.Header.Add("Sec-Fetch-Site", "none")
 				return req
 			}(),
-			allowed: true,
+			wantStatus:  safehttp.StatusOK,
+			wantHeaders: map[string][]string{},
+			wantBody:    "",
 		},
 		{
-			name:    "Sec-Fetch-Site: cross-site and Sec-Fetch-Mode: no-cors",
-			origins: map[string]bool{},
+			name: "Sec-Fetch-Site: cross-site non-navigational",
 			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil)
+				req := safehttptest.NewRequest("POST", "/", nil)
 				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Mode", "no-cors")
+				req.Header.Add("Sec-Fetch-Site", "no-cors")
 				return req
 			}(),
-			allowed: false,
+			wantStatus: safehttp.StatusForbidden,
+			wantHeaders: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Forbidden\n",
 		},
 		{
-			name:    "GET request with Sec-Fetch-Mode: navigate from image",
-			origins: map[string]bool{},
+			name: "GET request with Sec-Fetch-Mode: navigate from image",
 			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("GET", "https://spaghetti.com/pizza", nil)
-				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Mode", "navigate")
-				req.Header.Add("Sec-Fetch-Dest", "image")
-				return req
-			}(),
-			allowed: true,
-		},
-		{
-			name:    "POST request with Sec-Fetch-Mode: navigate from image",
-			origins: map[string]bool{},
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil)
+				req := safehttptest.NewRequest("GET", "/", nil)
 				req.Header.Add("Sec-Fetch-Site", "cross-site")
 				req.Header.Add("Sec-Fetch-Mode", "navigate")
 				req.Header.Add("Sec-Fetch-Dest", "image")
 				return req
 			}(),
-			allowed: false,
+			wantStatus:  safehttp.StatusOK,
+			wantHeaders: map[string][]string{},
+			wantBody:    "",
 		},
 		{
-			name:    "GET request with Sec-Fetch-Mode: navigate from object",
-			origins: map[string]bool{},
+			name: "POST request with Sec-Fetch-Mode: navigate from image",
 			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("GET", "https://spaghetti.com/pizza", nil)
+				req := safehttptest.NewRequest("POST", "/", nil)
+				req.Header.Add("Sec-Fetch-Site", "cross-site")
+				req.Header.Add("Sec-Fetch-Mode", "navigate")
+				req.Header.Add("Sec-Fetch-Dest", "image")
+				return req
+			}(),
+			wantStatus: safehttp.StatusForbidden,
+			wantHeaders: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Forbidden\n",
+		},
+		{
+			name: "GET request with Sec-Fetch-Mode: navigate from object",
+			req: func() *safehttp.IncomingRequest {
+				req := safehttptest.NewRequest("GET", "/", nil)
 				req.Header.Add("Sec-Fetch-Site", "cross-site")
 				req.Header.Add("Sec-Fetch-Mode", "navigate")
 				req.Header.Add("Sec-Fetch-Dest", "object")
 				return req
 			}(),
-			allowed: false,
+			wantStatus: safehttp.StatusForbidden,
+			wantHeaders: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Forbidden\n",
 		},
 		{
-			name:    "GET request with Sec-Fetch-Mode: navigate from embed",
-			origins: map[string]bool{},
+			name: "GET request with Sec-Fetch-Mode: navigate from embed",
 			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("GET", "https://spaghetti.com/pizza", nil)
+				req := safehttptest.NewRequest("GET", "/", nil)
 				req.Header.Add("Sec-Fetch-Site", "cross-site")
 				req.Header.Add("Sec-Fetch-Mode", "navigate")
 				req.Header.Add("Sec-Fetch-Dest", "embed")
 				return req
 			}(),
-			allowed: false,
-		},
-		{
-			name:    "Cross-site non-navigational request rejected",
-			origins: map[string]bool{},
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil)
-				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Mode", "cors")
-				return req
-			}(),
-			allowed: false,
-		},
-		{
-			name:    "Cross-site non-navigational request allowed for origin",
-			origins: map[string]bool{"https://foo.com": true},
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil)
-				req.Header.Add("Origin", "https://foo.com")
-				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Mode", "cors")
-				return req
-			}(),
-			allowed: true,
-		},
-		{
-			name:    "Cross-site non-navigation request rejected for protocol mismatch",
-			origins: map[string]bool{"https://foo.com": true},
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil)
-				req.Header.Add("Origin", "http://foo.com")
-				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Mode", "cors")
-				return req
-			}(),
-			allowed: false,
-		},
-		{
-			name:    "Cross-site non-navigational request rejected for host msimatch",
-			origins: map[string]bool{"https://foo.com": true},
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil)
-				req.Header.Add("Origin", "https://bar.com")
-				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Mode", "cors")
-				return req
-			}(),
-			allowed: false,
-		},
-		{
-			name:    "Cross-site non-navigational request rejected for port msimatch",
-			origins: map[string]bool{"https://foo.com": true},
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil)
-				req.Header.Add("Origin", "https://foo.com:100")
-				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Mode", "cors")
-				return req
-			}(),
-			allowed: false,
+			wantStatus: safehttp.StatusForbidden,
+			wantHeaders: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Forbidden\n",
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			p := fetchmetadata.NewPlugin()
-			got := p.Policy(test.req, test.origins)
-
-			if want := test.allowed; want != got {
-				t.Errorf("p.Policy(test.req, test.origins): got %v, want %v", got, want)
-			}
-		})
-	}
-}
-
-func TestBeforeEnforceMode(t *testing.T) {
-	tests := []struct {
-		name         string
-		req          *safehttp.IncomingRequest
-		navIsolation bool
-		origin       string
-		wantStatus   safehttp.StatusCode
-		wantHeaders  map[string][]string
-		wantBody     string
-	}{
-		{
-			name:         "Fetch Metadata Unsupported",
-			req:          safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil),
-			navIsolation: false,
-			origin:       "https://foo.com",
-			wantStatus:   safehttp.StatusOK,
-			wantHeaders:  map[string][]string{},
-			wantBody:     "",
-		},
-		{
-			name: "No CORS endpoints",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil)
-				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Mode", "cors")
-				return req
-			}(),
-			navIsolation: false,
-			origin:       "https://foo.com",
-			wantStatus:   safehttp.StatusForbidden,
-			wantHeaders: map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			},
-			wantBody: "Forbidden\n",
-		},
-		{
-			name: "CORS endpoints provided",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil)
-				req.Header.Add("Origin", "https://foo.com")
-				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Mode", "cors")
-				return req
-			}(),
-			navIsolation: false,
-			origin:       "https://foo.com",
-			wantStatus:   safehttp.StatusOK,
-			wantHeaders:  map[string][]string{},
-			wantBody:     "",
-		},
-		{
-			name: "Navigation Isolation Disabled",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("GET", "https://spaghetti.com/pizza", nil)
-				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Mode", "navigate")
-				req.Header.Add("Sec-Fetch-Dest", "image")
-				return req
-			}(),
-			navIsolation: false,
-			origin:       "https://foo.com",
-			wantStatus:   safehttp.StatusOK,
-			wantHeaders:  map[string][]string{},
-			wantBody:     "",
-		},
-		{
-			name: "Navigation Isolation Enabled",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("GET", "https://spaghetti.com/pizza", nil)
-				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Mode", "navigate")
-				req.Header.Add("Sec-Fetch-Dest", "image")
-				return req
-			}(),
-			navIsolation: true,
-			origin:       "https://foo.com",
-			wantStatus:   safehttp.StatusForbidden,
-			wantHeaders: map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			},
-			wantBody: "Forbidden\n",
-		},
-		{
-			name: "Navigation Isolation Enabled and CORS endpoints",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("GET", "https://spaghetti.com/pizza", nil)
-				req.Header.Add("Origin", "https://foo.com")
-				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Mode", "navigate")
-				req.Header.Add("Sec-Fetch-Dest", "image")
-				return req
-			}(),
-			navIsolation: true,
-			origin:       "https://foo.com",
-			wantStatus:   safehttp.StatusOK,
-			wantHeaders:  map[string][]string{},
-			wantBody:     "",
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			p := fetchmetadata.NewPlugin(test.origin)
-			p.NavIsolation = test.navIsolation
 			rec := safehttptest.NewResponseRecorder()
 
 			p.Before(rec.ResponseWriter, test.req)
@@ -327,20 +175,17 @@ func (l *fooLog) Log(r *safehttp.IncomingRequest) {
 	l.report = r.Method() + " " + r.URL.Path()
 }
 
-func TestBeforeReportMode(t *testing.T) {
+func TestResourceIsolationReportMode(t *testing.T) {
 	tests := []struct {
-		name         string
-		origin       string
-		req          *safehttp.IncomingRequest
-		navIsolation bool
-		wantStatus   safehttp.StatusCode
-		wantHeaders  map[string][]string
-		wantBody     string
-		wantReport   string
+		name        string
+		req         *safehttp.IncomingRequest
+		wantStatus  safehttp.StatusCode
+		wantHeaders map[string][]string
+		wantBody    string
+		wantReport  string
 	}{
 		{
-			name:   "Sec-Fetch-Site: cross-site",
-			origin: "https://foo.com",
+			name: "Sec-Fetch-Site: cross-site",
 			req: func() *safehttp.IncomingRequest {
 				req := safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil)
 				req.Header.Add("Sec-Fetch-Site", "cross-site")
@@ -353,23 +198,7 @@ func TestBeforeReportMode(t *testing.T) {
 			wantReport:  "POST /pizza",
 		},
 		{
-			name:   "Sec-Fetch-Site: cross-site from allowed orign",
-			origin: "https://foo.com",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil)
-				req.Header.Add("Origin", "https://foo.com")
-				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Mode", "cors")
-				return req
-			}(),
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{},
-			wantBody:    "",
-			wantReport:  "",
-		},
-		{
-			name:   "POST request with Sec-Fetch-Mode: navigate from image",
-			origin: "https://foo.com",
+			name: "POST request with Sec-Fetch-Mode: navigate from image",
 			req: func() *safehttp.IncomingRequest {
 				req := safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil)
 				req.Header.Add("Sec-Fetch-Site", "cross-site")
@@ -383,8 +212,7 @@ func TestBeforeReportMode(t *testing.T) {
 			wantReport:  "POST /pizza",
 		},
 		{
-			name:   "GET request with Sec-Fetch-Mode: navigate from object",
-			origin: "https://foo.com",
+			name: "GET request with Sec-Fetch-Mode: navigate from object",
 			req: func() *safehttp.IncomingRequest {
 				req := safehttptest.NewRequest("GET", "https://spaghetti.com/pizza", nil)
 				req.Header.Add("Sec-Fetch-Site", "cross-site")
@@ -412,8 +240,7 @@ func TestBeforeReportMode(t *testing.T) {
 			wantReport:  "GET /pizza",
 		},
 		{
-			name:   "GET request with Sec-Fetch-Mode: navigate from image and Navigation Isolation",
-			origin: "https://foo.com",
+			name: "GET request with Sec-Fetch-Mode: navigate from image",
 			req: func() *safehttp.IncomingRequest {
 				req := safehttptest.NewRequest("GET", "https://spaghetti.com/pizza", nil)
 				req.Header.Add("Sec-Fetch-Site", "cross-site")
@@ -421,38 +248,19 @@ func TestBeforeReportMode(t *testing.T) {
 				req.Header.Add("Sec-Fetch-Dest", "image")
 				return req
 			}(),
-			navIsolation: true,
-			wantStatus:   safehttp.StatusOK,
-			wantHeaders:  map[string][]string{},
-			wantBody:     "",
-			wantReport:   "GET /pizza",
-		},
-		{
-			name:   "GET request with Sec-Fetch-Mode: navigate from image and Navigation Isolation from allowed origin",
-			origin: "https://foo.com",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("GET", "https://spaghetti.com/pizza", nil)
-				req.Header.Add("Origin", "https://foo.com")
-				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Mode", "navigate")
-				req.Header.Add("Sec-Fetch-Dest", "image")
-				return req
-			}(),
-			navIsolation: true,
-			wantStatus:   safehttp.StatusOK,
-			wantHeaders:  map[string][]string{},
-			wantBody:     "",
-			wantReport:   "",
+			wantStatus:  safehttp.StatusOK,
+			wantHeaders: map[string][]string{},
+			wantBody:    "",
+			wantReport:  "",
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			p := fetchmetadata.NewPlugin(test.origin)
+			p := fetchmetadata.NewPlugin()
 			logger := &fooLog{}
-			p.SetReportMode(logger)
+			p.SetReportOnly(logger)
 			rec := safehttptest.NewResponseRecorder()
-			p.NavIsolation = test.navIsolation
 			p.Before(rec.ResponseWriter, test.req)
 
 			if status := safehttp.StatusCode(rec.Status()); status != test.wantStatus {
@@ -475,18 +283,19 @@ func TestReportModeMissingLogger(t *testing.T) {
 	p := fetchmetadata.NewPlugin()
 	defer func() {
 		if r := recover(); r == nil {
-			t.Error("p.SetReportMode(nil) expected panic")
+			t.Error("p.SetReportOnly(nil) expected panic")
 		}
 	}()
-	p.SetReportMode(nil)
+	p.SetReportOnly(nil)
 }
 
-func TestChangeMode(t *testing.T) {
+func TestChangeEnforceReportMode(t *testing.T) {
 	logger := &fooLog{}
 	p := fetchmetadata.NewPlugin()
 	req := safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil)
 	req.Header.Add("Sec-Fetch-Site", "cross-site")
 	req.Header.Add("Sec-Fetch-Mode", "navigate")
+	req.Header.Add("Sec-Fetch-Dest", "image")
 	rec := safehttptest.NewResponseRecorder()
 
 	p.Before(rec.ResponseWriter, req)
@@ -505,11 +314,8 @@ func TestChangeMode(t *testing.T) {
 		t.Errorf("response body got: %q want: %q", got, want)
 	}
 
-	req = safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil)
-	req.Header.Add("Sec-Fetch-Site", "cross-site")
-	req.Header.Add("Sec-Fetch-Mode", "navigate")
 	rec = safehttptest.NewResponseRecorder()
-	p.SetReportMode(logger)
+	p.SetReportOnly(logger)
 
 	p.Before(rec.ResponseWriter, req)
 
@@ -527,72 +333,11 @@ func TestChangeMode(t *testing.T) {
 	}
 }
 
-func TestCustomPolicy(t *testing.T) {
-	policy := func(r *safehttp.IncomingRequest, allowedCORS map[string]bool) bool {
-		if r.Header.Get("Sec-Fetch-Mode") != "no-cors" {
-			return false
-		}
-		return true
-	}
-	tests := []struct {
-		name        string
-		req         *safehttp.IncomingRequest
-		wantStatus  safehttp.StatusCode
-		wantHeaders map[string][]string
-		wantBody    string
-	}{
-		{
-			name: "Allowed request for custom policy",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil)
-				req.Header.Add("Sec-Fetch-Mode", "no-cors")
-				return req
-			}(),
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{},
-			wantBody:    "",
-		},
-		{
-			name: "Rejected request for custom policy",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil)
-				req.Header.Add("Sec-Fetch-Mode", "navigate")
-				return req
-			}(),
-			wantStatus: safehttp.StatusForbidden,
-			wantHeaders: map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			},
-			wantBody: "Forbidden\n",
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			p := fetchmetadata.NewPlugin()
-			p.Policy = policy
-			rec := safehttptest.NewResponseRecorder()
-
-			p.Before(rec.ResponseWriter, test.req)
-
-			if status := safehttp.StatusCode(rec.Status()); status != test.wantStatus {
-				t.Errorf("status code got: %v want: %v", status, test.wantStatus)
-			}
-			if diff := cmp.Diff(test.wantHeaders, map[string][]string(rec.Header())); diff != "" {
-				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
-			}
-			if got := rec.Body(); got != test.wantBody {
-				t.Errorf("response body got: %q want: %q", got, test.wantBody)
-			}
-		})
-	}
-}
-
 func TestEnableDisableNavIsolation(t *testing.T) {
 	req := safehttptest.NewRequest("GET", "https://spaghetti.com/pizza", nil)
 	req.Header.Add("Sec-Fetch-Site", "cross-site")
 	req.Header.Add("Sec-Fetch-Mode", "navigate")
+	req.Header.Add("Sec-Fetch-Dest", "image")
 	rec := safehttptest.NewResponseRecorder()
 
 	p := fetchmetadata.NewPlugin()
@@ -613,9 +358,6 @@ func TestEnableDisableNavIsolation(t *testing.T) {
 		t.Errorf("response body got: %q want: %q", got, want)
 	}
 
-	req = safehttptest.NewRequest("GET", "https://spaghetti.com/pizza", nil)
-	req.Header.Add("Sec-Fetch-Site", "cross-site")
-	req.Header.Add("Sec-Fetch-Mode", "navigate")
 	rec = safehttptest.NewResponseRecorder()
 
 	p.NavIsolation = false
@@ -629,5 +371,29 @@ func TestEnableDisableNavIsolation(t *testing.T) {
 	}
 	if want, got := "", rec.Body(); got != want {
 		t.Errorf("response body got: %q want: %q", got, want)
+	}
+}
+
+func TestCORSEndpoint(t *testing.T) {
+	methods := []string{"GET", "POST"}
+	for _, m := range methods {
+		req := safehttptest.NewRequest(m, "https://spaghetti.com/pizza", nil)
+		req.Header.Add("Sec-Fetch-Site", "cross-site")
+		req.Header.Add("Sec-Fetch-Mode", "navigate")
+		req.Header.Add("Sec-Fetch-Dest", "image")
+		rec := safehttptest.NewResponseRecorder()
+		p := fetchmetadata.NewPlugin("https://spaghetti.com/pizza")
+		p.NavIsolation = true
+		p.Before(rec.ResponseWriter, req)
+
+		if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); want != got {
+			t.Errorf("status code got: %v want: %v", got, want)
+		}
+		if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
+			t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
+		}
+		if want, got := "", rec.Body(); got != want {
+			t.Errorf("response body got: %q want: %q", got, want)
+		}
 	}
 }
