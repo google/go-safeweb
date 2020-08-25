@@ -25,7 +25,9 @@ import (
 
 var randReader = rand.Reader
 
-// nonceSize is the size of the nonces in bytes.
+// nonceSize is the size of the nonces in bytes. According to the CSP3 spec it should
+// be larger than 16 bytes. 20 bytes was picked to be future proof.
+// https://www.w3.org/TR/CSP3/#security-nonces
 const nonceSize = 20
 
 func generateNonce() string {
@@ -43,8 +45,8 @@ type Policy struct {
 	reportOnly bool
 
 	// serialize serializes this policy for use in a Content-Security-Policy header
-	// or in a Content-Security-Policy-Report-Only header. If needsNonce is true,
-	// a nonce will be provided to serialize.
+	// or in a Content-Security-Policy-Report-Only header. A nonce will be provided
+	// to serialize which can be used in 'nonce-{random-nonce}' values in directives.
 	serialize func(nonce string) string
 }
 
@@ -95,6 +97,7 @@ func (s StrictCSPBuilder) Build() Policy {
 		serialize: func(nonce string) string {
 			var b strings.Builder
 
+			// object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-{random}'
 			b.WriteString("object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-")
 			b.WriteString(nonce)
 			b.WriteString("'")
