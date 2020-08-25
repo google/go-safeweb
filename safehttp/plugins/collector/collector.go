@@ -16,6 +16,7 @@ package collector
 
 import (
 	"encoding/json"
+	"io/ioutil"
 
 	"github.com/google/go-safeweb/safehttp"
 )
@@ -67,9 +68,12 @@ func Handler(rh ReportsHandler) safehttp.Handler {
 			return w.ClientError(safehttp.StatusUnsupportedMediaType)
 		}
 
-		d := json.NewDecoder(ir.Body())
+		b, err := ioutil.ReadAll(ir.Body())
+		if err != nil {
+			return w.ClientError(safehttp.StatusBadRequest)
+		}
 		r := Report{}
-		if err := d.Decode(&r); err != nil {
+		if err := json.Unmarshal(b, &r); err != nil {
 			return w.ClientError(safehttp.StatusBadRequest)
 		}
 		rh(r)
