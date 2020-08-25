@@ -30,24 +30,37 @@ type Plugin struct {
 	// Policy is the Fetch Metadata policy that decides whether a request should
 	// be allowed to pass or be rejected. This will be set to a default Resource
 	// Isolation Policy, but can be changed by the user.
-	Policy     func(*safehttp.IncomingRequest) bool
-	reportOnly bool
-	logger     LoggingService
+	//
+	// See https://web.dev/fetch-metadata/ for more information on the default policy
+	Policy func(*safehttp.IncomingRequest, map[string]bool) bool
+	// NavIsolation indicates whether the Navigation Isolation Policy should
+	// also be applied to the request as an additional layer of checking. This
+	// provides a way to mitigate clickjacking and reflected XSS by rejecting
+	// all cross-site navigations unless coming from origins where CORS is
+	// explicitly enabled. This can be used independently from a Resource
+	// Isolation Policy.
+	//
+	// WARNING: This is still an experimental feature and will be disabled by default.
+	NavIsolation bool
+	reportOnly   bool
+	logger       LoggingService
+	allowedCORS  map[string]bool
 }
 
-// NewPlugin creates a new Fetch Metadata plugin using the defaultPolicy and
-// sets the mode to enforce.
-func NewPlugin() *Plugin {
+// NewPlugin creates a new Fetch Metadata plugin in enforce mode using the
+// defaultPolicy and a set of user-provided origins on which CORS is enabled.
+func NewPlugin(origins ...string) *Plugin {
+	m := map[string]bool{}
+	for _, origin := range origins {
+		m[origin] = true
+	}
 	return &Plugin{
-		Policy: defaultPolicy,
+		allowedCORS: m,
+		Policy:      defaultPolicy,
 	}
 }
 
-// defaultPolicy applies a Resource Isolation Policy to the
-// safehttp.IncomingRequest, allowing it to pass only if it conforms to it.
-//
-// See https://web.dev/fetch-metadata/ for more information.
-func defaultPolicy(r *safehttp.IncomingRequest) bool {
+func defaultPolicy(r *safehttp.IncomingRequest, allowedCORS map[string]bool) bool {
 	h := r.Header
 	switch h.Get("Sec-Fetch-Site") {
 	case "":
@@ -62,6 +75,7 @@ func defaultPolicy(r *safehttp.IncomingRequest) bool {
 		// allowed to pass.
 		return true
 	}
+
 	if m := r.Method(); h.Get("Sec-Fetch-Mode") == "navigate" && (m == safehttp.MethodGet || m == safehttp.MethodHead) {
 		if dest := h.Get("Sec-Fetch-Dest"); dest == "object" || dest == "embed" {
 			// The request is cross-site and originates from <object> or <embed>
@@ -72,8 +86,28 @@ func defaultPolicy(r *safehttp.IncomingRequest) bool {
 		// allow it to pass.
 		return true
 	}
-	// The request is cross-site and not navigational so it is rejected.
+
+	origin := h.Get("Origin")
+	if _, ok := allowedCORS[origin]; ok && h.Get("Sec-Fetch-Mode") == "cors" {
+		// The request is cross-site but sent from an
+		// origin where Cross-Origin Resource Sharing is explicitly allowed.
+		return true
+	}
+
+	// The request is cross-site, not navigational and sent from an endpoint
+	// where CORS is not enabled therefore it is rejected.
 	return false
+}
+
+func navigationIsolationPolicy(r *safehttp.IncomingRequest, allowedCORS map[string]bool) bool {
+	h := r.Header
+	origin := h.Get("Origin")
+	if h.Get("Sec-Fetch-Site") == "cross-site" && h.Get("Sec-Fetch-Mode") == "navigate" {
+		if _, ok := allowedCORS[origin]; !ok {
+			return false
+		}
+	}
+	return true
 }
 
 // SetReportMode sets the Fetch Metadata policy mode to "report". This will
@@ -96,18 +130,26 @@ func (p *Plugin) SetEnforceMode() {
 
 // Before validates the safehttp.IncomingRequest using the Fetch Metadata policy
 // provided by the  plugin. It only allows request to pass if they conform to
-// the policy or if the mode is set to "report", in which case the request is
-// allowed to pass but the violation is reported. If the browser does not have
+// the policy, if it's sent from a CORS endpoint, or if the mode is set to
+// "report", in which case the request is allowed to pass but the violation is
+// reported. Moreover, if the Navigation Isolation Policy is enabled, the
+// request will also be validated against it.  If the browser does not have
 // Fetch Metadata support implemented, the policy will not be applied and all
 // requests will be allowed to pass.
 func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-	if !p.Policy(r) {
-		switch p.reportOnly {
-		case false:
+	if !p.Policy(r, p.allowedCORS) {
+		if !p.reportOnly {
 			return w.ClientError(safehttp.StatusForbidden)
-		case true:
-			p.logger.Log(r)
 		}
+		p.logger.Log(r)
+		return safehttp.Result{}
+	}
+	if p.NavIsolation && !navigationIsolationPolicy(r, p.allowedCORS) {
+		if !p.reportOnly {
+			return w.ClientError(safehttp.StatusForbidden)
+		}
+		p.logger.Log(r)
+		return safehttp.Result{}
 	}
 	return safehttp.Result{}
 }
