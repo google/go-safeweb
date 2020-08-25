@@ -126,16 +126,24 @@ func TestBefore(t *testing.T) {
 			wantNonce: "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
 		{
-			name:        "StrictCSP Report Only",
-			interceptor: NewInterceptor(StrictCSPBuilder{ReportOnly: true, ReportURI: "https://example.com/collector"}.Build()),
+			name: "StrictCSP Report Only",
+			interceptor: Interceptor{
+				ReportOnly: []Policy{
+					StrictCSPBuilder{ReportURI: "https://example.com/collector"}.Build(),
+				},
+			},
 			wantReportOnlyPolicy: []string{
 				"object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk='; base-uri 'none'; report-uri https://example.com/collector",
 			},
 			wantNonce: "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
 		{
-			name:                 "FramingCSP Report Only",
-			interceptor:          NewInterceptor(FramingPolicyBuilder{ReportOnly: true, ReportURI: "https://example.com/collector"}.Build()),
+			name: "FramingCSP Report Only",
+			interceptor: Interceptor{
+				ReportOnly: []Policy{
+					FramingPolicyBuilder{ReportURI: "https://example.com/collector"}.Build(),
+				},
+			},
 			wantReportOnlyPolicy: []string{"frame-ancestors 'self'; report-uri https://example.com/collector"},
 			wantNonce:            "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
