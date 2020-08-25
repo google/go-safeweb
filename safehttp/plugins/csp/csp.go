@@ -43,8 +43,6 @@ func generateNonce() string {
 
 // Policy defines a CSP policy.
 type Policy struct {
-	reportOnly bool
-
 	// serialize serializes this policy for use in a Content-Security-Policy header
 	// or in a Content-Security-Policy-Report-Only header. A nonce will be provided
 	// to serialize which can be used in 'nonce-{random-nonce}' values in directives.
@@ -67,9 +65,6 @@ func Nonce(ctx context.Context) (string, error) {
 //
 // See https://csp.withgoogle.com/docs/strict-csp.html for more info.
 type StrictCSPBuilder struct {
-	// ReportOnly controls whether this policy should be set as a Content-Security-Policy
-	// header or a Content-Security-Policy-Report-Only header.
-	ReportOnly bool
 	// StrictDynamic controls whether script-src should contain the 'strict-dynamic'
 	// value.
 	//
@@ -94,7 +89,6 @@ type StrictCSPBuilder struct {
 // Build creates a Policy based on the specified options.
 func (s StrictCSPBuilder) Build() Policy {
 	return Policy{
-		reportOnly: s.ReportOnly,
 		serialize: func(nonce string) string {
 			var b strings.Builder
 
@@ -132,9 +126,6 @@ func (s StrictCSPBuilder) Build() Policy {
 //
 // TODO: allow relaxation on specific endpoints according to #77.
 type FramingPolicyBuilder struct {
-	// ReportOnly controls whether this policy should be set as a Content-Security-Policy
-	// header or a Content-Security-Policy-Report-Only header.
-	ReportOnly bool
 	// ReportURI controls the report-uri directive. If ReportUri is empty, no report-uri
 	// directive will be set.
 	ReportURI string
@@ -143,7 +134,6 @@ type FramingPolicyBuilder struct {
 // Build creates a Policy based on the specified options.
 func (f FramingPolicyBuilder) Build() Policy {
 	return Policy{
-		reportOnly: f.ReportOnly,
 		serialize: func(_ string) string {
 			var b strings.Builder
 			b.WriteString("frame-ancestors 'self'")
@@ -160,19 +150,19 @@ func (f FramingPolicyBuilder) Build() Policy {
 
 // Interceptor intercepts requests and applies CSP policies.
 type Interceptor struct {
-	Policies []Policy
-}
-
-// NewInterceptor creates an interceptor from the provided policies.
-func NewInterceptor(p ...Policy) Interceptor {
-	return Interceptor{Policies: p}
+	// Enforce specifies which policies will be set as the Content-Security-Policy
+	// header.
+	Enforce []Policy
+	// ReportOnly specifies which policies will be set as the Content-Security-Policy-Report-Only
+	// header.
+	ReportOnly []Policy
 }
 
 // Default creates a new CSP interceptor with a strict nonce-based policy and a
 // framing policy, both in enforcement mode.
 func Default(reportURI string) Interceptor {
 	return Interceptor{
-		Policies: []Policy{
+		Enforce: []Policy{
 			StrictCSPBuilder{ReportURI: reportURI}.Build(),
 			FramingPolicyBuilder{ReportURI: reportURI}.Build(),
 		},
@@ -182,17 +172,16 @@ func Default(reportURI string) Interceptor {
 // Before claims and sets the Content-Security-Policy header and the
 // Content-Security-Policy-Report-Only header.
 func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-	var csps []string
-	var reportCsps []string
 	nonce := generateNonce()
 	r.SetContext(context.WithValue(r.Context(), ctxKey{}, nonce))
-	for _, p := range it.Policies {
-		v := p.serialize(nonce)
-		if p.reportOnly {
-			reportCsps = append(reportCsps, v)
-		} else {
-			csps = append(csps, v)
-		}
+
+	var csps []string
+	for _, p := range it.Enforce {
+		csps = append(csps, p.serialize(nonce))
+	}
+	var reportCsps []string
+	for _, p := range it.ReportOnly {
+		reportCsps = append(reportCsps, p.serialize(nonce))
 	}
 
 	h := w.Header()
