@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 	"strings"
 
 	"github.com/google/go-safeweb/safehttp"
@@ -34,8 +35,7 @@ func generateNonce() string {
 	b := make([]byte, nonceSize)
 	_, err := randReader.Read(b)
 	if err != nil {
-		// TODO: handle this better, what should happen here?
-		panic(err)
+		panic(fmt.Errorf("failed to generate entropy using crypto/rand/RandReader: %v", err))
 	}
 	return base64.StdEncoding.EncodeToString(b)
 }
