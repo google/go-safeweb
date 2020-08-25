@@ -222,14 +222,24 @@ func TestPanicWhileGeneratingNonce(t *testing.T) {
 
 func TestValidNonce(t *testing.T) {
 	ctx := context.WithValue(context.Background(), ctxKey{}, "nonce")
-	if got, want := Nonce(ctx), "nonce"; got != want {
-		t.Errorf("Nonce(ctx) got: %v want: %v", got, want)
+	n, err := Nonce(ctx)
+	if err != nil {
+		t.Errorf("Nonce(ctx) got err: %v want: nil", err)
+	}
+
+	if want := "nonce"; n != want {
+		t.Errorf("Nonce(ctx) got nonce: %v want: %v", n, want)
 	}
 }
 
 func TestNonceEmptyContext(t *testing.T) {
 	ctx := context.Background()
-	if got, want := Nonce(ctx), ""; got != want {
-		t.Errorf("Nonce(ctx) got: %v want: %v", got, want)
+	n, err := Nonce(ctx)
+	if err == nil {
+		t.Error("Nonce(ctx) got err: nil want: error")
+	}
+
+	if want := ""; n != want {
+		t.Errorf("Nonce(ctx) got nonce: %v want: %v", n, want)
 	}
 }
