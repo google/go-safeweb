@@ -101,14 +101,33 @@ func NewServeMux(d Dispatcher, domains ...string) *ServeMux {
 
 // Handle registers a handler for the given pattern and method. If another
 // handler is already registered for the same pattern and method, Handle panics.
-func (m *ServeMux) Handle(pattern string, method string, h Handler) {
+//
+// Configs can be optionally passed which will modify the behavior of the
+// interceptors on the handler registered.
+func (m *ServeMux) Handle(pattern string, method string, h Handler, configs ...Config) {
+	interceps := map[string]Interceptor{}
+	for k, i := range m.interceps {
+		interceps[k] = i
+	}
+	for _, c := range configs {
+		for k, i := range interceps {
+			if i, ok := c.Apply(i); ok {
+				interceps[k] = i
+			}
+		}
+	}
+
+	hi := handlerWithInterceptors{
+		handler:   h,
+		interceps: interceps,
+		disp:      m.disp,
+	}
+
 	mh, ok := m.handlers[pattern]
 	if !ok {
 		mh := methodHandler{
-			handlers:     map[string]Handler{method: h},
-			domains:      m.domains,
-			disp:         m.disp,
-			muxInterceps: m.interceps,
+			handlers: map[string]handlerWithInterceptors{method: hi},
+			domains:  m.domains,
 		}
 
 		m.handlers[pattern] = mh
@@ -119,7 +138,7 @@ func (m *ServeMux) Handle(pattern string, method string, h Handler) {
 	if _, ok := mh.handlers[method]; ok {
 		panic("method already registered")
 	}
-	mh.handlers[method] = h
+	mh.handlers[method] = hi
 }
 
 // Install installs an Interceptor. Interceptor keys need to be unique. If an
@@ -141,22 +160,16 @@ func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	m.mux.ServeHTTP(w, r)
 }
 
-// methodHandler is a collection of handlers based on the request method.
+// methodHandler is a collection of handlerWithInterceptors based on the request method.
 type methodHandler struct {
-	// Maps an HTTP method to its handler
-	handlers     map[string]Handler
-	domains      map[string]bool
-	disp         Dispatcher
-	muxInterceps map[string]Interceptor
+	// Maps an HTTP method to its handlerWithInterceptors
+	handlers map[string]handlerWithInterceptors
+	domains  map[string]bool
 }
 
-// ServeHTTP dispatches the request to the handler associated with
-// the incoming request's method after calling the Before function of all
-// ServeMux interceptors the handler is registered on.
+// ServeHTTP dispatches the request to the handlerWithInterceptors associated
+// with the IncomingRequest method.
 func (m methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	rw := NewResponseWriter(m.disp, w, m.muxInterceps)
-	ir := NewIncomingRequest(r)
-
 	if !m.domains[r.Host] {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
@@ -168,6 +181,23 @@ func (m methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.ServeHTTP(w, r)
+}
+
+// handlerWithInterceptors encapsulates a handler and its corresponding
+// interceptors.
+type handlerWithInterceptors struct {
+	handler   Handler
+	interceps map[string]Interceptor
+	disp      Dispatcher
+}
+
+// ServeHTTP calls the Before method of all the interceptors and then calls the
+// underlying handler.
+func (h handlerWithInterceptors) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	rw := NewResponseWriter(h.disp, w, h.interceps)
+	ir := NewIncomingRequest(r)
+
 	// The `net/http` package recovers handler panics, but we cannot rely on that behavior here.
 	// The reason is, we might need to run After/Commit stages of the interceptors before we
 	// respond with a 500 Internal Server Error.
@@ -177,12 +207,12 @@ func (m methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	for _, intercep := range m.muxInterceps {
-		intercep.Before(rw, ir)
+	for _, it := range h.interceps {
+		it.Before(rw, ir)
 		if rw.written {
 			return
 		}
 	}
 
-	h.ServeHTTP(rw, ir)
+	h.handler.ServeHTTP(rw, ir)
 }
