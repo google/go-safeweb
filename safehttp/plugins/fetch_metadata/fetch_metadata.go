@@ -18,9 +18,9 @@ import (
 	"github.com/google/go-safeweb/safehttp"
 )
 
-// LoggingService is a user-provided service for logging Fetch Metadata policy
+// RequestLogger is a user-provided service for logging Fetch Metadata policy
 // violations
-type LoggingService interface {
+type RequestLogger interface {
 	Log(ir *safehttp.IncomingRequest)
 }
 
@@ -43,7 +43,7 @@ type Plugin struct {
 	// WARNING: This is still an experimental feature and will be disabled by default.
 	NavIsolation bool
 	reportOnly   bool
-	logger       LoggingService
+	logger       RequestLogger
 	allowedCORS  map[string]bool
 }
 
@@ -112,9 +112,9 @@ func navigationIsolationPolicy(r *safehttp.IncomingRequest, allowedCORS map[stri
 
 // SetReportMode sets the Fetch Metadata policy mode to "report". This will
 // allow requests that violate the policy to pass, but will report the violation
-// using the LoggingService. The method will panic if no LoggingService is
+// using the RequestLogger. The method will panic if no RequestLogger is
 // provided.
-func (p *Plugin) SetReportMode(logger LoggingService) {
+func (p *Plugin) SetReportMode(logger RequestLogger) {
 	if logger == nil {
 		panic("logging service required for Fetch Metadata report mode")
 	}
