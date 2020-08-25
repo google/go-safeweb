@@ -95,7 +95,7 @@ func (s StrictCSPBuilder) Build() Policy {
 			// object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-{random}'
 			b.WriteString("object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-")
 			b.WriteString(nonce)
-			b.WriteString("'")
+			b.WriteByte('\'')
 
 			if s.StrictDynamic {
 				b.WriteString(" 'strict-dynamic'")
