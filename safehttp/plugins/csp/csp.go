@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -53,13 +54,13 @@ type Policy struct {
 type ctxKey struct{}
 
 // Nonce retrieves the nonce from the given context. If there is no nonce stored
-// in the context, an empty string is returned.
-func Nonce(ctx context.Context) string {
+// in the context, an error will be returned.
+func Nonce(ctx context.Context) (string, error) {
 	v := ctx.Value(ctxKey{})
 	if v == nil {
-		return ""
+		return "", errors.New("no nonce in context")
 	}
-	return v.(string)
+	return v.(string), nil
 }
 
 // StrictCSPBuilder can be used to build a strict, nonce-based CSP.
