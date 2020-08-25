@@ -26,9 +26,9 @@ import (
 	"github.com/google/go-safeweb/safehttp/safehttptest"
 )
 
-type dummyReader struct{}
+type endlessAReader struct{}
 
-func (dummyReader) Read(b []byte) (int, error) {
+func (endlessAReader) Read(b []byte) (int, error) {
 	for i := range b {
 		b[i] = 41
 	}
@@ -36,7 +36,7 @@ func (dummyReader) Read(b []byte) (int, error) {
 }
 
 func TestMain(m *testing.M) {
-	randReader = dummyReader{}
+	randReader = endlessAReader{}
 	os.Exit(m.Run())
 }
 
