@@ -175,13 +175,13 @@ func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 	nonce := generateNonce()
 	r.SetContext(context.WithValue(r.Context(), ctxKey{}, nonce))
 
-	var csps []string
+	var CSPs []string
 	for _, p := range it.Enforce {
-		csps = append(csps, p.serialize(nonce))
+		CSPs = append(CSPs, p.serialize(nonce))
 	}
-	var reportCsps []string
+	var reportCSPs []string
 	for _, p := range it.ReportOnly {
-		reportCsps = append(reportCsps, p.serialize(nonce))
+		reportCSPs = append(reportCSPs, p.serialize(nonce))
 	}
 
 	h := w.Header()
@@ -194,8 +194,8 @@ func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 		return w.ServerError(safehttp.StatusInternalServerError)
 	}
 
-	setCSP(csps)
-	setCSPReportOnly(reportCsps)
+	setCSP(CSPs)
+	setCSPReportOnly(reportCSPs)
 
 	return safehttp.Result{}
 }
