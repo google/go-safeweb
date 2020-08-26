@@ -32,11 +32,12 @@ func TestRequest(t *testing.T) {
 		want             map[string][]string
 	}{
 		{
-			name: "X-Cors: 1",
+			name: "Basic",
 			req: func() *safehttp.IncomingRequest {
 				r := safehttptest.NewRequest(safehttp.MethodPut, "http://bar.com", nil)
 				r.Header.Set("Origin", "https://foo.com")
 				r.Header.Set("X-Cors", "1")
+				r.Header.Set("Content-Type", "application/json")
 				return r
 			}(),
 			want: map[string][]string{
@@ -49,42 +50,13 @@ func TestRequest(t *testing.T) {
 			req: func() *safehttp.IncomingRequest {
 				r := safehttptest.NewRequest(safehttp.MethodPut, "http://bar.com", nil)
 				r.Header.Set("X-Cors", "1")
+				r.Header.Set("Content-Type", "application/json")
 				return r
 			}(),
 			want: map[string][]string{},
 		},
 		{
 			name: "AllowCredentials but no cookies",
-			req: func() *safehttp.IncomingRequest {
-				r := safehttptest.NewRequest(safehttp.MethodPut, "http://bar.com", nil)
-				r.Header.Set("Origin", "https://foo.com")
-				r.Header.Set("X-Cors", "1")
-				return r
-			}(),
-			allowCredentials: true,
-			want: map[string][]string{
-				"Access-Control-Allow-Origin": {"https://foo.com"},
-				"Vary":                        {"Origin"},
-			},
-		},
-		{
-			name: "AllowCredentials with cookies",
-			req: func() *safehttp.IncomingRequest {
-				r := safehttptest.NewRequest(safehttp.MethodPut, "http://bar.com", nil)
-				r.Header.Set("Origin", "https://foo.com")
-				r.Header.Set("X-Cors", "1")
-				r.Header.Set("Cookie", "a=b")
-				return r
-			}(),
-			allowCredentials: true,
-			want: map[string][]string{
-				"Access-Control-Allow-Credentials": {"true"},
-				"Access-Control-Allow-Origin":      {"https://foo.com"},
-				"Vary":                             {"Origin"},
-			},
-		},
-		{
-			name: "Content-Type: application/json",
 			req: func() *safehttp.IncomingRequest {
 				r := safehttptest.NewRequest(safehttp.MethodPut, "http://bar.com", nil)
 				r.Header.Set("Origin", "https://foo.com")
@@ -99,11 +71,29 @@ func TestRequest(t *testing.T) {
 			},
 		},
 		{
+			name: "AllowCredentials with cookies",
+			req: func() *safehttp.IncomingRequest {
+				r := safehttptest.NewRequest(safehttp.MethodPut, "http://bar.com", nil)
+				r.Header.Set("Origin", "https://foo.com")
+				r.Header.Set("X-Cors", "1")
+				r.Header.Set("Content-Type", "application/json")
+				r.Header.Set("Cookie", "a=b")
+				return r
+			}(),
+			allowCredentials: true,
+			want: map[string][]string{
+				"Access-Control-Allow-Credentials": {"true"},
+				"Access-Control-Allow-Origin":      {"https://foo.com"},
+				"Vary":                             {"Origin"},
+			},
+		},
+		{
 			name: "Expose one header",
 			req: func() *safehttp.IncomingRequest {
 				r := safehttptest.NewRequest(safehttp.MethodPut, "http://bar.com", nil)
 				r.Header.Set("Origin", "https://foo.com")
 				r.Header.Set("X-Cors", "1")
+				r.Header.Set("Content-Type", "application/json")
 				return r
 			}(),
 			exposedHeaders: []string{"Aaaa"},
@@ -119,6 +109,7 @@ func TestRequest(t *testing.T) {
 				r := safehttptest.NewRequest(safehttp.MethodPut, "http://bar.com", nil)
 				r.Header.Set("Origin", "https://foo.com")
 				r.Header.Set("X-Cors", "1")
+				r.Header.Set("Content-Type", "application/json")
 				return r
 			}(),
 			exposedHeaders: []string{"Aaaa", "Bbbb", "Cccc"},
@@ -237,6 +228,7 @@ func TestRequestDisallowedContentTypes(t *testing.T) {
 		"application/x-www-form-urlencoded",
 		"multipart/form-data",
 		"text/plain",
+		"",
 	}
 
 	for _, ct := range contentTypes {
@@ -244,7 +236,9 @@ func TestRequestDisallowedContentTypes(t *testing.T) {
 			req := safehttptest.NewRequest(safehttp.MethodPut, "http://bar.com/asdf", nil)
 			req.Header.Set("Origin", "https://foo.com")
 			req.Header.Set("X-Cors", "1")
-			req.Header.Set("Content-Type", ct)
+			if ct != "" {
+				req.Header.Set("Content-Type", ct)
+			}
 
 			rr := safehttptest.NewResponseRecorder()
 
@@ -543,6 +537,7 @@ func TestAlreadyClaimedExposeHeaders(t *testing.T) {
 	rh := req.Header
 	rh.Set("Origin", "https://foo.com")
 	rh.Set("X-Cors", "1")
+	rh.Set("Content-Type", "application/json")
 
 	rr := safehttptest.NewResponseRecorder()
 	if _, err := rr.ResponseWriter.Header().Claim("Access-Control-Expose-Headers"); err != nil {
