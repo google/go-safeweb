@@ -45,6 +45,15 @@ func TestRequest(t *testing.T) {
 			},
 		},
 		{
+			name: "No Origin header",
+			req: func() *safehttp.IncomingRequest {
+				r := safehttptest.NewRequest(safehttp.MethodPut, "http://bar.com", nil)
+				r.Header.Set("X-Cors", "1")
+				return r
+			}(),
+			want: map[string][]string{},
+		},
+		{
 			name: "AllowCredentials but no cookies",
 			req: func() *safehttp.IncomingRequest {
 				r := safehttptest.NewRequest(safehttp.MethodPut, "http://bar.com", nil)

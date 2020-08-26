@@ -96,7 +96,7 @@ func (it *Interceptor) SetAllowedHeaders(headers ...string) {
 // accordingly.
 func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 	origin := r.Header.Get("Origin")
-	if !it.AllowedOrigins[origin] {
+	if origin != "" && !it.AllowedOrigins[origin] {
 		return w.ClientError(safehttp.StatusForbidden)
 	}
 	h := w.Header()
@@ -132,8 +132,10 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 		}
 	}
 
-	allowOrigin([]string{origin})
-	vary([]string{"Origin"})
+	if origin != "" {
+		allowOrigin([]string{origin})
+		vary([]string{"Origin"})
+	}
 	if r.Header.Get("Cookie") != "" && it.AllowCredentials {
 		// TODO: handle other credentials than cookies:
 		// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials
