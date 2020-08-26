@@ -65,12 +65,12 @@ func Nonce(ctx context.Context) (string, error) {
 //
 // See https://csp.withgoogle.com/docs/strict-csp.html for more info.
 type StrictCSPBuilder struct {
-	// StrictDynamic controls whether script-src should contain the 'strict-dynamic'
+	// NoStrictDynamic controls whether script-src should contain the 'strict-dynamic'
 	// value.
 	//
 	// See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#strict-dynamic
 	// for more info.
-	StrictDynamic bool
+	NoStrictDynamic bool
 	// UnsafeEval controls whether script-src should contain the 'unsafe-eval' value.
 	// If enabled, the eval() JavaScript function is allowed.
 	UnsafeEval bool
@@ -97,9 +97,10 @@ func (s StrictCSPBuilder) Build() Policy {
 			b.WriteString(nonce)
 			b.WriteByte('\'')
 
-			if s.StrictDynamic {
+			if !s.NoStrictDynamic {
 				b.WriteString(" 'strict-dynamic' https: http:")
 			}
+
 			if s.UnsafeEval {
 				b.WriteString(" 'unsafe-eval'")
 			}

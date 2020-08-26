@@ -49,27 +49,27 @@ func TestSerialize(t *testing.T) {
 		{
 			name:       "StrictCSP",
 			policy:     StrictCSPBuilder{}.Build(),
-			wantString: "object-src 'none'; script-src 'unsafe-inline' 'nonce-super-secret'; base-uri 'none'",
+			wantString: "object-src 'none'; script-src 'unsafe-inline' 'nonce-super-secret' 'strict-dynamic' https: http:; base-uri 'none'",
 		},
 		{
-			name:       "StrictCSP with strict-dynamic",
-			policy:     StrictCSPBuilder{StrictDynamic: true}.Build(),
-			wantString: "object-src 'none'; script-src 'unsafe-inline' 'nonce-super-secret' 'strict-dynamic' https: http:; base-uri 'none'",
+			name:       "StrictCSP with no strict-dynamic",
+			policy:     StrictCSPBuilder{NoStrictDynamic: true}.Build(),
+			wantString: "object-src 'none'; script-src 'unsafe-inline' 'nonce-super-secret'; base-uri 'none'",
 		},
 		{
 			name:       "StrictCSP with unsafe-eval",
 			policy:     StrictCSPBuilder{UnsafeEval: true}.Build(),
-			wantString: "object-src 'none'; script-src 'unsafe-inline' 'nonce-super-secret' 'unsafe-eval'; base-uri 'none'",
+			wantString: "object-src 'none'; script-src 'unsafe-inline' 'nonce-super-secret' 'strict-dynamic' https: http: 'unsafe-eval'; base-uri 'none'",
 		},
 		{
 			name:       "StrictCSP with set base-uri",
 			policy:     StrictCSPBuilder{BaseURI: "https://example.com"}.Build(),
-			wantString: "object-src 'none'; script-src 'unsafe-inline' 'nonce-super-secret'; base-uri https://example.com",
+			wantString: "object-src 'none'; script-src 'unsafe-inline' 'nonce-super-secret' 'strict-dynamic' https: http:; base-uri https://example.com",
 		},
 		{
 			name:       "StrictCSP with report-uri",
 			policy:     StrictCSPBuilder{ReportURI: "https://example.com/collector"}.Build(),
-			wantString: "object-src 'none'; script-src 'unsafe-inline' 'nonce-super-secret'; base-uri 'none'; report-uri https://example.com/collector",
+			wantString: "object-src 'none'; script-src 'unsafe-inline' 'nonce-super-secret' 'strict-dynamic' https: http:; base-uri 'none'; report-uri https://example.com/collector",
 		},
 		{
 			name:       "FramingCSP",
@@ -111,7 +111,7 @@ func TestBefore(t *testing.T) {
 			name:        "Default policies",
 			interceptor: Default(""),
 			wantEnforcePolicy: []string{
-				"object-src 'none'; script-src 'unsafe-inline' 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk='; base-uri 'none'",
+				"object-src 'none'; script-src 'unsafe-inline' 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk=' 'strict-dynamic' https: http:; base-uri 'none'",
 				"frame-ancestors 'self'",
 			},
 			wantNonce: "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
@@ -120,7 +120,7 @@ func TestBefore(t *testing.T) {
 			name:        "Default policies with reporting URI",
 			interceptor: Default("https://example.com/collector"),
 			wantEnforcePolicy: []string{
-				"object-src 'none'; script-src 'unsafe-inline' 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk='; base-uri 'none'; report-uri https://example.com/collector",
+				"object-src 'none'; script-src 'unsafe-inline' 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk=' 'strict-dynamic' https: http:; base-uri 'none'; report-uri https://example.com/collector",
 				"frame-ancestors 'self'; report-uri https://example.com/collector",
 			},
 			wantNonce: "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
@@ -133,7 +133,7 @@ func TestBefore(t *testing.T) {
 				},
 			},
 			wantReportOnlyPolicy: []string{
-				"object-src 'none'; script-src 'unsafe-inline' 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk='; base-uri 'none'; report-uri https://example.com/collector",
+				"object-src 'none'; script-src 'unsafe-inline' 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk=' 'strict-dynamic' https: http:; base-uri 'none'; report-uri https://example.com/collector",
 			},
 			wantNonce: "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
