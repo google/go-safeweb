@@ -22,146 +22,210 @@ import (
 	"testing"
 )
 
-func TestResourceIsolationEnforceMode(t *testing.T) {
-	tests := []struct {
-		name        string
-		req         *safehttp.IncomingRequest
-		wantStatus  safehttp.StatusCode
-		wantHeaders map[string][]string
-		wantBody    string
-	}{
+type testHeaders struct {
+	name, method, site, mode, dest string
+}
+
+var (
+	allowedRIPHeaders = []testHeaders{
 		{
-			name:        `Sec-Fetch-Site: ""`,
-			req:         safehttptest.NewRequest("POST", "/", nil),
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{},
-			wantBody:    "",
+			name:   "Fetch Metadata not supported",
+			method: safehttp.MethodGet,
+			site:   "",
 		},
 		{
-			name: "Sec-Fetch-Site: same-origin",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("POST", "/", nil)
-				req.Header.Add("Sec-Fetch-Site", "same-origin")
-				return req
-			}(),
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{},
-			wantBody:    "",
+			name:   "same origin",
+			method: safehttp.MethodGet,
+			site:   "same-origin",
 		},
 		{
-			name: "Sec-Fetch-Site: same-site",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("POST", "/", nil)
-				req.Header.Add("Sec-Fetch-Site", "same-site")
-				return req
-			}(),
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{},
-			wantBody:    "",
+			name:   "same site",
+			method: safehttp.MethodGet,
+			site:   "same-site",
 		},
 		{
-			name: "Sec-Fetch-Site: none",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("POST", "/", nil)
-				req.Header.Add("Sec-Fetch-Site", "none")
-				return req
-			}(),
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{},
-			wantBody:    "",
+			name:   "user agent initiated",
+			method: safehttp.MethodGet,
+			site:   "none",
 		},
 		{
-			name: "Sec-Fetch-Site: cross-site non-navigational",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("POST", "/", nil)
-				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Site", "no-cors")
-				return req
-			}(),
-			wantStatus: safehttp.StatusForbidden,
-			wantHeaders: map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			},
-			wantBody: "Forbidden\n",
-		},
-		{
-			name: "GET request with Sec-Fetch-Mode: navigate from image",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("GET", "/", nil)
-				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Mode", "navigate")
-				req.Header.Add("Sec-Fetch-Dest", "image")
-				return req
-			}(),
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{},
-			wantBody:    "",
-		},
-		{
-			name: "POST request with Sec-Fetch-Mode: navigate from image",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("POST", "/", nil)
-				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Mode", "navigate")
-				req.Header.Add("Sec-Fetch-Dest", "image")
-				return req
-			}(),
-			wantStatus: safehttp.StatusForbidden,
-			wantHeaders: map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			},
-			wantBody: "Forbidden\n",
-		},
-		{
-			name: "GET request with Sec-Fetch-Mode: navigate from object",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("GET", "/", nil)
-				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Mode", "navigate")
-				req.Header.Add("Sec-Fetch-Dest", "object")
-				return req
-			}(),
-			wantStatus: safehttp.StatusForbidden,
-			wantHeaders: map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			},
-			wantBody: "Forbidden\n",
-		},
-		{
-			name: "GET request with Sec-Fetch-Mode: navigate from embed",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("GET", "/", nil)
-				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Mode", "navigate")
-				req.Header.Add("Sec-Fetch-Dest", "embed")
-				return req
-			}(),
-			wantStatus: safehttp.StatusForbidden,
-			wantHeaders: map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			},
-			wantBody: "Forbidden\n",
+			name:   "cors bug missing mode",
+			method: safehttp.MethodOptions,
+			site:   "cross-site",
+			mode:   "",
 		},
 	}
 
+	allowedRIPNavHeaders = []testHeaders{
+		{
+			name:   "cross origin GET navigate from document",
+			method: safehttp.MethodGet,
+			site:   "cross-site",
+			mode:   "navigate",
+			dest:   "document",
+		},
+		{
+			name:   "cross origin HEAD navigate from document",
+			method: safehttp.MethodHead,
+			site:   "cross-site",
+			mode:   "navigate",
+			dest:   "document",
+		},
+		{
+			name:   "cross origin GET navigate from nested-document",
+			method: safehttp.MethodGet,
+			site:   "cross-site",
+			mode:   "navigate",
+			dest:   "nested-document",
+		},
+		{
+			name:   "cross origin HEAD navigate from nested-document",
+			method: safehttp.MethodHead,
+			site:   "cross-site",
+			mode:   "navigate",
+			dest:   "nested-document",
+		},
+		{
+			name:   "cross origin GET nested-navigate from document",
+			method: safehttp.MethodGet,
+			site:   "cross-site",
+			mode:   "nested-navigate",
+			dest:   "document",
+		},
+		{
+			name:   "cross origin HEAD nested-navigate from document",
+			method: safehttp.MethodHead,
+			site:   "cross-site",
+			mode:   "nested-navigate",
+			dest:   "document",
+		},
+		{
+			name:   "cross origin GET nested-navigate from nested-document",
+			method: safehttp.MethodGet,
+			site:   "cross-site",
+			mode:   "nested-navigate",
+			dest:   "nested-document",
+		},
+		{
+			name:   "cross origin HEAD nested-navigate from nested-document",
+			method: safehttp.MethodHead,
+			site:   "cross-site",
+			mode:   "nested-navigate",
+			dest:   "nested-document",
+		},
+	}
+
+	disallowedRIPNavHeaders = []testHeaders{
+		{
+			name:   "cross origin POST",
+			method: safehttp.MethodPost,
+			site:   "cross-site",
+			mode:   "navigate",
+			dest:   "document",
+		},
+		{
+			name:   "cross origin GET from object",
+			method: safehttp.MethodGet,
+			site:   "cross-site",
+			mode:   "navigate",
+			dest:   "object",
+		},
+		{
+			name:   "cross origin HEAD from embed",
+			method: safehttp.MethodHead,
+			site:   "cross-site",
+			mode:   "navigate",
+			dest:   "embed",
+		},
+	}
+
+	disallowedRIPHeaders = []testHeaders{
+		{
+			name:   "cross origin no cors",
+			method: safehttp.MethodPost,
+			site:   "cross-site",
+			mode:   "cors",
+			dest:   "document",
+		},
+		{
+			name:   "cross origin no cors",
+			method: safehttp.MethodPost,
+			site:   "cross-site",
+			mode:   "no-cors",
+			dest:   "nested-document",
+		},
+	}
+)
+
+func TestAllowedResourceIsolationEnforceMode(t *testing.T) {
+	tests := allowedRIPHeaders
+	for _, test := range allowedRIPNavHeaders {
+		tests = append(tests, testHeaders{
+			name:   test.name,
+			method: test.method,
+			site:   test.site,
+			mode:   test.mode,
+			dest:   test.dest,
+		})
+	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			p := fetchmetadata.NewPlugin()
+			req := safehttptest.NewRequest(test.method, "https://spaghetti.com/carbonara", nil)
+			req.Header.Add("Sec-Fetch-Site", test.site)
+			req.Header.Add("Sec-Fetch-Mode", test.mode)
+			req.Header.Add("Sec-Fetch-Dest", test.dest)
 			rec := safehttptest.NewResponseRecorder()
 
-			p.Before(rec.ResponseWriter, test.req)
-			if status := safehttp.StatusCode(rec.Status()); status != test.wantStatus {
-				t.Errorf("status code got: %v want: %v", status, test.wantStatus)
+			p := fetchmetadata.NewPlugin()
+			p.Before(rec.ResponseWriter, req)
+
+			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); got != want {
+				t.Errorf("status code got: %v want: %v", got, want)
 			}
-			if diff := cmp.Diff(test.wantHeaders, map[string][]string(rec.Header())); diff != "" {
+			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
 				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
 			}
-			if got := rec.Body(); got != test.wantBody {
-				t.Errorf("response body got: %q want: %q", got, test.wantBody)
+			if want, got := "", rec.Body(); got != want {
+				t.Errorf("response body got: %q want: %q", got, want)
+			}
+		})
+	}
+}
+
+func TestRejectedResourceIsolationEnforceMode(t *testing.T) {
+	tests := disallowedRIPHeaders
+	for _, test := range disallowedRIPNavHeaders {
+		tests = append(tests, testHeaders{
+			name:   test.name,
+			method: test.method,
+			site:   test.site,
+			mode:   test.mode,
+			dest:   test.dest,
+		})
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req := safehttptest.NewRequest(test.method, "https://spaghetti.com/carbonara", nil)
+			req.Header.Add("Sec-Fetch-Site", test.site)
+			req.Header.Add("Sec-Fetch-Mode", test.mode)
+			req.Header.Add("Sec-Fetch-Dest", test.dest)
+			rec := safehttptest.NewResponseRecorder()
+
+			p := fetchmetadata.NewPlugin()
+			p.Before(rec.ResponseWriter, req)
+
+			if want, got := safehttp.StatusForbidden, safehttp.StatusCode(rec.Status()); want != got {
+				t.Errorf("status code got: %v want: %v", got, want)
+			}
+			wantHeaders := map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			}
+			if diff := cmp.Diff(wantHeaders, map[string][]string(rec.Header())); diff != "" {
+				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
+			}
+			if want, got := "Forbidden\n", rec.Body(); got != want {
+				t.Errorf("response body got: %q want: %q", got, want)
 			}
 		})
 	}
@@ -172,108 +236,86 @@ type fooLog struct {
 }
 
 func (l *fooLog) Log(r *safehttp.IncomingRequest) {
-	l.report = r.Method() + " " + r.URL.Path()
+	l.report = r.Method()
 }
-
-func TestResourceIsolationReportMode(t *testing.T) {
-	tests := []struct {
-		name        string
-		req         *safehttp.IncomingRequest
-		wantStatus  safehttp.StatusCode
-		wantHeaders map[string][]string
-		wantBody    string
-		wantReport  string
-	}{
-		{
-			name: "Sec-Fetch-Site: cross-site",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil)
-				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Mode", "cors")
-				return req
-			}(),
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{},
-			wantBody:    "",
-			wantReport:  "POST /pizza",
-		},
-		{
-			name: "POST request with Sec-Fetch-Mode: navigate from image",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil)
-				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Mode", "navigate")
-				req.Header.Add("Sec-Fetch-Dest", "image")
-				return req
-			}(),
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{},
-			wantBody:    "",
-			wantReport:  "POST /pizza",
-		},
-		{
-			name: "GET request with Sec-Fetch-Mode: navigate from object",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("GET", "https://spaghetti.com/pizza", nil)
-				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Mode", "navigate")
-				req.Header.Add("Sec-Fetch-Dest", "object")
-				return req
-			}(),
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{},
-			wantBody:    "",
-			wantReport:  "GET /pizza",
-		},
-		{
-			name: "GET request with Sec-Fetch-Mode: navigate from embed",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("GET", "https://spaghetti.com/pizza", nil)
-				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Mode", "navigate")
-				req.Header.Add("Sec-Fetch-Dest", "embed")
-				return req
-			}(),
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{},
-			wantBody:    "",
-			wantReport:  "GET /pizza",
-		},
-		{
-			name: "GET request with Sec-Fetch-Mode: navigate from image",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("GET", "https://spaghetti.com/pizza", nil)
-				req.Header.Add("Sec-Fetch-Site", "cross-site")
-				req.Header.Add("Sec-Fetch-Mode", "navigate")
-				req.Header.Add("Sec-Fetch-Dest", "image")
-				return req
-			}(),
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{},
-			wantBody:    "",
-			wantReport:  "",
-		},
+func TestAllowedResourceIsolationReportMode(t *testing.T) {
+	tests := allowedRIPHeaders
+	for _, test := range allowedRIPNavHeaders {
+		tests = append(tests, testHeaders{
+			name:   test.name,
+			method: test.method,
+			site:   test.site,
+			mode:   test.mode,
+			dest:   test.dest,
+		})
 	}
-
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			req := safehttptest.NewRequest(test.method, "https://spaghetti.com/carbonara", nil)
+			req.Header.Add("Sec-Fetch-Site", test.site)
+			req.Header.Add("Sec-Fetch-Mode", test.mode)
+			req.Header.Add("Sec-Fetch-Dest", test.dest)
+			rec := safehttptest.NewResponseRecorder()
+
 			p := fetchmetadata.NewPlugin()
 			logger := &fooLog{}
 			p.SetReportOnly(logger)
-			rec := safehttptest.NewResponseRecorder()
-			p.Before(rec.ResponseWriter, test.req)
+			p.Before(rec.ResponseWriter, req)
 
-			if status := safehttp.StatusCode(rec.Status()); status != test.wantStatus {
-				t.Errorf("status code got: %v want: %v", status, test.wantStatus)
+			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); got != want {
+				t.Errorf("status code got: %v want: %v", got, want)
 			}
-			if diff := cmp.Diff(test.wantHeaders, map[string][]string(rec.Header())); diff != "" {
+			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
 				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
 			}
-			if got := rec.Body(); got != test.wantBody {
-				t.Errorf("response body got: %q want: %q", got, test.wantBody)
+			if want, got := "", rec.Body(); got != want {
+				t.Errorf("response body got: %q want: %q", got, want)
 			}
-			if logger.report != test.wantReport {
-				t.Errorf("logger.report: got %s, want %s", logger.report, test.wantReport)
+			if want := ""; logger.report != want {
+				t.Errorf("logger.report: got %s, want %s", logger.report, want)
+			}
+		})
+	}
+}
+
+func TestRejectedResourceIsolationReportMode(t *testing.T) {
+	tests := disallowedRIPHeaders
+	for _, test := range disallowedRIPNavHeaders {
+		tests = append(tests, testHeaders{
+			name:   test.name,
+			method: test.method,
+			site:   test.site,
+			mode:   test.mode,
+			dest:   test.dest,
+		})
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req := safehttptest.NewRequest(test.method, "https://spaghetti.com/carbonara", nil)
+			req.Header.Add("Sec-Fetch-Site", test.site)
+			req.Header.Add("Sec-Fetch-Mode", test.mode)
+			req.Header.Add("Sec-Fetch-Dest", test.dest)
+			rec := safehttptest.NewResponseRecorder()
+
+			p := fetchmetadata.NewPlugin()
+			logger := &fooLog{}
+			p.SetReportOnly(logger)
+			p.Before(rec.ResponseWriter, req)
+
+			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); want != got {
+				t.Errorf("status code got: %v want: %v", got, want)
+			}
+			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); got != want {
+				t.Errorf("status code got: %v want: %v", got, want)
+			}
+			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
+				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
+			}
+			if want, got := "", rec.Body(); got != want {
+				t.Errorf("response body got: %q want: %q", got, want)
+			}
+			if want := test.method; logger.report != want {
+				t.Errorf("logger.report: got %s, want %s", logger.report, want)
 			}
 		})
 	}
@@ -289,111 +331,77 @@ func TestReportModeMissingLogger(t *testing.T) {
 	p.SetReportOnly(nil)
 }
 
-func TestChangeEnforceReportMode(t *testing.T) {
-	logger := &fooLog{}
-	p := fetchmetadata.NewPlugin()
-	req := safehttptest.NewRequest("POST", "https://spaghetti.com/pizza", nil)
-	req.Header.Add("Sec-Fetch-Site", "cross-site")
-	req.Header.Add("Sec-Fetch-Mode", "navigate")
-	req.Header.Add("Sec-Fetch-Dest", "image")
-	rec := safehttptest.NewResponseRecorder()
+func TestNavIsolation(t *testing.T) {
+	tests := allowedRIPNavHeaders
+	for _, test := range disallowedRIPNavHeaders {
+		tests = append(tests, testHeaders{
+			name:   test.name,
+			method: test.method,
+			site:   test.site,
+			mode:   test.mode,
+			dest:   test.dest,
+		})
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req := safehttptest.NewRequest(test.method, "https://spaghetti.com/carbonara", nil)
+			req.Header.Add("Sec-Fetch-Site", test.site)
+			req.Header.Add("Sec-Fetch-Mode", test.mode)
+			req.Header.Add("Sec-Fetch-Dest", test.dest)
+			rec := safehttptest.NewResponseRecorder()
 
-	p.Before(rec.ResponseWriter, req)
+			p := fetchmetadata.NewPlugin()
+			p.NavIsolation = true
+			p.Before(rec.ResponseWriter, req)
 
-	if want, got := safehttp.StatusForbidden, safehttp.StatusCode(rec.Status()); want != got {
-		t.Errorf("status code got: %v want: %v", got, want)
-	}
-	wantHeaders := map[string][]string{
-		"Content-Type":           {"text/plain; charset=utf-8"},
-		"X-Content-Type-Options": {"nosniff"},
-	}
-	if diff := cmp.Diff(wantHeaders, map[string][]string(rec.Header())); diff != "" {
-		t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
-	}
-	if want, got := "Forbidden\n", rec.Body(); got != want {
-		t.Errorf("response body got: %q want: %q", got, want)
-	}
-
-	rec = safehttptest.NewResponseRecorder()
-	p.SetReportOnly(logger)
-
-	p.Before(rec.ResponseWriter, req)
-
-	if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); want != got {
-		t.Errorf("status code got: %v want: %v", got, want)
-	}
-	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
-		t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
-	}
-	if want, got := "", rec.Body(); got != want {
-		t.Errorf("response body got: %q want: %q", got, want)
-	}
-	if want := "POST /pizza"; logger.report != want {
-		t.Errorf("logger.report: got %s, want %s", logger.report, want)
-	}
-}
-
-func TestEnableDisableNavIsolation(t *testing.T) {
-	req := safehttptest.NewRequest("GET", "https://spaghetti.com/pizza", nil)
-	req.Header.Add("Sec-Fetch-Site", "cross-site")
-	req.Header.Add("Sec-Fetch-Mode", "navigate")
-	req.Header.Add("Sec-Fetch-Dest", "image")
-	rec := safehttptest.NewResponseRecorder()
-
-	p := fetchmetadata.NewPlugin()
-	p.NavIsolation = true
-	p.Before(rec.ResponseWriter, req)
-
-	if want, got := safehttp.StatusForbidden, safehttp.StatusCode(rec.Status()); want != got {
-		t.Errorf("status code got: %v want: %v", got, want)
-	}
-	wantHeaders := map[string][]string{
-		"Content-Type":           {"text/plain; charset=utf-8"},
-		"X-Content-Type-Options": {"nosniff"},
-	}
-	if diff := cmp.Diff(wantHeaders, map[string][]string(rec.Header())); diff != "" {
-		t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
-	}
-	if want, got := "Forbidden\n", rec.Body(); got != want {
-		t.Errorf("response body got: %q want: %q", got, want)
-	}
-
-	rec = safehttptest.NewResponseRecorder()
-
-	p.NavIsolation = false
-	p.Before(rec.ResponseWriter, req)
-
-	if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); want != got {
-		t.Errorf("status code got: %v want: %v", got, want)
-	}
-	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
-		t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
-	}
-	if want, got := "", rec.Body(); got != want {
-		t.Errorf("response body got: %q want: %q", got, want)
+			if want, got := safehttp.StatusForbidden, safehttp.StatusCode(rec.Status()); want != got {
+				t.Errorf("status code got: %v want: %v", got, want)
+			}
+			wantHeaders := map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			}
+			if diff := cmp.Diff(wantHeaders, map[string][]string(rec.Header())); diff != "" {
+				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
+			}
+			if want, got := "Forbidden\n", rec.Body(); got != want {
+				t.Errorf("response body got: %q want: %q", got, want)
+			}
+		})
 	}
 }
 
 func TestCORSEndpoint(t *testing.T) {
-	methods := []string{"GET", "POST"}
-	for _, m := range methods {
-		req := safehttptest.NewRequest(m, "https://spaghetti.com/pizza", nil)
-		req.Header.Add("Sec-Fetch-Site", "cross-site")
-		req.Header.Add("Sec-Fetch-Mode", "navigate")
-		req.Header.Add("Sec-Fetch-Dest", "image")
-		rec := safehttptest.NewResponseRecorder()
-		p := fetchmetadata.NewPlugin("https://spaghetti.com/pizza")
-		p.NavIsolation = true
-		p.Before(rec.ResponseWriter, req)
+	tests := disallowedRIPHeaders
+	for _, test := range disallowedRIPNavHeaders {
+		tests = append(tests, testHeaders{
+			name:   test.name,
+			method: test.method,
+			site:   test.site,
+			mode:   test.mode,
+			dest:   test.dest,
+		})
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req := safehttptest.NewRequest(test.method, "https://spaghetti.com/carbonara", nil)
+			req.Header.Add("Sec-Fetch-Site", test.site)
+			req.Header.Add("Sec-Fetch-Mode", test.mode)
+			req.Header.Add("Sec-Fetch-Dest", test.dest)
+			rec := safehttptest.NewResponseRecorder()
 
-		if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); want != got {
-			t.Errorf("status code got: %v want: %v", got, want)
-		}
-		if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
-			t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
-		}
-		if want, got := "", rec.Body(); got != want {
-			t.Errorf("response body got: %q want: %q", got, want)
-		}
+			p := fetchmetadata.NewPlugin("https://spaghetti.com/carbonara")
+			p.Before(rec.ResponseWriter, req)
+
+			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); got != want {
+				t.Errorf("status code got: %v want: %v", got, want)
+			}
+			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
+				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
+			}
+			if want, got := "", rec.Body(); got != want {
+				t.Errorf("response body got: %q want: %q", got, want)
+			}
+		})
 	}
 }

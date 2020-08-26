@@ -16,7 +16,6 @@ package fetchmetadata
 
 import (
 	"github.com/google/go-safeweb/safehttp"
-	"log"
 	"net/url"
 )
 
@@ -32,28 +31,12 @@ var (
 		"nested-navigate": true,
 	}
 	navigationalDest = map[string]bool{
-		"audio":           true,
-		"audioworklet":    true,
 		"document":        true,
-		"empty":           true,
-		"font":            true,
-		"image":           true,
-		"manifest":        true,
-		"paintworklet":    true,
-		"report":          true,
-		"script":          true,
-		"serviceworker":   true,
-		"sharedworker":    true,
-		"style":           true,
-		"track":           true,
-		"video":           true,
-		"worker":          true,
-		"xslt":            true,
 		"nested-document": true,
 	}
 	statePreservingMethods = map[string]bool{
-		"GET":  true,
-		"HEAD": true,
+		safehttp.MethodGet:  true,
+		safehttp.MethodHead: true,
 	}
 )
 
@@ -88,9 +71,7 @@ func NewPlugin(endpoints ...string) *Plugin {
 	for _, e := range endpoints {
 		m[e] = true
 	}
-	return &Plugin{
-		corsProtected: m,
-	}
+	return &Plugin{corsProtected: m}
 }
 
 func (p *Plugin) resourceIsolationPolicy(r *safehttp.IncomingRequest) bool {
@@ -99,7 +80,6 @@ func (p *Plugin) resourceIsolationPolicy(r *safehttp.IncomingRequest) bool {
 	site := h.Get("Sec-Fetch-Site")
 	mode := h.Get("Sec-Fetch-Mode")
 	dest := h.Get("Sec-Fetch-Dest")
-	log.Print(method, site, mode, dest)
 	if site != "cross-site" {
 		// The request is allowed to pass because one of the following applies:
 		// - Fetch Metadata is not supported by the browser
@@ -120,7 +100,6 @@ func (p *Plugin) resourceIsolationPolicy(r *safehttp.IncomingRequest) bool {
 		// safe destination so we  allow it to pass .
 		return true
 	}
-	log.Print("here?")
 	// The request is cross-site and not a simple navigation or from an unsafe
 	// destination so it is rejected.
 	return false
@@ -128,8 +107,7 @@ func (p *Plugin) resourceIsolationPolicy(r *safehttp.IncomingRequest) bool {
 
 // SetReportOnly sets the Fetch Metadata policy mode to "report". This will
 // allow requests that violate the policy to pass, but will report the violation
-// using the RequestLogger. The method will panic if no RequestLogger is
-// provided.
+// using the RequestLogger. The method will panic if RequestLogger is nil.
 func (p *Plugin) SetReportOnly(logger RequestLogger) {
 	if logger == nil {
 		panic("logging service required for Fetch Metadata report mode")
@@ -138,9 +116,8 @@ func (p *Plugin) SetReportOnly(logger RequestLogger) {
 	p.reportOnly = true
 }
 
-// SetEnforce sets the Fetch Metadata policy mode to "enforce" and sets the
-// RequestLogger to nil. This will reject any requests that violates the policy
-// provided by the plugin.
+// SetEnforce sets the Fetch Metadata policy mode to "enforce". This will reject
+// any requests that violates the policy provided by the plugin.
 func (p *Plugin) SetEnforce() {
 	p.reportOnly = false
 	p.logger = nil
@@ -156,12 +133,14 @@ func (p *Plugin) SetEnforce() {
 func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 	reject := false
 	endpoint := r.URL.String()
+
 	if _, ok := p.corsProtected[endpoint]; ok {
 		// The request is targeted to an endpoint on which Fetch Metadata
 		// policies are disabled because it is CORS-protected so we don't apply
 		// the policies.
 		return safehttp.Result{}
 	}
+
 	if p.NavIsolation {
 		h := r.Header
 		if site, mode := h.Get("Sec-Fetch-Site"), h.Get("Sec-Fetch-Mode"); site == "cross-site" && navigationalModes[mode] {
@@ -175,7 +154,7 @@ func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) 
 			reject = true
 		}
 	}
-	log.Print("here")
+
 	if reject || !p.resourceIsolationPolicy(r) {
 		if !p.reportOnly {
 			return w.ClientError(safehttp.StatusForbidden)
