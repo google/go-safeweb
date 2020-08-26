@@ -92,13 +92,13 @@ func (s StrictCSPBuilder) Build() Policy {
 		serialize: func(nonce string) string {
 			var b strings.Builder
 
-			// object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-{random}'
-			b.WriteString("object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-")
+			// object-src 'none'; script-src 'unsafe-inline' 'nonce-{random}'
+			b.WriteString("object-src 'none'; script-src 'unsafe-inline' 'nonce-")
 			b.WriteString(nonce)
 			b.WriteByte('\'')
 
 			if s.StrictDynamic {
-				b.WriteString(" 'strict-dynamic'")
+				b.WriteString(" 'strict-dynamic' https: http:")
 			}
 			if s.UnsafeEval {
 				b.WriteString(" 'unsafe-eval'")
