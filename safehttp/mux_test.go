@@ -322,7 +322,7 @@ type setHeaderConfig struct{}
 func (setHeaderConfig) Apply(i safehttp.Interceptor) (safehttp.Interceptor, bool) {
 	p, ok := i.(setHeaderInterceptor)
 	if !ok {
-		return nil, false
+		return p, false
 	}
 	p.name = "Foo"
 	p.value = "Bar"
@@ -332,7 +332,7 @@ func (setHeaderConfig) Apply(i safehttp.Interceptor) (safehttp.Interceptor, bool
 type noInterceptorConfig struct{}
 
 func (noInterceptorConfig) Apply(i safehttp.Interceptor) (safehttp.Interceptor, bool) {
-	return nil, false
+	return i, false
 }
 
 func TestMuxInterceptorConfigs(t *testing.T) {

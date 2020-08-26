@@ -102,9 +102,11 @@ func NewServeMux(d Dispatcher, domains ...string) *ServeMux {
 // Handle registers a handler for the given pattern and method. If another
 // handler is already registered for the same pattern and method, Handle panics.
 //
-// Configs can be optionally passed which will modify the behavior of the
-// interceptors on the handler registered.
+// Configs can be optionally passed in order to modify the behavior of the
+// interceptors on a registered handler. Passing a Config whose corresponding
+// Interceptor was not installed will produce no effect.
 func (m *ServeMux) Handle(pattern string, method string, h Handler, configs ...Config) {
+	var changed bool
 	interceps := map[string]Interceptor{}
 	for k, i := range m.interceps {
 		interceps[k] = i
@@ -113,10 +115,13 @@ func (m *ServeMux) Handle(pattern string, method string, h Handler, configs ...C
 		for k, i := range interceps {
 			if i, ok := c.Apply(i); ok {
 				interceps[k] = i
+				changed = true
 			}
 		}
 	}
-
+	if !changed {
+		interceps = m.interceps
+	}
 	hi := handlerWithInterceptors{
 		handler:   h,
 		interceps: interceps,
