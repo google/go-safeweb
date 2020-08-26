@@ -106,11 +106,11 @@ func NewServeMux(d Dispatcher, domains ...string) *ServeMux {
 // interceptors on a registered handler. Passing a Config whose corresponding
 // Interceptor was not installed will produce no effect.
 func (m *ServeMux) Handle(pattern string, method string, h Handler, configs ...Config) {
-	var changed bool
 	interceps := map[string]Interceptor{}
 	for k, i := range m.interceps {
 		interceps[k] = i
 	}
+	var changed bool
 	for _, c := range configs {
 		for k, i := range interceps {
 			if i, ok := c.Apply(i); ok {
