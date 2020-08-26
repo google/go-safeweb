@@ -22,7 +22,7 @@ import (
 	"github.com/google/go-safeweb/safehttp"
 )
 
-const customHeader string = "X-Cors"
+const requiredHeader string = "X-Cors"
 
 var disallowedContentTypes = map[string]bool{
 	"application/x-www-form-urlencoded": true,
@@ -167,7 +167,7 @@ func (it *Interceptor) preflight(w *safehttp.ResponseWriter, r *safehttp.Incomin
 	if headers != "" {
 		for _, h := range strings.Split(headers, ", ") {
 			h = textproto.CanonicalMIMEHeaderKey(h)
-			if !it.allowedHeaders[h] && h != customHeader {
+			if !it.allowedHeaders[h] && h != requiredHeader {
 				return safehttp.StatusForbidden
 			}
 		}
@@ -197,7 +197,7 @@ func (it *Interceptor) preflight(w *safehttp.ResponseWriter, r *safehttp.Incomin
 // request handles all requests that are not preflight requests.
 func (it *Interceptor) request(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.StatusCode {
 	h := r.Header
-	if h.Get(customHeader) != "1" {
+	if h.Get(requiredHeader) != "1" {
 		return safehttp.StatusPreconditionFailed
 	}
 
