@@ -98,7 +98,7 @@ func TestBefore(t *testing.T) {
 	tests := []struct {
 		name                 string
 		interceptor          Interceptor
-		wantEnforcPolicy     []string
+		wantEnforcePolicy    []string
 		wantReportOnlyPolicy []string
 		wantNonce            string
 	}{
@@ -110,7 +110,7 @@ func TestBefore(t *testing.T) {
 		{
 			name:        "Default policies",
 			interceptor: Default(""),
-			wantEnforcPolicy: []string{
+			wantEnforcePolicy: []string{
 				"object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk='; base-uri 'none'",
 				"frame-ancestors 'self'",
 			},
@@ -119,7 +119,7 @@ func TestBefore(t *testing.T) {
 		{
 			name:        "Default policies with reporting URI",
 			interceptor: Default("https://example.com/collector"),
-			wantEnforcPolicy: []string{
+			wantEnforcePolicy: []string{
 				"object-src 'none'; script-src 'unsafe-inline' https: http: 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk='; base-uri 'none'; report-uri https://example.com/collector",
 				"frame-ancestors 'self'; report-uri https://example.com/collector",
 			},
@@ -157,7 +157,7 @@ func TestBefore(t *testing.T) {
 			tt.interceptor.Before(rr.ResponseWriter, req)
 
 			h := rr.Header()
-			if diff := cmp.Diff(tt.wantEnforcPolicy, h.Values("Content-Security-Policy"), cmpopts.EquateEmpty()); diff != "" {
+			if diff := cmp.Diff(tt.wantEnforcePolicy, h.Values("Content-Security-Policy"), cmpopts.EquateEmpty()); diff != "" {
 				t.Errorf("h.Values(\"Content-Security-Policy\") mismatch (-want +got):\n%s", diff)
 			}
 
