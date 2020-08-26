@@ -87,6 +87,9 @@ func Default(allowedOrigins ...string) *Interceptor {
 func (it *Interceptor) SetAllowedHeaders(headers ...string) {
 	it.allowedHeaders = map[string]bool{}
 	for _, h := range headers {
+		if h == "*" {
+			continue
+		}
 		it.allowedHeaders[textproto.CanonicalMIMEHeaderKey(h)] = true
 	}
 }
