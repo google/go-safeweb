@@ -203,7 +203,7 @@ func (it *Interceptor) request(w *safehttp.ResponseWriter, r *safehttp.IncomingR
 		return safehttp.StatusMethodNotAllowed
 	}
 
-	if disallowedContentTypes[h.Get("Content-Type")] {
+	if ct := h.Get("Content-Type"); ct == "" || disallowedContentTypes[ct] {
 		return safehttp.StatusUnsupportedMediaType
 	}
 
