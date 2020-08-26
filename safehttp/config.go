@@ -16,9 +16,9 @@ package safehttp
 
 // Config provide additional configurations to Interceptors when needed.
 type Config interface {
-	// Apply applies the configurations to an Interceptor if it's of the
+	// Apply applies the configurations to an Interceptor, if it's of the
 	// appropriate type. The bool indicates whether the configuration took
-	// effect. If that's the case, the modified interceptor should be returned
-	// and otherwise Apply should return a nil Interceptor.
+	// effect, in which case, the modified interceptor will be returned.
+	// Otherwise, Apply returns the unmodified Interceptor.
 	Apply(Interceptor) (Interceptor, bool)
 }
