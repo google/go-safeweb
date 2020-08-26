@@ -117,35 +117,46 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 		return w.ClientError(safehttp.StatusForbidden)
 	}
 
-	// Used to set headers in preflight() or request() if no error occurs.
-	setHeaders := func() {
-		allowOrigin([]string{origin})
-		vary([]string{"Origin"})
-		if r.Header.Get("Cookie") != "" && it.AllowCredentials {
-			// TODO: handle other credentials than cookies:
-			// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials
-			allowCredentials([]string{"true"})
+	var status safehttp.StatusCode
+	if r.Method() == safehttp.MethodOptions {
+		status = it.preflight(w, r)
+	} else {
+		status = it.request(w, r)
+	}
+
+	if status != 0 && status != safehttp.StatusNoContent {
+		if 400 <= status && status < 500 {
+			return w.ClientError(status)
+		} else {
+			return w.ServerError(status)
 		}
 	}
 
-	if r.Method() == safehttp.MethodOptions {
-		return it.preflight(setHeaders, w, r)
-	} else {
-		return it.request(setHeaders, w, r)
+	allowOrigin([]string{origin})
+	vary([]string{"Origin"})
+	if r.Header.Get("Cookie") != "" && it.AllowCredentials {
+		// TODO: handle other credentials than cookies:
+		// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials
+		allowCredentials([]string{"true"})
 	}
+
+	if status == safehttp.StatusNoContent {
+		return w.NoContent()
+	}
+	return safehttp.Result{}
 }
 
 // preflight handles requests that have the method OPTIONS.
-func (it *Interceptor) preflight(setHeaders func(), w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+func (it *Interceptor) preflight(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.StatusCode {
 	rh := r.Header
 	method := rh.Get("Access-Control-Request-Method")
 	if method == "" || disallowedMethods[method] {
-		return w.ClientError(safehttp.StatusForbidden)
+		return safehttp.StatusForbidden
 	}
 	wh := w.Header()
 	allowMethods, err := wh.Claim("Access-Control-Allow-Methods")
 	if err != nil {
-		return w.ServerError(safehttp.StatusInternalServerError)
+		return safehttp.StatusInternalServerError
 	}
 
 	headers := rh.Get("Access-Control-Request-Headers")
@@ -153,18 +164,18 @@ func (it *Interceptor) preflight(setHeaders func(), w *safehttp.ResponseWriter, 
 		for _, h := range strings.Split(headers, ", ") {
 			h = textproto.CanonicalMIMEHeaderKey(h)
 			if !it.allowedHeaders[h] && h != customHeader {
-				return w.ClientError(safehttp.StatusForbidden)
+				return safehttp.StatusForbidden
 			}
 		}
 	}
 	allowHeaders, err := wh.Claim("Access-Control-Allow-Headers")
 	if err != nil {
-		return w.ServerError(safehttp.StatusInternalServerError)
+		return safehttp.StatusInternalServerError
 	}
 
 	maxAge, err := wh.Claim("Access-Control-Max-Age")
 	if err != nil {
-		return w.ServerError(safehttp.StatusInternalServerError)
+		return safehttp.StatusInternalServerError
 	}
 
 	allowMethods([]string{method})
@@ -176,33 +187,31 @@ func (it *Interceptor) preflight(setHeaders func(), w *safehttp.ResponseWriter, 
 		n = 5
 	}
 	maxAge([]string{strconv.Itoa(n)})
-	setHeaders()
-	return w.NoContent()
+	return safehttp.StatusNoContent
 }
 
 // request handles all requests that are not preflight requests.
-func (it *Interceptor) request(setHeaders func(), w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+func (it *Interceptor) request(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.StatusCode {
 	h := r.Header
 	if h.Get("Sec-Fetch-Mode") != "cors" && h.Get(customHeader) != "1" {
-		return w.ClientError(safehttp.StatusPreconditionFailed)
+		return safehttp.StatusPreconditionFailed
 	}
 
 	if disallowedMethods[r.Method()] {
-		return w.ClientError(safehttp.StatusMethodNotAllowed)
+		return safehttp.StatusMethodNotAllowed
 	}
 
 	if disallowedContentTypes[h.Get("Content-Type")] {
-		return w.ClientError(safehttp.StatusUnsupportedMediaType)
+		return safehttp.StatusUnsupportedMediaType
 	}
 
 	exposeHeaders, err := w.Header().Claim("Access-Control-Expose-Headers")
 	if err != nil {
-		return w.ServerError(safehttp.StatusInternalServerError)
+		return safehttp.StatusInternalServerError
 	}
 
 	if it.ExposedHeaders != nil {
 		exposeHeaders([]string{strings.Join(it.ExposedHeaders, ", ")})
 	}
-	setHeaders()
-	return safehttp.Result{}
+	return 0
 }
