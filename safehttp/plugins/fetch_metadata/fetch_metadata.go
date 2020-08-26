@@ -16,8 +16,8 @@ package fetchmetadata
 
 import (
 	"github.com/google/go-safeweb/safehttp"
-	"net/url"
 	"log"
+	"net/url"
 )
 
 // RequestLogger is a user-provided service for logging Fetch Metadata policy
@@ -59,7 +59,7 @@ var (
 
 // Plugin implements Fetch Metadata functionality.
 //
-// See https://www.w3.org/TR/fetch-metadata/ and 
+// See https://www.w3.org/TR/fetch-metadata/ and
 // https://web.dev/fetch-metadata/  for more details.
 type Plugin struct {
 	// NavIsolation indicates whether the Navigation Isolation Policy should
@@ -99,7 +99,7 @@ func (p *Plugin) resourceIsolationPolicy(r *safehttp.IncomingRequest) bool {
 	site := h.Get("Sec-Fetch-Site")
 	mode := h.Get("Sec-Fetch-Mode")
 	dest := h.Get("Sec-Fetch-Dest")
-	log.Print(method,site, mode,dest)
+	log.Print(method, site, mode, dest)
 	if site != "cross-site" {
 		// The request is allowed to pass because one of the following applies:
 		// - Fetch Metadata is not supported by the browser
