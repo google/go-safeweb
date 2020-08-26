@@ -25,49 +25,315 @@ import (
 )
 
 func TestValidReport(t *testing.T) {
-	report := `{
-		"blocked-uri": "https://evil.com/",
-		"disposition": "enforce",
-		"document-uri": "https://example.com/blah/blah",
-		"effective-directive": "script-src sha256.eZcc0TlUfnQi64XLdiN5c/Vh2vtDbPaGtXRFyE7dRLo=",
-		"original-policy": "object-src 'none'; script-src sha256.eZcc0TlUfnQi64XLdiN5c/Vh2vtDbPaGtXRFyE7dRLo=",
-		"referrer": "https://example.com/",
-		"script-sample": "alert(1)",
-		"status-code": 200,
-		"violated-directive": "script-src"
-	}`
-	want := collector.Report{
-		BlockedURI:         "https://evil.com/",
-		Disposition:        "enforce",
-		DocumentURI:        "https://example.com/blah/blah",
-		EffectiveDirective: "script-src sha256.eZcc0TlUfnQi64XLdiN5c/Vh2vtDbPaGtXRFyE7dRLo=",
-		OriginalPolicy:     "object-src 'none'; script-src sha256.eZcc0TlUfnQi64XLdiN5c/Vh2vtDbPaGtXRFyE7dRLo=",
-		Referrer:           "https://example.com/",
-		ScriptSample:       "alert(1)",
-		StatusCode:         200,
-		ViolatedDirective:  "script-src",
+	tests := []struct {
+		name   string
+		report string
+		want   []collector.Report
+	}{
+		{
+			name: "Custom report",
+			report: `[{
+				"type": "custom",
+				"age": 10,
+				"url": "https://example.com/vulnerable-page/",
+				"userAgent": "chrome",
+				"body": {
+					"x": "y",
+					"pizza": "hawaii",
+					"roundness": 3.14
+				}
+			}]`,
+			want: []collector.Report{
+				collector.Report{
+					Type:      "custom",
+					Age:       10,
+					URL:       "https://example.com/vulnerable-page/",
+					UserAgent: "chrome",
+					Body: map[string]interface{}{
+						"x":         "y",
+						"pizza":     "hawaii",
+						"roundness": float64(3.14),
+					},
+				},
+			},
+		},
+		{
+			name: "Multiple reports",
+			report: `[{
+				"type": "custom",
+				"age": 10,
+				"url": "https://example.com/vulnerable-page/",
+				"userAgent": "chrome",
+				"body": {
+					"x": "y",
+					"pizza": "hawaii",
+					"roundness": 3.14
+				}
+			},
+			{
+				"type": "custom",
+				"age": 15,
+				"url": "https://example.com/",
+				"userAgent": "firefox",
+				"body": {
+					"x": "z",
+					"pizza": "kebab",
+					"roundness": 1.234
+				}
+			}]`,
+			want: []collector.Report{
+				collector.Report{
+					Type:      "custom",
+					Age:       10,
+					URL:       "https://example.com/vulnerable-page/",
+					UserAgent: "chrome",
+					Body: map[string]interface{}{
+						"x":         "y",
+						"pizza":     "hawaii",
+						"roundness": float64(3.14),
+					},
+				},
+				collector.Report{
+					Type:      "custom",
+					Age:       15,
+					URL:       "https://example.com/",
+					UserAgent: "firefox",
+					Body: map[string]interface{}{
+						"x":         "z",
+						"pizza":     "kebab",
+						"roundness": float64(1.234),
+					},
+				},
+			},
+		},
+		{
+			name: "csp-violation",
+			report: `[{
+				"type": "csp-violation",
+				"age": 10,
+				"url": "https://example.com/vulnerable-page/",
+				"userAgent": "chrome",
+				"body": {
+					"blockedURL": "https://evil.com/",
+					"disposition": "enforce",
+					"documentURL": "https://example.com/blah/blah",
+					"effectiveDirective": "script-src sha256.eZcc0TlUfnQi64XLdiN5c/Vh2vtDbPaGtXRFyE7dRLo=",
+					"originalPolicy": "object-src 'none'; script-src sha256.eZcc0TlUfnQi64XLdiN5c/Vh2vtDbPaGtXRFyE7dRLo=",
+					"referrer": "https://example.com/",
+					"sample": "alert(1)",
+					"statusCode": 200,
+					"sourceFile": "stuff.js",
+					"lineNumber": 10,
+					"columnNumber": 17
+				}	
+			}]`,
+			want: []collector.Report{
+				collector.Report{
+					Type:      "csp-violation",
+					Age:       10,
+					URL:       "https://example.com/vulnerable-page/",
+					UserAgent: "chrome",
+					Body: collector.CSPReport{
+						BlockedURL:         "https://evil.com/",
+						Disposition:        "enforce",
+						DocumentURL:        "https://example.com/blah/blah",
+						EffectiveDirective: "script-src sha256.eZcc0TlUfnQi64XLdiN5c/Vh2vtDbPaGtXRFyE7dRLo=",
+						OriginalPolicy:     "object-src 'none'; script-src sha256.eZcc0TlUfnQi64XLdiN5c/Vh2vtDbPaGtXRFyE7dRLo=",
+						Referrer:           "https://example.com/",
+						Sample:             "alert(1)",
+						StatusCode:         200,
+						ViolatedDirective:  "script-src sha256.eZcc0TlUfnQi64XLdiN5c/Vh2vtDbPaGtXRFyE7dRLo=",
+						SourceFile:         "stuff.js",
+						LineNumber:         10,
+						ColumnNumber:       17,
+					},
+				},
+			},
+		},
 	}
 
-	h := collector.Handler(func(r collector.Report) {
-		if diff := cmp.Diff(want, r); diff != "" {
-			t.Errorf("report mismatch (-want +got):\n%s", diff)
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var gottenReports []collector.Report
+			h := collector.HandlerBuilder{
+				Handler: func(r collector.Report) {
+					gottenReports = append(gottenReports, r)
+				},
+				CSPHandler: func(r collector.CSPReport) {
+					t.Fatalf("expected CSP reports handler to not be called")
+				},
+			}.Build()
 
-	req := safehttptest.NewRequest(safehttp.MethodPost, "/collector", strings.NewReader(report))
-	req.Header.Set("Content-Type", "application/json")
+			req := safehttptest.NewRequest(safehttp.MethodPost, "/collector", strings.NewReader(tt.report))
+			req.Header.Set("Content-Type", "application/reports+json")
 
-	rr := safehttptest.NewResponseRecorder()
-	h.ServeHTTP(rr.ResponseWriter, req)
+			rr := safehttptest.NewResponseRecorder()
+			h.ServeHTTP(rr.ResponseWriter, req)
 
-	if got, want := rr.Status(), safehttp.StatusNoContent; got != want {
-		t.Errorf("rr.Status() got: %v want: %v", got, want)
+			if diff := cmp.Diff(tt.want, gottenReports); diff != "" {
+				t.Errorf("reports gotten mismatch (-want +got):\n%s", diff)
+			}
+
+			if got, want := rr.Status(), safehttp.StatusNoContent; got != want {
+				t.Errorf("rr.Status() got: %v want: %v", got, want)
+			}
+			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rr.Header())); diff != "" {
+				t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
+			}
+			if got, want := rr.Body(), ""; got != want {
+				t.Errorf("rr.Body() got: %q want: %q", got, want)
+			}
+		})
 	}
-	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rr.Header())); diff != "" {
-		t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
+}
+
+func TestValidDeprecatedCSPReport(t *testing.T) {
+	tests := []struct {
+		name   string
+		report string
+		want   collector.CSPReport
+	}{
+		{
+			name: "Basic",
+			report: `{
+				"csp-report": {
+					"blocked-uri": "https://evil.com/",
+					"disposition": "enforce",
+					"document-uri": "https://example.com/blah/blah",
+					"effective-directive": "script-src sha256.eZcc0TlUfnQi64XLdiN5c/Vh2vtDbPaGtXRFyE7dRLo=",
+					"original-policy": "object-src 'none'; script-src sha256.eZcc0TlUfnQi64XLdiN5c/Vh2vtDbPaGtXRFyE7dRLo=",
+					"referrer": "https://example.com/",
+					"script-sample": "alert(1)",
+					"status-code": 200,
+					"violated-directive": "script-src",
+					"source-file": "stuff.js"
+				}
+			}`,
+			want: collector.CSPReport{
+				BlockedURL:         "https://evil.com/",
+				Disposition:        "enforce",
+				DocumentURL:        "https://example.com/blah/blah",
+				EffectiveDirective: "script-src sha256.eZcc0TlUfnQi64XLdiN5c/Vh2vtDbPaGtXRFyE7dRLo=",
+				OriginalPolicy:     "object-src 'none'; script-src sha256.eZcc0TlUfnQi64XLdiN5c/Vh2vtDbPaGtXRFyE7dRLo=",
+				Referrer:           "https://example.com/",
+				Sample:             "alert(1)",
+				StatusCode:         200,
+				ViolatedDirective:  "script-src",
+				SourceFile:         "stuff.js",
+			},
+		},
+		{
+			name: "No csp-report key",
+			report: `{
+				"blocked-uri": "https://evil.com/",
+				"disposition": "enforce",
+				"document-uri": "https://example.com/blah/blah",
+				"effective-directive": "script-src sha256.eZcc0TlUfnQi64XLdiN5c/Vh2vtDbPaGtXRFyE7dRLo=",
+				"original-policy": "object-src 'none'; script-src sha256.eZcc0TlUfnQi64XLdiN5c/Vh2vtDbPaGtXRFyE7dRLo=",
+				"referrer": "https://example.com/",
+				"script-sample": "alert(1)",
+				"status-code": 200,
+				"violated-directive": "script-src",
+				"source-file": "stuff.js"
+			}`,
+			want: collector.CSPReport{
+				BlockedURL:         "https://evil.com/",
+				Disposition:        "enforce",
+				DocumentURL:        "https://example.com/blah/blah",
+				EffectiveDirective: "script-src sha256.eZcc0TlUfnQi64XLdiN5c/Vh2vtDbPaGtXRFyE7dRLo=",
+				OriginalPolicy:     "object-src 'none'; script-src sha256.eZcc0TlUfnQi64XLdiN5c/Vh2vtDbPaGtXRFyE7dRLo=",
+				Referrer:           "https://example.com/",
+				Sample:             "alert(1)",
+				StatusCode:         200,
+				ViolatedDirective:  "script-src",
+				SourceFile:         "stuff.js",
+			},
+		},
+		{
+			name: "lineno and colno",
+			report: `{
+				"csp-report": {
+					"lineno": 15,
+					"colno": 10
+				}
+			}`,
+			want: collector.CSPReport{
+				LineNumber:   15,
+				ColumnNumber: 10,
+			},
+		},
+		{
+			name: "line-number and column-number",
+			report: `{
+				"csp-report": {
+					"line-number": 15,
+					"column-number": 10
+				}
+			}`,
+			want: collector.CSPReport{
+				LineNumber:   15,
+				ColumnNumber: 10,
+			},
+		},
+		{
+			name: "Both lineno and colno, and line-number and column-number",
+			report: `{
+				"csp-report": {
+					"lineno": 7,
+					"colno": 8,
+					"line-number": 15,
+					"column-number": 10
+				}
+			}`,
+			want: collector.CSPReport{
+				LineNumber:   7,
+				ColumnNumber: 8,
+			},
+		},
+		{
+			name: "Negative uints",
+			report: `{
+				"csp-report": {
+					"status-code": -1,
+					"lineno": -1,
+					"colno": -1,
+					"line-number": -1,
+					"column-number": -1
+				}
+			}`,
+			want: collector.CSPReport{},
+		},
 	}
-	if got, want := rr.Body(), ""; got != want {
-		t.Errorf("rr.Body() got: %q want: %q", got, want)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := collector.HandlerBuilder{
+				Handler: func(r collector.Report) {
+					t.Fatalf("expected generic reports handler not to be called")
+				},
+				CSPHandler: func(r collector.CSPReport) {
+					if diff := cmp.Diff(tt.want, r); diff != "" {
+						t.Errorf("report mismatch (-want +got):\n%s", diff)
+					}
+				},
+			}.Build()
+
+			req := safehttptest.NewRequest(safehttp.MethodPost, "/collector", strings.NewReader(tt.report))
+			req.Header.Set("Content-Type", "application/csp-report")
+
+			rr := safehttptest.NewResponseRecorder()
+			h.ServeHTTP(rr.ResponseWriter, req)
+
+			if got, want := rr.Status(), safehttp.StatusNoContent; got != want {
+				t.Errorf("rr.Status() got: %v want: %v", got, want)
+			}
+			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rr.Header())); diff != "" {
+				t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
+			}
+			if got, want := rr.Body(), ""; got != want {
+				t.Errorf("rr.Body() got: %q want: %q", got, want)
+			}
+		})
 	}
 }
 
@@ -104,10 +370,58 @@ func TestInvalidRequest(t *testing.T) {
 			wantBody: "Unsupported Media Type\n",
 		},
 		{
-			name: "Body",
+			name: "csp-report, invalid json",
 			req: func() *safehttp.IncomingRequest {
 				r := safehttptest.NewRequest(safehttp.MethodPost, "/collector", strings.NewReader(`{"a:"b"}`))
-				r.Header.Set("Content-Type", "application/json")
+				r.Header.Set("Content-Type", "application/csp-report")
+				return r
+			}(),
+			wantStatus: safehttp.StatusBadRequest,
+			wantHeaders: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Bad Request\n",
+		},
+		{
+			name: "reports+json, invalid json",
+			req: func() *safehttp.IncomingRequest {
+				r := safehttptest.NewRequest(safehttp.MethodPost, "/collector", strings.NewReader(`[{"a:"b"}]`))
+				r.Header.Set("Content-Type", "application/reports+json")
+				return r
+			}(),
+			wantStatus: safehttp.StatusBadRequest,
+			wantHeaders: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Bad Request\n",
+		},
+		{
+			name: "csp-report, valid json, csp-report is not an object",
+			req: func() *safehttp.IncomingRequest {
+				r := safehttptest.NewRequest(safehttp.MethodPost, "/collector", strings.NewReader(`{"csp-report":"b"}`))
+				r.Header.Set("Content-Type", "application/csp-report")
+				return r
+			}(),
+			wantStatus: safehttp.StatusBadRequest,
+			wantHeaders: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Bad Request\n",
+		},
+		{
+			name: "reports+json, valid json, body is not an object",
+			req: func() *safehttp.IncomingRequest {
+				r := safehttptest.NewRequest(safehttp.MethodPost, "/collector", strings.NewReader(`[{
+					"type": "xyz",
+					"age": 10,
+					"url": "https://example.com/",
+					"userAgent": "chrome",
+					"body": "not an object"
+				}]`))
+				r.Header.Set("Content-Type", "application/reports+json")
 				return r
 			}(),
 			wantStatus: safehttp.StatusBadRequest,
@@ -121,9 +435,14 @@ func TestInvalidRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := collector.Handler(func(r collector.Report) {
-				t.Errorf("expected collector to not be called")
-			})
+			h := collector.HandlerBuilder{
+				Handler: func(r collector.Report) {
+					t.Errorf("expected collector to not be called")
+				},
+				CSPHandler: func(r collector.CSPReport) {
+					t.Errorf("expected collector to not be called")
+				},
+			}.Build()
 
 			rr := safehttptest.NewResponseRecorder()
 			h.ServeHTTP(rr.ResponseWriter, tt.req)
