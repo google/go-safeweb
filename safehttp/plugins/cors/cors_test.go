@@ -45,33 +45,6 @@ func TestRequest(t *testing.T) {
 			},
 		},
 		{
-			name: "Sec-Fetch-Mode: cors",
-			req: func() *safehttp.IncomingRequest {
-				r := safehttptest.NewRequest(safehttp.MethodPut, "http://bar.com", nil)
-				r.Header.Set("Origin", "https://foo.com")
-				r.Header.Set("Sec-Fetch-Mode", "cors")
-				return r
-			}(),
-			want: map[string][]string{
-				"Access-Control-Allow-Origin": {"https://foo.com"},
-				"Vary":                        {"Origin"},
-			},
-		},
-		{
-			name: "Sec-Fetch-Mode: cors and X-Cors: 1",
-			req: func() *safehttp.IncomingRequest {
-				r := safehttptest.NewRequest(safehttp.MethodPut, "http://bar.com", nil)
-				r.Header.Set("Origin", "https://foo.com")
-				r.Header.Set("Sec-Fetch-Mode", "cors")
-				r.Header.Set("X-Cors", "1")
-				return r
-			}(),
-			want: map[string][]string{
-				"Access-Control-Allow-Origin": {"https://foo.com"},
-				"Vary":                        {"Origin"},
-			},
-		},
-		{
 			name: "AllowCredentials but no cookies",
 			req: func() *safehttp.IncomingRequest {
 				r := safehttptest.NewRequest(safehttp.MethodPut, "http://bar.com", nil)
@@ -167,27 +140,51 @@ func TestRequest(t *testing.T) {
 	}
 }
 
-func TestRequestNoSFMOrXCorsHeader(t *testing.T) {
-	req := safehttptest.NewRequest(safehttp.MethodPut, "http://bar.com/asdf", nil)
-	req.Header.Set("Origin", "https://foo.com")
-
-	rr := safehttptest.NewResponseRecorder()
-
-	it := cors.Default("https://foo.com")
-	it.Before(rr.ResponseWriter, req)
-
-	if want := safehttp.StatusPreconditionFailed; rr.Status() != want {
-		t.Errorf("rr.Status() got: %v want: %v", rr.Status(), want)
+func TestInvalidRequest(t *testing.T) {
+	tests := []struct {
+		name string
+		req  *safehttp.IncomingRequest
+	}{
+		{
+			name: "No X-Cors: 1, but Sec-Fetch-Mode: cors",
+			req: func() *safehttp.IncomingRequest {
+				r := safehttptest.NewRequest(safehttp.MethodPut, "http://bar.com", nil)
+				r.Header.Set("Origin", "https://foo.com")
+				r.Header.Set("Sec-Fetch-Mode", "cors")
+				return r
+			}(),
+		},
+		{
+			name: "No X-Cors: 1",
+			req: func() *safehttp.IncomingRequest {
+				r := safehttptest.NewRequest(safehttp.MethodPut, "http://bar.com/asdf", nil)
+				r.Header.Set("Origin", "https://foo.com")
+				return r
+			}(),
+		},
 	}
-	wantHeaders := map[string][]string{
-		"Content-Type":           {"text/plain; charset=utf-8"},
-		"X-Content-Type-Options": {"nosniff"},
-	}
-	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
-		t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
-	}
-	if got, want := rr.Body(), "Precondition Failed\n"; got != want {
-		t.Errorf(`rr.Body() got: %q want: %q`, got, want)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rr := safehttptest.NewResponseRecorder()
+
+			it := cors.Default("https://foo.com")
+			it.Before(rr.ResponseWriter, tt.req)
+
+			if want := safehttp.StatusPreconditionFailed; rr.Status() != want {
+				t.Errorf("rr.Status() got: %v want: %v", rr.Status(), want)
+			}
+			wantHeaders := map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			}
+			if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
+				t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
+			}
+			if got, want := rr.Body(), "Precondition Failed\n"; got != want {
+				t.Errorf(`rr.Body() got: %q want: %q`, got, want)
+			}
+		})
 	}
 }
 

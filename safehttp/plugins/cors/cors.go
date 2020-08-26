@@ -193,7 +193,7 @@ func (it *Interceptor) preflight(w *safehttp.ResponseWriter, r *safehttp.Incomin
 // request handles all requests that are not preflight requests.
 func (it *Interceptor) request(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.StatusCode {
 	h := r.Header
-	if h.Get("Sec-Fetch-Mode") != "cors" && h.Get(customHeader) != "1" {
+	if h.Get(customHeader) != "1" {
 		return safehttp.StatusPreconditionFailed
 	}
 
