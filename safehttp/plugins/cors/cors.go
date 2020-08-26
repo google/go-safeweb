@@ -24,12 +24,6 @@ import (
 
 const customHeader string = "X-Cors"
 
-var disallowedMethods = map[string]bool{
-	safehttp.MethodHead: true,
-	safehttp.MethodGet:  true,
-	safehttp.MethodPost: true,
-}
-
 var disallowedContentTypes = map[string]bool{
 	"application/x-www-form-urlencoded": true,
 	"multipart/form-data":               true,
@@ -152,7 +146,7 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 func (it *Interceptor) preflight(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.StatusCode {
 	rh := r.Header
 	method := rh.Get("Access-Control-Request-Method")
-	if method == "" || disallowedMethods[method] {
+	if method == "" {
 		return safehttp.StatusForbidden
 	}
 	wh := w.Header()
@@ -197,10 +191,6 @@ func (it *Interceptor) request(w *safehttp.ResponseWriter, r *safehttp.IncomingR
 	h := r.Header
 	if h.Get(customHeader) != "1" {
 		return safehttp.StatusPreconditionFailed
-	}
-
-	if disallowedMethods[r.Method()] {
-		return safehttp.StatusMethodNotAllowed
 	}
 
 	if ct := h.Get("Content-Type"); ct == "" || disallowedContentTypes[ct] {
