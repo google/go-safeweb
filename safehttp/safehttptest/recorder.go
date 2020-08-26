@@ -84,7 +84,7 @@ func (r *ResponseRecorder) Header() http.Header {
 
 // Status returns the recorded response status code.
 func (r *ResponseRecorder) Status() safehttp.StatusCode {
-	return safehttp.StatusCode(r.rw.status)
+	return r.rw.status
 }
 
 // Body returns the recorded response body.
@@ -97,7 +97,7 @@ func (r *ResponseRecorder) Body() string {
 type responseWriter struct {
 	header http.Header
 	writer io.Writer
-	status int
+	status safehttp.StatusCode
 }
 
 func newResponseWriter(w io.Writer) *responseWriter {
@@ -113,7 +113,7 @@ func (r *responseWriter) Header() http.Header {
 }
 
 func (r *responseWriter) WriteHeader(statusCode int) {
-	r.status = statusCode
+	r.status = safehttp.StatusCode(statusCode)
 }
 
 func (r *responseWriter) Write(data []byte) (int, error) {
