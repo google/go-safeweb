@@ -49,14 +49,19 @@ type Interceptor struct {
 	AllowedOrigins map[string]bool
 	allowedHeaders map[string]bool
 	// ExposedHeaders determines which headers should be set in the
-	// Access-Control-Expose-Headers header. If ExposedHeaders is nil, then the
-	// header is not set.
+	// Access-Control-Expose-Headers header. This controls which headers in the
+	// response should be accessible by JavaScript.
+	//
+	// If ExposedHeaders is nil, then the header is not set, meaning that nothing
+	// is exposed.
 	ExposedHeaders []string
 	// AllowCredentials determines if Access-Control-Allow-Credentials should be
-	// set to true when requests containing Cookie headers arrive.
+	// set to true, which would allow cookies to be attached to requests.
 	AllowCredentials bool
 	// MaxAge sets the Access-Control-Max-Age header.
 	// MaxAge=0 results in MaxAge: 5.
+	// This default of 5 seconds is set because it is the default used by Chromium
+	// according to https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Max-Age
 	MaxAge int
 }
 
