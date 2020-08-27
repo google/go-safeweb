@@ -29,21 +29,21 @@ func TestMuxOneHandlerOneRequest(t *testing.T) {
 	var test = []struct {
 		name       string
 		req        *http.Request
-		wantStatus int
+		wantStatus safehttp.StatusCode
 		wantHeader map[string][]string
 		wantBody   string
 	}{
 		{
 			name:       "Valid Request",
 			req:        httptest.NewRequest("GET", "http://foo.com/", nil),
-			wantStatus: 200,
+			wantStatus: safehttp.StatusOK,
 			wantHeader: map[string][]string{},
 			wantBody:   "&lt;h1&gt;Hello World!&lt;/h1&gt;",
 		},
 		{
 			name:       "Invalid Host",
 			req:        httptest.NewRequest("GET", "http://bar.com/", nil),
-			wantStatus: 404,
+			wantStatus: safehttp.StatusNotFound,
 			wantHeader: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
 				"X-Content-Type-Options": {"nosniff"},
@@ -53,7 +53,7 @@ func TestMuxOneHandlerOneRequest(t *testing.T) {
 		{
 			name:       "Invalid Method",
 			req:        httptest.NewRequest("POST", "http://foo.com/", nil),
-			wantStatus: 405,
+			wantStatus: safehttp.StatusMethodNotAllowed,
 			wantHeader: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
 				"X-Content-Type-Options": {"nosniff"},
@@ -96,7 +96,7 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 		name        string
 		req         *http.Request
 		hf          safehttp.Handler
-		wantStatus  int
+		wantStatus  safehttp.StatusCode
 		wantHeaders map[string][]string
 		wantBody    string
 	}{
@@ -106,7 +106,7 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 			hf: safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World! GET</h1>"))
 			}),
-			wantStatus:  200,
+			wantStatus:  safehttp.StatusOK,
 			wantHeaders: map[string][]string{},
 			wantBody:    "&lt;h1&gt;Hello World! GET&lt;/h1&gt;",
 		},
@@ -116,7 +116,7 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 			hf: safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World! POST</h1>"))
 			}),
-			wantStatus:  200,
+			wantStatus:  safehttp.StatusOK,
 			wantHeaders: map[string][]string{},
 			wantBody:    "&lt;h1&gt;Hello World! POST&lt;/h1&gt;",
 		},
@@ -209,7 +209,7 @@ func TestMuxInterceptors(t *testing.T) {
 	tests := []struct {
 		name        string
 		mux         *safehttp.ServeMux
-		wantStatus  int
+		wantStatus  safehttp.StatusCode
 		wantHeaders map[string][]string
 		wantBody    string
 	}{
@@ -228,7 +228,7 @@ func TestMuxInterceptors(t *testing.T) {
 				mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
 				return mux
 			}(),
-			wantStatus:  200,
+			wantStatus:  safehttp.StatusOK,
 			wantHeaders: map[string][]string{"Foo": {"bar"}},
 			wantBody:    "&lt;h1&gt;Hello World!&lt;/h1&gt;",
 		},
@@ -248,7 +248,7 @@ func TestMuxInterceptors(t *testing.T) {
 				})
 				return mux
 			}(),
-			wantStatus:  200,
+			wantStatus:  safehttp.StatusOK,
 			wantHeaders: map[string][]string{"Foo": {"bar"}},
 			wantBody:    "&lt;h1&gt;Hello World!&lt;/h1&gt;",
 		},
@@ -265,7 +265,7 @@ func TestMuxInterceptors(t *testing.T) {
 
 				return mux
 			}(),
-			wantStatus: 500,
+			wantStatus: safehttp.StatusInternalServerError,
 			wantHeaders: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
 				"X-Content-Type-Options": {"nosniff"},
@@ -287,7 +287,7 @@ func TestMuxInterceptors(t *testing.T) {
 
 				return mux
 			}(),
-			wantStatus:  200,
+			wantStatus:  safehttp.StatusOK,
 			wantHeaders: map[string][]string{"Foo": {"bar"}},
 			wantBody:    "&lt;h1&gt;Hello World!&lt;/h1&gt;",
 		},

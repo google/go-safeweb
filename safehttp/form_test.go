@@ -90,7 +90,7 @@ func TestFormValidInt(t *testing.T) {
 		rec := newResponseRecorder(&strings.Builder{})
 		mux.ServeHTTP(rec, test.req)
 
-		if want := 200; rec.status != want {
+		if want := safehttp.StatusOK; rec.status != want {
 			t.Errorf("response status: got %v, want %v", rec.status, want)
 		}
 	}
@@ -180,7 +180,7 @@ func TestFormInvalidInt(t *testing.T) {
 			rec := newResponseRecorder(&strings.Builder{})
 			mux.ServeHTTP(rec, req)
 
-			if want := 200; rec.status != want {
+			if want := safehttp.StatusOK; rec.status != want {
 				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
 		}
@@ -250,7 +250,7 @@ func TestFormValidUint(t *testing.T) {
 		rec := newResponseRecorder(&strings.Builder{})
 		mux.ServeHTTP(rec, test.req)
 
-		if want := 200; rec.status != want {
+		if want := safehttp.StatusOK; rec.status != want {
 			t.Errorf("response status: got %v, want %v", rec.status, want)
 		}
 	}
@@ -337,7 +337,7 @@ func TestFormInvalidUint(t *testing.T) {
 			rec := newResponseRecorder(&strings.Builder{})
 			mux.ServeHTTP(rec, req)
 
-			if want := 200; rec.status != want {
+			if want := safehttp.StatusOK; rec.status != want {
 				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
 		}
@@ -419,7 +419,7 @@ func TestFormValidString(t *testing.T) {
 			rec := newResponseRecorder(&strings.Builder{})
 			mux.ServeHTTP(rec, req)
 
-			if want := 200; rec.status != want {
+			if want := safehttp.StatusOK; rec.status != want {
 				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
 		}
@@ -502,7 +502,7 @@ func TestFormValidFloat64(t *testing.T) {
 			rec := newResponseRecorder(&strings.Builder{})
 			mux.ServeHTTP(rec, req)
 
-			if want := 200; rec.status != want {
+			if want := safehttp.StatusOK; rec.status != want {
 				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
 		}
@@ -591,7 +591,7 @@ func TestFormInvalidFloat64(t *testing.T) {
 			rec := newResponseRecorder(&strings.Builder{})
 			mux.ServeHTTP(rec, req)
 
-			if want := 200; rec.status != want {
+			if want := safehttp.StatusOK; rec.status != want {
 				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
 		}
@@ -683,7 +683,7 @@ func TestFormValidBool(t *testing.T) {
 			rec := newResponseRecorder(&strings.Builder{})
 			mux.ServeHTTP(rec, req)
 
-			if want := 200; rec.status != want {
+			if want := safehttp.StatusOK; rec.status != want {
 				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
 		}
@@ -764,7 +764,7 @@ func TestFormInvalidBool(t *testing.T) {
 			rec := newResponseRecorder(&strings.Builder{})
 			mux.ServeHTTP(rec, req)
 
-			if want := 200; rec.status != want {
+			if want := safehttp.StatusOK; rec.status != want {
 				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
 		}
@@ -863,7 +863,7 @@ func TestFormInvalidSlice(t *testing.T) {
 			rec := newResponseRecorder(&strings.Builder{})
 			mux.ServeHTTP(rec, req)
 
-			if want := 200; rec.status != want {
+			if want := safehttp.StatusOK; rec.status != want {
 				t.Errorf("response status: got %v, want %v", rec.status, want)
 			}
 		}
@@ -956,7 +956,7 @@ func TestFormErrorHandling(t *testing.T) {
 		rec := newResponseRecorder(&strings.Builder{})
 		mux.ServeHTTP(rec, tc.req)
 
-		if want := 200; rec.status != want {
+		if want := safehttp.StatusOK; rec.status != want {
 			t.Errorf("response status: got %v, want %v", rec.status, want)
 		}
 	}
@@ -1038,7 +1038,7 @@ func TestFormValidSlicePost(t *testing.T) {
 		rec := newResponseRecorder(&strings.Builder{})
 		mux.ServeHTTP(rec, tc.req)
 
-		if respStatus, want := rec.status, 200; respStatus != want {
+		if respStatus, want := rec.status, safehttp.StatusOK; respStatus != want {
 			t.Errorf("response status: got %v, want %v", respStatus, want)
 		}
 	}
@@ -1139,7 +1139,7 @@ func TestFormValidSliceMultipart(t *testing.T) {
 		rec := newResponseRecorder(&strings.Builder{})
 		mux.ServeHTTP(rec, tc.req)
 
-		if respStatus, want := rec.status, 200; respStatus != want {
+		if respStatus, want := rec.status, safehttp.StatusOK; respStatus != want {
 			t.Errorf("response status: got %v, want %v", respStatus, want)
 		}
 	}
