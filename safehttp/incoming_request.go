@@ -68,8 +68,8 @@ func (r *IncomingRequest) Path() string {
 func (r *IncomingRequest) PostForm() (*Form, error) {
 	var err error
 	r.postParseOnce.Do(func() {
-		if r.req.Method != "POST" && r.req.Method != "PATCH" && r.req.Method != "PUT" {
-			err = fmt.Errorf("got request method %s, want POST/PATCH/PUT", r.req.Method)
+		if m := r.req.Method; m != MethodPost && m != MethodPatch && m != MethodPut {
+			err = fmt.Errorf("got request method %s, want POST/PATCH/PUT", m)
 			return
 		}
 
@@ -101,8 +101,8 @@ func (r *IncomingRequest) MultipartForm(maxMemory int64) (*MultipartForm, error)
 	// will be stored on disk.
 	const defaultMaxMemory = 32 << 20
 	r.multipartParseOnce.Do(func() {
-		if r.req.Method != "POST" && r.req.Method != "PATCH" && r.req.Method != "PUT" {
-			err = fmt.Errorf("got request method %s, want POST/PATCH/PUT", r.req.Method)
+		if m := r.req.Method; m != MethodPost && m != MethodPatch && m != MethodPut {
+			err = fmt.Errorf("got request method %s, want POST/PATCH/PUT", m)
 			return
 		}
 
