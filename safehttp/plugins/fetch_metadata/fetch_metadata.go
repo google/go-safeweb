@@ -16,7 +16,6 @@ package fetchmetadata
 
 import (
 	"github.com/google/go-safeweb/safehttp"
-	"net/url"
 )
 
 // RequestLogger is a user-provided service for logging Fetch Metadata policy
@@ -56,7 +55,7 @@ type Plugin struct {
 	NavIsolation bool
 	// RedirectURL can optionally indicate an URL to which the user can be
 	// redirected in case the Navigation Isolation policy rejects the request.
-	RedirectURL   string
+	RedirectURL   *safehttp.URL
 	reportOnly    bool
 	logger        RequestLogger
 	corsProtected map[string]bool
@@ -76,11 +75,8 @@ func NewPlugin(endpoints ...string) *Plugin {
 
 func (p *Plugin) resourceIsolationPolicy(r *safehttp.IncomingRequest) bool {
 	h := r.Header
-	method := r.Method()
-	site := h.Get("Sec-Fetch-Site")
-	mode := h.Get("Sec-Fetch-Mode")
-	dest := h.Get("Sec-Fetch-Dest")
-	if site != "cross-site" {
+
+	if h.Get("Sec-Fetch-Site") != "cross-site" {
 		// The request is allowed to pass because one of the following applies:
 		// - Fetch Metadata is not supported by the browser
 		// - the request is same-origin, same-site or caused by the user
@@ -88,6 +84,9 @@ func (p *Plugin) resourceIsolationPolicy(r *safehttp.IncomingRequest) bool {
 		return true
 	}
 
+	method := r.Method()
+	mode := h.Get("Sec-Fetch-Mode")
+	dest := h.Get("Sec-Fetch-Dest")
 	// Allow CORS options requests if neither Mode nor Dest is set.
 	// https://github.com/w3c/webappsec-fetch-metadata/issues/35
 	// https://bugs.chromium.org/p/chromium/issues/detail?id=979946
@@ -96,7 +95,7 @@ func (p *Plugin) resourceIsolationPolicy(r *safehttp.IncomingRequest) bool {
 	}
 
 	if navigationalModes[mode] && navigationalDest[dest] && statePreservingMethods[method] {
-		// The rquest is cross-site, but a simple top-level navigation from a
+		// The request is cross-site, but a simple top-level navigation from a
 		// safe destination so we  allow it to pass .
 		return true
 	}
@@ -124,16 +123,15 @@ func (p *Plugin) SetEnforce() {
 }
 
 // Before validates the safehttp.IncomingRequest using the Resource Isolation
-// Policy and, if enabled, the Navigation Isolation Policy . It only allows
-// request to pass if they conform to the policy, if it's targeted to a
-// CORS-protected endpoint, or if the mode is set to
-// "report", in which case the request is allowed to pass but the violation is
-// reported. If a redirectURL was provided and the Navigation Isolation Policy
-// fails, the IncomingRequest will be redirected to the redirectURL.
+// Policy and, if enabled, the Navigation Isolation Policy. It only allows
+// requests to pass if they conform to the policy, if it's targeted to one of
+// the CORS-protected endpoints, specified when creating the plugin, or if the
+// mode is set to  "report", in which case the request is allowed to pass but
+// the  violation is reported. If a redirectURL was provided and the Navigation
+// Isolation Policy is enabled and fails, the IncomingRequest will be
+// redirected to redirectURL.
 func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-	reject := false
 	endpoint := r.URL.String()
-
 	if _, ok := p.corsProtected[endpoint]; ok {
 		// The request is targeted to an endpoint on which Fetch Metadata
 		// policies are disabled because it is CORS-protected so we don't apply
@@ -141,18 +139,13 @@ func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) 
 		return safehttp.Result{}
 	}
 
-	if p.NavIsolation {
-		h := r.Header
-		if site, mode := h.Get("Sec-Fetch-Site"), h.Get("Sec-Fetch-Mode"); site == "cross-site" && navigationalModes[mode] {
-			if p.RedirectURL != "" {
-				u, err := url.Parse(p.RedirectURL)
-				if err != nil {
-					return w.ServerError(safehttp.StatusInternalServerError)
-				}
-				return w.Redirect(r, u.String(), safehttp.StatusMovedPermanently)
-			}
-			reject = true
+	reject := false
+	h := r.Header
+	if p.NavIsolation && h.Get("Sec-Fetch-Site") == "cross-site" && navigationalModes[h.Get("Sec-Fetch-Mode")] {
+		if p.RedirectURL != nil {
+			return w.Redirect(r, p.RedirectURL.String(), safehttp.StatusMovedPermanently)
 		}
+		reject = true
 	}
 
 	if reject || !p.resourceIsolationPolicy(r) {
