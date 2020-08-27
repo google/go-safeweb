@@ -404,7 +404,7 @@ func TestMuxInterceptorConfigs(t *testing.T) {
 	}
 }
 
-type interceptorOne struct {}
+type interceptorOne struct{}
 
 func (interceptorOne) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
 	w.Header().Set("pizza", "diavola")
@@ -464,5 +464,29 @@ func TestMuxDeterministicInterceptorOrder(t *testing.T) {
 	}
 	if got, want := b.String(), "&lt;h1&gt;Hello World!&lt;/h1&gt;"; got != want {
 		t.Errorf(`response body: got %q want %q`, got, want)
+	}
+}
+
+func TestMuxHandlerReturnsNotWritten(t *testing.T) {
+	mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+	h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+		return safehttp.NotWritten
+	})
+	mux.Handle("/bar", safehttp.MethodGet, h)
+	req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/bar", nil)
+
+	b := &strings.Builder{}
+	rw := newResponseRecorder(b)
+
+	mux.ServeHTTP(rw, req)
+
+	if want := safehttp.StatusNoContent; rw.status != want {
+		t.Errorf("rw.status: got %v want %v", rw.status, want)
+	}
+	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rw.header)); diff != "" {
+		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+	}
+	if got := b.String(); got != "" {
+		t.Errorf(`response body got: %q want: ""`, got)
 	}
 }
