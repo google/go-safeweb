@@ -95,7 +95,7 @@ func TestChangingResponseHeaders(t *testing.T) {
 		return rw.Write(safehtml.HTMLEscaped("hello"))
 	}))
 
-	req := httptest.NewRequest("GET", "http://foo.com/", nil)
+	req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/", nil)
 
 	b := &strings.Builder{}
 	rw := newResponseRecorder(b)

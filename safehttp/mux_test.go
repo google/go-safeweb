@@ -35,14 +35,14 @@ func TestMuxOneHandlerOneRequest(t *testing.T) {
 	}{
 		{
 			name:       "Valid Request",
-			req:        httptest.NewRequest("GET", "http://foo.com/", nil),
+			req:        httptest.NewRequest(safehttp.MethodGet, "http://foo.com/", nil),
 			wantStatus: safehttp.StatusOK,
 			wantHeader: map[string][]string{},
 			wantBody:   "&lt;h1&gt;Hello World!&lt;/h1&gt;",
 		},
 		{
 			name:       "Invalid Host",
-			req:        httptest.NewRequest("GET", "http://bar.com/", nil),
+			req:        httptest.NewRequest(safehttp.MethodGet, "http://bar.com/", nil),
 			wantStatus: safehttp.StatusNotFound,
 			wantHeader: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
@@ -52,7 +52,7 @@ func TestMuxOneHandlerOneRequest(t *testing.T) {
 		},
 		{
 			name:       "Invalid Method",
-			req:        httptest.NewRequest("POST", "http://foo.com/", nil),
+			req:        httptest.NewRequest(safehttp.MethodPost, "http://foo.com/", nil),
 			wantStatus: safehttp.StatusMethodNotAllowed,
 			wantHeader: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
@@ -102,7 +102,7 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 	}{
 		{
 			name: "GET Handler",
-			req:  httptest.NewRequest("GET", "http://foo.com/bar", nil),
+			req:  httptest.NewRequest(safehttp.MethodGet, "http://foo.com/bar", nil),
 			hf: safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World! GET</h1>"))
 			}),
@@ -112,7 +112,7 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 		},
 		{
 			name: "POST Handler",
-			req:  httptest.NewRequest("POST", "http://foo.com/bar", nil),
+			req:  httptest.NewRequest(safehttp.MethodPost, "http://foo.com/bar", nil),
 			hf: safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World! POST</h1>"))
 			}),
@@ -318,7 +318,7 @@ func TestMuxInterceptors(t *testing.T) {
 			b := &strings.Builder{}
 			rw := newResponseRecorder(b)
 
-			req := httptest.NewRequest("GET", "http://foo.com/bar", nil)
+			req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/bar", nil)
 
 			tt.mux.ServeHTTP(rw, req)
 

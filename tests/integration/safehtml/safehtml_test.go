@@ -75,7 +75,7 @@ func TestHandleRequestWrite(t *testing.T) {
 		return rw.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
 	}))
 
-	req := httptest.NewRequest("GET", "http://foo.com/", nil)
+	req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/", nil)
 
 	b := &strings.Builder{}
 	rw := newResponseRecorder(b)
@@ -95,7 +95,7 @@ func TestHandleRequestWriteTemplate(t *testing.T) {
 		return rw.WriteTemplate(template.Must(template.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
 	}))
 
-	req := httptest.NewRequest("GET", "http://foo.com/", nil)
+	req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/", nil)
 
 	b := &strings.Builder{}
 	rw := newResponseRecorder(b)

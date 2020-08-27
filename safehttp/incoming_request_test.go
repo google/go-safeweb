@@ -16,11 +16,12 @@ package safehttp_test
 
 import (
 	"context"
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-safeweb/safehttp"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-safeweb/safehttp"
 )
 
 func TestIncomingRequestCookie(t *testing.T) {
@@ -166,7 +167,7 @@ func TestRequestSetValidContextWithValue(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		req := httptest.NewRequest("GET", "/", nil)
+		req := httptest.NewRequest(safehttp.MethodGet, "/", nil)
 		ir := safehttp.NewIncomingRequest(req)
 		ctx := context.WithValue(ir.Context(), pizzaKey("1234"), &pizza{val: "margeritta"})
 		ir.SetContext(ctx)
@@ -182,7 +183,7 @@ func TestRequestSetValidContextWithValue(t *testing.T) {
 }
 
 func TestRequestSetNilContext(t *testing.T) {
-	req := httptest.NewRequest("GET", "/", nil)
+	req := httptest.NewRequest(safehttp.MethodGet, "/", nil)
 	ir := safehttp.NewIncomingRequest(req)
 
 	defer func() {
