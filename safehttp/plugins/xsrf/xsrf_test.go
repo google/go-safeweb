@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package xsrf_test
+package xsrf
 
 import (
 	"context"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
-	"github.com/google/go-safeweb/safehttp/plugins/xsrf"
 	"github.com/google/go-safeweb/safehttp/safehttptest"
 	"golang.org/x/net/xsrftoken"
 	"strings"
@@ -31,15 +30,12 @@ func (userIdentifier) UserID(r *safehttp.IncomingRequest) (string, error) {
 	return "1234", nil
 }
 
-func TestTokenPost(t *testing.T) {
-	methods := []string{safehttp.MethodPost, safehttp.MethodPatch}
-	tests := []struct {
-		name       string
-		userID     string
-		actionID   string
-		wantStatus safehttp.StatusCode
-		wantHeader map[string][]string
-		wantBody   string
+var (
+	stateChangingMet = []string{safehttp.MethodPost, safehttp.MethodPatch}
+	formTokenTests   = []struct {
+		name, userID, actionID, wantBody string
+		wantStatus                       safehttp.StatusCode
+		wantHeader                       map[string][]string
 	}{
 		{
 			name:       "Valid token",
@@ -50,9 +46,9 @@ func TestTokenPost(t *testing.T) {
 			wantBody:   "",
 		},
 		{
-			name:       "Token mismatch for invalid host",
+			name:       "Invalid actionID in token generation",
 			userID:     "1234",
-			actionID:   "https://bar.com/pizza",
+			actionID:   "http://bar.com/pizza",
 			wantStatus: safehttp.StatusForbidden,
 			wantHeader: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
@@ -61,29 +57,7 @@ func TestTokenPost(t *testing.T) {
 			wantBody: "Forbidden\n",
 		},
 		{
-			name:       "Token mismatch for invalid path",
-			userID:     "1234",
-			actionID:   "https://foo.com/spaghetti",
-			wantStatus: 403,
-			wantHeader: map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			},
-			wantBody: "Forbidden\n",
-		},
-		{
-			name:       "Token mismatch for invalid protocol",
-			userID:     "1234",
-			actionID:   "http://foo.com/spaghetti",
-			wantStatus: 403,
-			wantHeader: map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			},
-			wantBody: "Forbidden\n",
-		},
-		{
-			name:       "Token mismatch for invalid userID",
+			name:       "Invalid userID in token generation",
 			userID:     "5678",
 			actionID:   "http://foo.com/pizza",
 			wantStatus: safehttp.StatusForbidden,
@@ -94,19 +68,22 @@ func TestTokenPost(t *testing.T) {
 			wantBody: "Forbidden\n",
 		},
 	}
-	for _, method := range methods {
-		for _, test := range tests {
-			t.Run(method+test.name, func(t *testing.T) {
-				i := xsrf.Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
+)
+
+func TestTokenPost(t *testing.T) {
+	for _, method := range stateChangingMet {
+		for _, test := range formTokenTests {
+			t.Run(method+" "+test.name, func(t *testing.T) {
+				i := Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
 				tok := xsrftoken.Generate("xsrf", test.userID, test.actionID)
-				req := safehttptest.NewRequest(method, "https://foo.com/pizza", strings.NewReader(xsrf.TokenKey+"="+tok))
+				req := safehttptest.NewRequest(method, "https://foo.com/pizza", strings.NewReader(TokenKey+"="+tok))
 				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 				rec := safehttptest.NewResponseRecorder()
 
 				i.Before(rec.ResponseWriter, req, nil)
 
-				if rec.Status() != test.wantStatus {
-					t.Errorf("response status: got %v, want %v", rec.Status(), test.wantStatus)
+				if got := safehttp.StatusCode(rec.Status()); got != test.wantStatus {
+					t.Errorf("response status: got %v, want %v", got, test.wantStatus)
 				}
 				if diff := cmp.Diff(test.wantHeader, map[string][]string(rec.Header())); diff != "" {
 					t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
@@ -120,72 +97,10 @@ func TestTokenPost(t *testing.T) {
 }
 
 func TestTokenMultipart(t *testing.T) {
-	methods := []string{safehttp.MethodPost, safehttp.MethodPatch}
-	tests := []struct {
-		name       string
-		userID     string
-		actionID   string
-		wantStatus safehttp.StatusCode
-		wantHeader map[string][]string
-		wantBody   string
-	}{
-		{
-			name:       "Valid token",
-			userID:     "1234",
-			actionID:   "https://foo.com/pizza",
-			wantStatus: safehttp.StatusOK,
-			wantHeader: map[string][]string{},
-			wantBody:   "",
-		},
-		{
-			name:       "Token mismatch for invalid host",
-			userID:     "1234",
-			actionID:   "https://bar.com/pizza",
-			wantStatus: 403,
-			wantHeader: map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			},
-			wantBody: "Forbidden\n",
-		},
-		{
-			name:       "Token mismatch for invalid path",
-			userID:     "1234",
-			actionID:   "https://foo.com/spaghetti",
-			wantStatus: safehttp.StatusForbidden,
-			wantHeader: map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			},
-			wantBody: "Forbidden\n",
-		},
-		{
-			name:       "Token mismatch for invalid protocol",
-			userID:     "1234",
-			actionID:   "http://foo.com/spaghetti",
-			wantStatus: safehttp.StatusForbidden,
-			wantHeader: map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			},
-			wantBody: "Forbidden\n",
-		},
-		{
-			name:       "Token mismatch for invalid user ID",
-			userID:     "5678",
-			actionID:   "http://foo.com/pizza",
-			wantStatus: safehttp.StatusForbidden,
-			wantHeader: map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			},
-			wantBody: "Forbidden\n",
-		},
-	}
-	for _, method := range methods {
-		for _, test := range tests {
-			t.Run(method+test.name, func(t *testing.T) {
-				i := xsrf.Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
+	for _, method := range stateChangingMet {
+		for _, test := range formTokenTests {
+			t.Run(method+" "+test.name, func(t *testing.T) {
+				i := Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
 				tok := xsrftoken.Generate("xsrf", test.userID, test.actionID)
 				b := "--123\r\n" +
 					"Content-Disposition: form-data; name=\"xsrf-token\"\r\n" +
@@ -198,8 +113,8 @@ func TestTokenMultipart(t *testing.T) {
 
 				i.Before(rec.ResponseWriter, req, nil)
 
-				if rec.Status() != test.wantStatus {
-					t.Errorf("response status: got %v, want %v", rec.Status(), test.wantStatus)
+				if got := safehttp.StatusCode(rec.Status()); got != test.wantStatus {
+					t.Errorf("response status: got %v, want %v", got, test.wantStatus)
 				}
 				if diff := cmp.Diff(test.wantHeader, map[string][]string(rec.Header())); diff != "" {
 					t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
@@ -261,7 +176,7 @@ func TestMissingTokenInBody(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		i := xsrf.Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
+		i := Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
 		rec := safehttptest.NewResponseRecorder()
 
 		i.Before(rec.ResponseWriter, test.req, nil)
@@ -282,77 +197,55 @@ func TestMissingTokenInBody(t *testing.T) {
 	}
 }
 
-func TestTokenRequestContext(t *testing.T) {
-	tests := []struct {
-		name     string
-		userID   string
-		actionID string
-		match    bool
-	}{
-		{
-			name:     "Valid token",
-			userID:   "1234",
-			actionID: "https://foo.com/pizza",
-			match:    true,
-		},
-		{
-			name:     "Token mismatch for invalid host",
-			userID:   "1234",
-			actionID: "https://bar.com/pizza",
-			match:    false,
-		},
-		{
-			name:     "Token mismatch for invalid path",
-			userID:   "1234",
-			actionID: "https://foo.com/spaghetti",
-			match:    false,
-		},
-		{
-			name:     "Token mismatch for invalid protocol",
-			userID:   "1234",
-			actionID: "http://foo.com/spaghetti",
-			match:    false,
-		},
-		{
-			name:     "Token mismatch for invalid user ID",
-			userID:   "5678",
-			actionID: "http://foo.com/pizza",
-			match:    false,
-		},
+func TestBeforeTokenInRequestContext(t *testing.T) {
+	i := Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
+	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
+	rec := safehttptest.NewResponseRecorder()
+
+	i.Before(rec.ResponseWriter, req, nil)
+
+	tok, err := Token(req)
+	if tok == "" {
+		t.Error(`Token(req): got "", want token`)
+	}
+	if err != nil {
+		t.Errorf("Token(req): got %v, want nil", err)
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			i := xsrf.Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
-			req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
-			rec := safehttptest.NewResponseRecorder()
-
-			i.Before(rec.ResponseWriter, req, nil)
-
-			gotTok := xsrf.Token(req)
-			if ok := xsrftoken.Valid(gotTok, "xsrf", test.userID, test.actionID); ok != test.match {
-				t.Errorf("xsrf.Token(req): invalid token")
-			}
-
-			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); want != got {
-				t.Errorf("response status: got %v, want %v", got, want)
-			}
-			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
-				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
-			}
-			if want, got := "", rec.Body(); got != want {
-				t.Errorf("response body: got %q want %q", got, want)
-			}
-		})
+	if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); want != got {
+		t.Errorf("response status: got %v, want %v", got, want)
+	}
+	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
+		t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
+	}
+	if want, got := "", rec.Body(); got != want {
+		t.Errorf("response body: got %q want %q", got, want)
 	}
 
 }
 
-func TestMissingTokenRequestContext(t *testing.T) {
+func TestTokenInRequestContext(t *testing.T) {
+	req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
+	req.SetContext(context.WithValue(req.Context(), tokenCtxKey{}, "pizza"))
+
+	got, err := Token(req)
+	if want := "pizza"; want != got {
+		t.Errorf("Token(req): got %v, want %v", got, want)
+	}
+	if err != nil {
+		t.Errorf("Token(req): got %v, want nil", err)
+	}
+}
+
+func TestMissingTokenInRequestContext(t *testing.T) {
 	req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
 	req.SetContext(context.Background())
 
-	if want, got := "", xsrf.Token(req); want != got {
-		t.Errorf("xsrf.Token(req): got %v, want %v", got, want)
+	got, err := Token(req)
+	if want := ""; want != got {
+		t.Errorf("Token(req): got %v, want %v", got, want)
+	}
+	if err == nil {
+		t.Error("Token(req): got nil, want error")
 	}
 }
