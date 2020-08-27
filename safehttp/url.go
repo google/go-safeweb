@@ -14,7 +14,9 @@
 
 package safehttp
 
-import "net/url"
+import (
+	"net/url"
+)
 
 // URL represents a parsed URL (technically, a URI reference).
 type URL struct {
@@ -70,4 +72,18 @@ func (u URL) Port() string {
 // were %2f.
 func (u URL) Path() string {
 	return u.url.Path
+}
+
+// Parse parses a rawurl string into a URL structure.
+//
+// The rawurl may be relative (a path, without a host) or absolute
+// (starting with a scheme). Trying to parse a hostname and path
+// without a scheme is invalid but may not necessarily return an
+// error, due to parsing ambiguities.
+func Parse(rawurl string) (*URL, error) {
+	parsed, err := url.Parse(rawurl)
+	if err != nil {
+		return nil, err
+	}
+	return &URL{url: parsed}, nil
 }
