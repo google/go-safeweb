@@ -203,3 +203,40 @@ func TestURLInvalidQuery(t *testing.T) {
 		t.Error("u.Query() got: nil want: error")
 	}
 }
+
+func TestURLParse(t *testing.T) {
+	var tests = []struct {
+		name, url string
+	}{
+		{
+			name: "Absolute url",
+			url:  "http://www.example.com/path?foo=bar#tar",
+		},
+		{
+			name: "Relative url",
+			url:  "example.com/path",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			url, err := Parse(test.url)
+			if url == nil {
+				t.Error("Parse(test.url): got nil, want URL")
+			}
+			if err != nil {
+				t.Errorf("Parse(test.url): got %v, want nil", err)
+			}
+		})
+	}
+}
+
+func TestURLInvalidParse(t *testing.T) {
+	url, err := Parse("http://www.example.com/path%%%x=0")
+	if url != nil {
+		t.Errorf(`Parse: got %v, want nil`, url)
+	}
+	if err == nil {
+		t.Errorf(`Parse: got nil, want error`)
+	}
+}
