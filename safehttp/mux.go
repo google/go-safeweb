@@ -218,4 +218,7 @@ func (h handlerWithInterceptors) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	}
 
 	h.handler.ServeHTTP(rw, ir)
+	if !rw.written {
+		rw.NoContent()
+	}
 }
