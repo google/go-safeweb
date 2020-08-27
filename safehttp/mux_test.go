@@ -172,7 +172,7 @@ func (p setHeaderInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.Inc
 	if err := w.Header().Set(p.name, p.value); err != nil {
 		return w.ServerError(safehttp.StatusInternalServerError)
 	}
-	return safehttp.Result{}
+	return safehttp.NotWritten
 }
 
 type internalErrorInterceptor struct{}
@@ -192,7 +192,7 @@ func (p *claimHeaderInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.
 		return w.ServerError(safehttp.StatusInternalServerError)
 	}
 	p.setValue = f
-	return safehttp.Result{}
+	return safehttp.NotWritten
 }
 
 func (p *claimHeaderInterceptor) SetHeader(value string) {
