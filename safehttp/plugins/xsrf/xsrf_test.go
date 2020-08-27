@@ -90,7 +90,7 @@ func TestXSRFTokenPost(t *testing.T) {
 	for _, test := range tests {
 		i := xsrf.Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
 		tok := xsrftoken.Generate("xsrf", test.userID, test.host+test.path)
-		req := safehttptest.NewRequest("POST", "http://foo.com/pizza", strings.NewReader(xsrf.TokenKey+"="+tok))
+		req := safehttptest.NewRequest(safehttp.MethodPost, "http://foo.com/pizza", strings.NewReader(xsrf.TokenKey+"="+tok))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 		rec := safehttptest.NewResponseRecorder()
@@ -172,7 +172,7 @@ func TestXSRFTokenMultipart(t *testing.T) {
 			"\r\n" +
 			tok + "\r\n" +
 			"--123--\r\n"
-		req := safehttptest.NewRequest("POST", "http://foo.com/pizza", strings.NewReader(b))
+		req := safehttptest.NewRequest(safehttp.MethodPost, "http://foo.com/pizza", strings.NewReader(b))
 		req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
 
 		rec := safehttptest.NewResponseRecorder()
@@ -201,7 +201,7 @@ func TestXSRFMissingToken(t *testing.T) {
 		{
 			name: "Missing token in POST request",
 			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest("POST", "/", strings.NewReader("foo=bar"))
+				req := safehttptest.NewRequest(safehttp.MethodPost, "/", strings.NewReader("foo=bar"))
 				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 				return req
 			}(),
@@ -220,7 +220,7 @@ func TestXSRFMissingToken(t *testing.T) {
 					"\r\n" +
 					"bar\r\n" +
 					"--123--\r\n"
-				req := safehttptest.NewRequest("POST", "/", strings.NewReader(b))
+				req := safehttptest.NewRequest(safehttp.MethodPost, "/", strings.NewReader(b))
 				req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
 				return req
 			}(),
