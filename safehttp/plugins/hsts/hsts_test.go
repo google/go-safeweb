@@ -112,7 +112,7 @@ func TestHSTS(t *testing.T) {
 			name:        "Negative maxage",
 			interceptor: hsts.Interceptor{MaxAge: -1 * time.Second},
 			req:         safehttptest.NewRequest("GET", "https://localhost/", nil),
-			wantStatus:  500,
+			wantStatus:  safehttp.StatusInternalServerError,
 			wantHeaders: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
 				"X-Content-Type-Options": {"nosniff"},
