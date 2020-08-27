@@ -46,7 +46,7 @@ func (dispatcher) ExecuteTemplate(rw http.ResponseWriter, t safehttp.Template, d
 type responseRecorder struct {
 	header http.Header
 	writer io.Writer
-	status int
+	status safehttp.StatusCode
 }
 
 func newResponseRecorder(w io.Writer) *responseRecorder {
@@ -58,7 +58,7 @@ func (r *responseRecorder) Header() http.Header {
 }
 
 func (r *responseRecorder) WriteHeader(statusCode int) {
-	r.status = statusCode
+	r.status = safehttp.StatusCode(statusCode)
 }
 
 func (r *responseRecorder) Write(data []byte) (int, error) {
@@ -82,7 +82,7 @@ func TestHSTSServeMuxInstall(t *testing.T) {
 
 	mux.ServeHTTP(rr, req)
 
-	if want := 200; rr.status != want {
+	if want := safehttp.StatusOK; rr.status != want {
 		t.Errorf("rr.status got: %v want: %v", rr.status, want)
 	}
 
