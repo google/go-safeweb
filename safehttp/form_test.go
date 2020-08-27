@@ -49,6 +49,7 @@ func TestFormValidInt64(t *testing.T) {
 }
 
 func TestFormInvalidInt64(t *testing.T) {
+<<<<<<< HEAD
 	tests := []struct {
 		name string
 		val  string
@@ -60,6 +61,16 @@ func TestFormInvalidInt64(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			values := map[string][]string{"a": {tt.val}}
+=======
+	tests := []string{
+		"9223372036854775810",
+		"abc",
+	}
+
+	for _, val := range tests {
+		t.Run(val, func(t *testing.T) {
+			values := map[string][]string{"a": {val}}
+>>>>>>> Reformatted form_test.go to not use ServeMux but test the Form type directly
 			f := Form{values: values}
 
 			if got, want := f.Int64("a", 0), int64(0); got != want {
