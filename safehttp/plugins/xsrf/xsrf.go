@@ -35,10 +35,10 @@ type UserIdentifier interface {
 }
 
 // Interceptor implements XSRF protection. It requires an application key and a
-// storage service. The appKey uniquely identifies each registered service and
+// storage service. The AppKey uniquely identifies each registered service and
 // should have high entropy. The storage service supports retrieving ID's of the
-// application's users. Both the appKey and user ID are used in the XSRF
-// token generation algorithm.
+// application's users. Both the AppKey and user ID are used in the XSRF
+// token generation and verification algorithm.
 type Interceptor struct {
 	AppKey     string
 	Identifier UserIdentifier
@@ -61,8 +61,7 @@ func Token(r *safehttp.IncomingRequest) string {
 // Forgery. In case of state changing methods, it checks for the
 // presence of an xsrf-token in the request body and validates it based on the
 // userID associated with the request. It also adds a cryptographically safe
-// XSRF token to the safehttp.IncomingRequest context that will be subsequently
-// injected in HTML as hidden input to forms.
+// XSRF token to the safehttp.IncomingRequest context.
 func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
 	userID, err := i.Identifier.UserID(r)
 	if err != nil {
