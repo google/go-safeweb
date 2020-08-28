@@ -293,32 +293,6 @@ func TestDisallowedOrigin(t *testing.T) {
 	}
 }
 
-func TestCookiesSentButNotAllowed(t *testing.T) {
-	req := safehttptest.NewRequest(safehttp.MethodPut, "http://bar.com/asdf", nil)
-	req.Header.Set("Origin", "https://foo.com")
-	req.Header.Set("X-Cors", "1")
-	req.Header.Set("Cookie", "a=b")
-
-	rr := safehttptest.NewResponseRecorder()
-
-	it := cors.Default("https://foo.com")
-	it.Before(rr.ResponseWriter, req)
-
-	if want := safehttp.StatusForbidden; rr.Status() != want {
-		t.Errorf("rr.Status() got: %v want: %v", rr.Status(), want)
-	}
-	wantHeaders := map[string][]string{
-		"Content-Type":           {"text/plain; charset=utf-8"},
-		"X-Content-Type-Options": {"nosniff"},
-	}
-	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
-		t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
-	}
-	if got, want := rr.Body(), "Forbidden\n"; got != want {
-		t.Errorf(`rr.Body() got: %q want: %q`, got, want)
-	}
-}
-
 func TestPreflight(t *testing.T) {
 	tests := []struct {
 		name           string

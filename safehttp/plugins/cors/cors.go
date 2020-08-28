@@ -115,9 +115,6 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 	if err != nil {
 		return w.ServerError(safehttp.StatusInternalServerError)
 	}
-	if r.Header.Get("Cookie") != "" && !it.AllowCredentials {
-		return w.ClientError(safehttp.StatusForbidden)
-	}
 
 	var status safehttp.StatusCode
 	if r.Method() == safehttp.MethodOptions {
