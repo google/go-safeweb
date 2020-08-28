@@ -26,6 +26,11 @@ const (
 	TokenKey = "xsrf-token"
 )
 
+var stateChangingMethods = map[string]bool{
+	safehttp.MethodPost:  true,
+	safehttp.MethodPatch: true,
+}
+
 // UserIdentifier provides the web application users' identifiers,
 // needed in generating the XSRF token.
 type UserIdentifier interface {
@@ -68,13 +73,6 @@ func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 		return w.ClientError(safehttp.StatusUnauthorized)
 	}
 
-	tok := xsrftoken.Generate(i.AppKey, userID, r.URL.String())
-	r.SetContext(context.WithValue(r.Context(), tokenCtxKey{}, tok))
-
-	stateChangingMethods := map[string]bool{
-		safehttp.MethodPost:  true,
-		safehttp.MethodPatch: true,
-	}
 	if m := r.Method(); stateChangingMethods[m] {
 		f, err := r.PostForm()
 		if err != nil {
@@ -94,6 +92,9 @@ func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 			return w.ClientError(safehttp.StatusForbidden)
 		}
 	}
+
+	tok := xsrftoken.Generate(i.AppKey, userID, r.URL.String())
+	r.SetContext(context.WithValue(r.Context(), tokenCtxKey{}, tok))
 
 	return safehttp.Result{}
 }
