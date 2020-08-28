@@ -16,6 +16,7 @@ package xsrf
 
 import (
 	"context"
+	"errors"
 	"github.com/google/go-safeweb/safehttp"
 	"golang.org/x/net/xsrftoken"
 )
@@ -26,9 +27,10 @@ const (
 	TokenKey = "xsrf-token"
 )
 
-var stateChangingMethods = map[string]bool{
-	safehttp.MethodPost:  true,
-	safehttp.MethodPatch: true,
+var statePreservingMethods = map[string]bool{
+	safehttp.MethodGet:     true,
+	safehttp.MethodHead:    true,
+	safehttp.MethodOptions: true,
 }
 
 // UserIdentifier provides the web application users' identifiers,
@@ -51,14 +53,15 @@ type Interceptor struct {
 
 type tokenCtxKey struct{}
 
-// Token returns the XSRF token from the safehttp.IncomingRequest Context, if
-// present, and, otherwise, returns an empty string.
-func Token(r *safehttp.IncomingRequest) string {
+// Token returns the XSRF token from the safehttp.IncomingRequest Context and a
+// nil error, if present, and, otherwise, returns an empty string and a non-nil
+// error.
+func Token(r *safehttp.IncomingRequest) (string, error) {
 	tok := r.Context().Value(tokenCtxKey{})
 	if tok == nil {
-		return ""
+		return "", errors.New("xsrf token not found in safehttp.IncomingRequest context")
 	}
-	return tok.(string)
+	return tok.(string), nil
 }
 
 // Before should be executed before directing the safehttp.IncomingRequest to
@@ -73,28 +76,30 @@ func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 		return w.ClientError(safehttp.StatusUnauthorized)
 	}
 
-	if m := r.Method(); stateChangingMethods[m] {
-		f, err := r.PostForm()
-		if err != nil {
-			mf, err := r.MultipartForm(32 << 20)
-			if err != nil {
-				return w.ClientError(safehttp.StatusBadRequest)
-			}
-			f = &mf.Form
-		}
-
-		tok := f.String(TokenKey, "")
-		if f.Err() != nil || tok == "" {
-			return w.ClientError(safehttp.StatusUnauthorized)
-		}
-
-		if ok := xsrftoken.Valid(tok, i.AppKey, userID, r.URL.String()); !ok {
-			return w.ClientError(safehttp.StatusForbidden)
-		}
-	}
-
 	tok := xsrftoken.Generate(i.AppKey, userID, r.URL.String())
 	r.SetContext(context.WithValue(r.Context(), tokenCtxKey{}, tok))
+
+	if m := r.Method(); statePreservingMethods[m] {
+		return safehttp.Result{}
+	}
+
+	f, err := r.PostForm()
+	if err != nil {
+		mf, err := r.MultipartForm(32 << 20)
+		if err != nil {
+			return w.ClientError(safehttp.StatusBadRequest)
+		}
+		f = &mf.Form
+	}
+
+	tok = f.String(TokenKey, "")
+	if f.Err() != nil || tok == "" {
+		return w.ClientError(safehttp.StatusUnauthorized)
+	}
+
+	if ok := xsrftoken.Valid(tok, i.AppKey, userID, r.URL.String()); !ok {
+		return w.ClientError(safehttp.StatusForbidden)
+	}
 
 	return safehttp.Result{}
 }
