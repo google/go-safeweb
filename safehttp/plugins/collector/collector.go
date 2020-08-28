@@ -46,8 +46,8 @@ type Report struct {
 type CSPReport struct {
 	// BlockedURL is the URL of the resource that was blocked from loading by the
 	// Content Security Policy. If the blocked URL is from a different origin than
-	// the DocumentURL, then the blocked URL is truncated to contain just the scheme,
-	// host, and port.
+	// the DocumentURL, the blocked URL is truncated to contain just the scheme,
+	// host and port.
 	BlockedURL string
 	// Disposition is either "enforce" or "report" depending on whether the Content-Security-Policy
 	// header or the Content-Security-Policy-Report-Only header is used.
@@ -64,7 +64,7 @@ type CSPReport struct {
 	// Sample is the first 40 characters of the inline script, event handler,
 	// or style that caused the violation.
 	Sample string
-	// StatusCode the HTTP status code of the resource on which the global object
+	// StatusCode is the HTTP status code of the resource on which the global object
 	// was instantiated.
 	StatusCode uint
 	// ViolatedDirective is the name of the policy section that was violated.
@@ -91,7 +91,7 @@ type HandlerBuilder struct {
 
 // Build builds a safehttp.Handler which calls the given Handler or CSPHandler when
 // a violation report is received. Make sure to register the handler to receive POST
-// requests. If the handler recieves anything other that POST requests it will
+// requests. If the handler recieves anything other than POST requests it will
 // respond with a 405 Method Not Allowed.
 func (hb HandlerBuilder) Build() safehttp.Handler {
 	return safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
@@ -124,7 +124,7 @@ func stringOrEmpty(x interface{}) string {
 }
 
 func uintOrZero(x interface{}) uint {
-	// Must assert as float64 and then convert to uint since this is how json stores
+	// x must be a float64 that will be converted to a uint since this is how json stores
 	// its numbers.
 	f, ok := x.(float64)
 	if !ok || f < 0 {

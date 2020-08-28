@@ -51,7 +51,7 @@ func (r *IncomingRequest) Body() io.ReadCloser {
 	return r.req.Body
 }
 
-// Method returns the HTTP method of the request.
+// Method returns the HTTP method of the IncomingRequest.
 func (r *IncomingRequest) Method() string {
 	return r.req.Method
 }
