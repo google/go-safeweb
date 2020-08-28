@@ -36,12 +36,12 @@ var disallowedContentTypes = map[string]bool{
 //
 // Constraints
 //
-// - The request methods GET, HEAD and POST are banned and will result in a 405
-//   Method Not Allowed response.
-// - The content types "application/x-www-form-urlencoded", "multipart/form-data"
-//   and "text/plain" are also banned and will result in a  415 Unsupported Media
-//   Type response.
-// - Each CORS request must contain the header "X-Cors: 1" or "Sec-Fetch-Mode: cors".
+// The content types "application/x-www-form-urlencoded", "multipart/form-data"
+// and "text/plain" are banned and will result in a  415 Unsupported Media Type
+// response.
+//
+// Each CORS request must contain the header "X-Cors: 1".
+//
 // All of this is to prevent XSRF.
 type Interceptor struct {
 	// AllowedOrigins determines which origins should be allowed in the
@@ -67,10 +67,10 @@ type Interceptor struct {
 
 // Default creates a CORS Interceptor with default settings.
 // Those defaults are:
-//   - No Exposed Headers
-//   - No Allowed Headers
-//   - AllowCredentials: false
-//   - MaxAge: 5 seconds
+//  - No Exposed Headers
+//  - No Allowed Headers
+//  - AllowCredentials: false
+//  - MaxAge: 5 seconds
 func Default(allowedOrigins ...string) *Interceptor {
 	ao := map[string]bool{}
 	for _, o := range allowedOrigins {
