@@ -49,14 +49,17 @@ func TestFormValidInt64(t *testing.T) {
 }
 
 func TestFormInvalidInt64(t *testing.T) {
-	tests := []string{
-		"9223372036854775810",
-		"abc",
+	tests := []struct {
+		name string
+		val  string
+	}{
+		{name: "Overflow", val: "9223372036854775810"},
+		{name: "Not a number", val: "abc"},
 	}
 
-	for _, val := range tests {
-		t.Run(val, func(t *testing.T) {
-			values := map[string][]string{"a": {val}}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			values := map[string][]string{"a": {tt.val}}
 			f := Form{values: values}
 
 			if got, want := f.Int64("a", 0), int64(0); got != want {
@@ -96,15 +99,18 @@ func TestFormValidUint64(t *testing.T) {
 }
 
 func TestFormInvalidUint(t *testing.T) {
-	tests := []string{
-		"-1",
-		"18446744073709551630",
-		"abc",
+	tests := []struct {
+		name string
+		val  string
+	}{
+		{name: "Negative", val: "-1"},
+		{name: "Overflow", val: "18446744073709551630"},
+		{name: "Not a number", val: "abc"},
 	}
 
-	for _, val := range tests {
-		t.Run(val, func(t *testing.T) {
-			values := map[string][]string{"a": {val}}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			values := map[string][]string{"a": {tt.val}}
 			f := Form{values: values}
 
 			if got, want := f.Uint64("a", 0), uint64(0); got != want {
@@ -178,14 +184,17 @@ func TestFormValidFloat64(t *testing.T) {
 }
 
 func TestFormInvalidFloat64(t *testing.T) {
-	tests := []string{
-		"abc",
-		"1.797693134862315708145274237317043567981e309",
+	tests := []struct {
+		name string
+		val  string
+	}{
+		{name: "Not a float", val: "abc"},
+		{name: "Overflow", val: "1.797693134862315708145274237317043567981e309"},
 	}
 
-	for _, val := range tests {
-		t.Run(val, func(t *testing.T) {
-			values := map[string][]string{"a": {val}}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			values := map[string][]string{"a": {tt.val}}
 			f := Form{values: values}
 
 			if got, want := f.Float64("a", 0), float64(0); got != want {
@@ -235,14 +244,17 @@ func TestFormValidBool(t *testing.T) {
 }
 
 func TestFormInvalidBool(t *testing.T) {
-	tests := []string{
-		"TRuE",
-		"potato",
+	tests := []struct {
+		name string
+		val  string
+	}{
+		{name: "Invalid casing", val: "TRuE"},
+		{name: "Not a bool", val: "potato"},
 	}
 
-	for _, val := range tests {
-		t.Run(val, func(t *testing.T) {
-			values := map[string][]string{"a": {val}}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			values := map[string][]string{"a": {tt.val}}
 			f := Form{values: values}
 
 			if got, want := f.Bool("a", false), false; got != want {
