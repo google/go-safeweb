@@ -154,13 +154,13 @@ func TestValidReport(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var gottenReports []collector.Report
+			var gotReports []collector.Report
 			h := collector.HandlerBuilder{
 				Handler: func(r collector.Report) {
-					gottenReports = append(gottenReports, r)
+					gotReports = append(gotReports, r)
 				},
 				CSPHandler: func(r collector.CSPReport) {
-					t.Fatalf("expected CSP reports handler to not be called")
+					t.Fatalf("expected CSP reports handler not to be called")
 				},
 			}.Build()
 
@@ -170,7 +170,7 @@ func TestValidReport(t *testing.T) {
 			rr := safehttptest.NewResponseRecorder()
 			h.ServeHTTP(rr.ResponseWriter, req)
 
-			if diff := cmp.Diff(tt.want, gottenReports); diff != "" {
+			if diff := cmp.Diff(tt.want, gotReports); diff != "" {
 				t.Errorf("reports gotten mismatch (-want +got):\n%s", diff)
 			}
 
@@ -437,10 +437,10 @@ func TestInvalidRequest(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			h := collector.HandlerBuilder{
 				Handler: func(r collector.Report) {
-					t.Errorf("expected collector to not be called")
+					t.Errorf("expected collector not to be called")
 				},
 				CSPHandler: func(r collector.CSPReport) {
-					t.Errorf("expected collector to not be called")
+					t.Errorf("expected collector not to be called")
 				},
 			}.Build()
 
