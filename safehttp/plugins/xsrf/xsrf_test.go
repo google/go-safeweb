@@ -204,9 +204,14 @@ func TestBeforeTokenInRequestContext(t *testing.T) {
 
 	i.Before(rec.ResponseWriter, req, nil)
 
-	if tok := Token(req); tok == "" {
+	tok, err := Token(req)
+	if tok == "" {
 		t.Error(`Token(req): got "", want token`)
 	}
+	if err != nil {
+		t.Errorf("Token(req): got %v, want nil", err)
+	}
+
 	if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); want != got {
 		t.Errorf("response status: got %v, want %v", got, want)
 	}
@@ -219,36 +224,28 @@ func TestBeforeTokenInRequestContext(t *testing.T) {
 
 }
 
-func TestTokenRequestContext(t *testing.T) {
-	tests := []struct {
-		name, wantToken string
-		req             *safehttp.IncomingRequest
-	}{
-		{
-			name:      "Token in request context",
-			wantToken: "pizza",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
-				req.SetContext(context.WithValue(req.Context(), tokenCtxKey{}, "pizza"))
-				return req
-			}(),
-		},
-		{
-			name:      "Missing token in request context",
-			wantToken: "",
-			req: func() *safehttp.IncomingRequest {
-				req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
-				req.SetContext(context.Background())
-				return req
+func TestTokenInRequestContext(t *testing.T) {
+	req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
+	req.SetContext(context.WithValue(req.Context(), tokenCtxKey{}, "pizza"))
 
-			}(),
-		},
+	got, err := Token(req)
+	if want := "pizza"; want != got {
+		t.Errorf("Token(req): got %v, want %v", got, want)
 	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			if gotToken := Token(test.req); test.wantToken != gotToken {
-				t.Errorf("Token(req): got %v, want %v", gotToken, test.wantToken)
-			}
-		})
+	if err != nil {
+		t.Errorf("Token(req): got %v, want nil", err)
+	}
+}
+
+func TestMissingTokenInRequestContext(t *testing.T) {
+	req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
+	req.SetContext(context.Background())
+
+	got, err := Token(req)
+	if want := ""; want != got {
+		t.Errorf("Token(req): got %v, want %v", got, want)
+	}
+	if err == nil {
+		t.Error("Token(req): got nil, want error")
 	}
 }
