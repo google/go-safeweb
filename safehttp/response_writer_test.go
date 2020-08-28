@@ -63,11 +63,13 @@ func TestResponseWriterWriteTwicePanic(t *testing.T) {
 			name: "Call Write twice",
 			write: func(w *safehttp.ResponseWriter) {
 				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
+				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
 			},
 		},
 		{
 			name: "Call WriteTemplate twice",
 			write: func(w *safehttp.ResponseWriter) {
+				w.WriteTemplate(template.Must(template.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
 				w.WriteTemplate(template.Must(template.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
 			},
 		},
@@ -75,11 +77,13 @@ func TestResponseWriterWriteTwicePanic(t *testing.T) {
 			name: "Call ClientError twice",
 			write: func(w *safehttp.ResponseWriter) {
 				w.ClientError(safehttp.StatusBadRequest)
+				w.ClientError(safehttp.StatusBadRequest)
 			},
 		},
 		{
 			name: "Call ServerError twice",
 			write: func(w *safehttp.ResponseWriter) {
+				w.ServerError(safehttp.StatusInternalServerError)
 				w.ServerError(safehttp.StatusInternalServerError)
 			},
 		},
@@ -88,6 +92,7 @@ func TestResponseWriterWriteTwicePanic(t *testing.T) {
 			write: func(w *safehttp.ResponseWriter) {
 				ir := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
 				w.Redirect(ir, "/asdf", safehttp.StatusMovedPermanently)
+				w.Redirect(ir, "/asdf", safehttp.StatusMovedPermanently)
 			},
 		},
 	}
@@ -95,14 +100,11 @@ func TestResponseWriterWriteTwicePanic(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := safehttp.NewResponseWriter(testDispatcher{}, newResponseRecorder(&strings.Builder{}), nil)
-			tt.write(w)
-
 			defer func() {
 				if r := recover(); r == nil {
 					t.Errorf("tt.write(w) expected panic")
 				}
 			}()
-
 			tt.write(w)
 		})
 	}
