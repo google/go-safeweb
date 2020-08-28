@@ -371,7 +371,7 @@ func TestFormSliceInvalidPointerType(t *testing.T) {
 	f := Form{values: map[string][]string{"x": {"x"}}}
 	x := []int16{1}
 	f.Slice("x", &x)
-	if diff := cmp.Diff([]int16{1}, x); diff == "" {
+	if diff := cmp.Diff([]int16{1}, x); diff != "" {
 		t.Errorf("f.Slice: diff (-want +got): \n%v", diff)
 	}
 	if err := f.Err(); err == nil {
