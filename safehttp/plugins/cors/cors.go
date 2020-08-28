@@ -58,7 +58,8 @@ type Interceptor struct {
 	// AllowCredentials determines if Access-Control-Allow-Credentials should be
 	// set to true, which would allow cookies to be attached to requests.
 	AllowCredentials bool
-	// MaxAge sets the Access-Control-Max-Age header.
+	// MaxAge sets the Access-Control-Max-Age header. MaxAge indicates how long,
+	// in seconds, that the results of a preflight request can be cached.
 	// MaxAge=0 results in MaxAge: 5.
 	// This default of 5 seconds is set because it is the default used by Chromium
 	// according to https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Max-Age
