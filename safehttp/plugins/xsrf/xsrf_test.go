@@ -46,7 +46,7 @@ var (
 			wantBody:   "",
 		},
 		{
-			name:       "Token mismatch for invalid actionID",
+			name:       "Invalid actionID in token generation",
 			userID:     "1234",
 			actionID:   "http://bar.com/pizza",
 			wantStatus: safehttp.StatusForbidden,
@@ -57,7 +57,7 @@ var (
 			wantBody: "Forbidden\n",
 		},
 		{
-			name:       "Token mismatch for invalid userID",
+			name:       "Invalid userID in token generation",
 			userID:     "5678",
 			actionID:   "http://foo.com/pizza",
 			wantStatus: safehttp.StatusForbidden,
