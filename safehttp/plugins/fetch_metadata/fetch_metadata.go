@@ -16,7 +16,6 @@ package fetchmetadata
 
 import (
 	"github.com/google/go-safeweb/safehttp"
-	"log"
 )
 
 // RequestLogger is used for logging Fetch Metadata policy violations;

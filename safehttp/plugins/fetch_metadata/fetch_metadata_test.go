@@ -221,7 +221,7 @@ type methodLogger struct {
 	report string
 }
 
-func (l methodLogger) Log(r *safehttp.IncomingRequest) {
+func (l *methodLogger) Log(r *safehttp.IncomingRequest) {
 	l.report = r.Method()
 }
 
@@ -246,7 +246,7 @@ func TestRejectedResourceIsolationEnforceModeWithLogger(t *testing.T) {
 			rec := safehttptest.NewResponseRecorder()
 
 			p := fetchmetadata.NewPlugin()
-			logger := methodLogger{}
+			logger := &methodLogger{}
 			p.Logger = logger
 			p.Before(rec.ResponseWriter, req)
 
@@ -301,7 +301,7 @@ func TestResourceIsolationReportMode(t *testing.T) {
 			rec := safehttptest.NewResponseRecorder()
 
 			p := fetchmetadata.NewPlugin()
-			logger := methodLogger{}
+			logger := &methodLogger{}
 			p.Logger = logger
 			p.SetReportOnly()
 			p.Before(rec.ResponseWriter, req)
@@ -400,7 +400,7 @@ func TestNavIsolationReportMode(t *testing.T) {
 			rec := safehttptest.NewResponseRecorder()
 
 			p := fetchmetadata.NewPlugin()
-			logger := methodLogger{}
+			logger := &methodLogger{}
 			p.Logger = logger
 			p.NavIsolation = true
 			p.SetReportOnly()
@@ -449,4 +449,73 @@ func TestCORSEndpoint(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCORSAfterRedirect(t *testing.T) {
+	tests := []struct {
+		name, method, site, mode, dest string
+		wantHeaders                    map[string][]string
+		wantBody                       string
+	}{
+		{
+			name:   "cross origin POST",
+			method: safehttp.MethodPost,
+			site:   "cross-site",
+			mode:   "navigate",
+			dest:   "document",
+			wantHeaders: map[string][]string{
+				"Location": {"https://spaghetti.com/carbonara"},
+			},
+			wantBody: "",
+		},
+		{
+			name:   "cross origin GET from object",
+			method: safehttp.MethodGet,
+			site:   "cross-site",
+			mode:   "navigate",
+			dest:   "object",
+			wantHeaders: map[string][]string{
+				"Content-Type": {"text/html; charset=utf-8"},
+				"Location":     {"https://spaghetti.com/carbonara"},
+			},
+			wantBody: "<a href=\"https://spaghetti.com/carbonara\">Moved Permanently</a>.\n\n",
+		},
+		{
+			name:   "cross origin HEAD from embed",
+			method: safehttp.MethodHead,
+			site:   "cross-site",
+			mode:   "navigate",
+			dest:   "embed",
+			wantHeaders: map[string][]string{
+				"Content-Type": {"text/html; charset=utf-8"},
+				"Location":     {"https://spaghetti.com/carbonara"},
+			},
+			wantBody: "",
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req := safehttptest.NewRequest(test.method, "https://spaghetti.com/bolognese", nil)
+			req.Header.Add("Sec-Fetch-Site", test.site)
+			req.Header.Add("Sec-Fetch-Mode", test.mode)
+			req.Header.Add("Sec-Fetch-Dest", test.dest)
+			rec := safehttptest.NewResponseRecorder()
+
+			p := fetchmetadata.NewPlugin("/carbonara")
+			p.NavIsolation = true
+			p.RedirectURL, _ = safehttp.Parse("https://spaghetti.com/carbonara")
+			p.Before(rec.ResponseWriter, req)
+
+			if want, got := safehttp.StatusMovedPermanently, safehttp.StatusCode(rec.Status()); got != want {
+				t.Errorf("status code got: %v want: %v", got, want)
+			}
+			if diff := cmp.Diff(test.wantHeaders, map[string][]string(rec.Header())); diff != "" {
+				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
+			}
+			if gotBody := rec.Body(); test.wantBody != gotBody {
+				t.Errorf("response body got: %q want: %q", gotBody, test.wantBody)
+			}
+		})
+	}
+
 }
