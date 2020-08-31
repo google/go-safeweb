@@ -227,6 +227,9 @@ func TestURLParse(t *testing.T) {
 			if err != nil {
 				t.Errorf("Parse(test.url): got %v, want nil", err)
 			}
+			if got := url.String(); got != test.url {
+				t.Errorf("url.String(): got %v, want %v", got, test.url)
+			}
 		})
 	}
 }

@@ -68,18 +68,17 @@ func (u URL) Port() string {
 //
 // Note that the path is stored in decoded form: /%47%6f%2f
 // becomes /Go/. A consequence is that it is impossible to tell
-// which slashes in the path were slashes in the raw URL and which
+// which slashes in the path were slashes in the rawURL and which
 // were %2f.
 func (u URL) Path() string {
 	return u.url.Path
 }
 
-// Parse parses a rawurl string into a URL structure.
+// Parse parses a rawURL string into a URL structure.
 //
-// The rawurl may be relative (a path, without a host) or absolute
-// (starting with a scheme). Trying to parse a hostname and path
-// without a scheme is invalid but may not necessarily return an
-// error, due to parsing ambiguities.
+// The rawURl may be relative (a path, without a host) or absolute (starting
+// with a scheme). Trying to parse a hostname and path without a scheme is
+// invalid but may not necessarily return an error, due to parsing ambiguities.
 func Parse(rawurl string) (*URL, error) {
 	parsed, err := url.Parse(rawurl)
 	if err != nil {
