@@ -158,16 +158,7 @@ var (
 )
 
 func TestAllowedResourceIsolationEnforceMode(t *testing.T) {
-	tests := allowedRIPHeaders
-	for _, test := range allowedRIPNavHeaders {
-		tests = append(tests, testHeaders{
-			name:   test.name,
-			method: test.method,
-			site:   test.site,
-			mode:   test.mode,
-			dest:   test.dest,
-		})
-	}
+	tests := append(allowedRIPHeaders, allowedRIPNavHeaders...)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			req := safehttptest.NewRequest(test.method, "https://spaghetti.com/carbonara", nil)
@@ -193,16 +184,7 @@ func TestAllowedResourceIsolationEnforceMode(t *testing.T) {
 }
 
 func TestRejectedResourceIsolationEnforceMode(t *testing.T) {
-	tests := disallowedRIPHeaders
-	for _, test := range disallowedRIPNavHeaders {
-		tests = append(tests, testHeaders{
-			name:   test.name,
-			method: test.method,
-			site:   test.site,
-			mode:   test.mode,
-			dest:   test.dest,
-		})
-	}
+	tests := append(disallowedRIPHeaders, disallowedRIPNavHeaders...)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			req := safehttptest.NewRequest(test.method, "https://spaghetti.com/carbonara", nil)
@@ -231,22 +213,28 @@ func TestRejectedResourceIsolationEnforceMode(t *testing.T) {
 	}
 }
 
-type fooLog struct {
+type reportTests struct {
+	name, method, site, mode, dest, report string
+}
+
+type methodLogger struct {
 	report string
 }
 
-func (l *fooLog) Log(r *safehttp.IncomingRequest) {
+func (l methodLogger) Log(r *safehttp.IncomingRequest) {
 	l.report = r.Method()
 }
-func TestAllowedResourceIsolationReportMode(t *testing.T) {
-	tests := allowedRIPHeaders
-	for _, test := range allowedRIPNavHeaders {
-		tests = append(tests, testHeaders{
-			name:   test.name,
-			method: test.method,
-			site:   test.site,
-			mode:   test.mode,
-			dest:   test.dest,
+
+func TestRejectedResourceIsolationEnforceModeWithLogger(t *testing.T) {
+	var tests []reportTests
+	for _, t := range disallowedRIPHeaders {
+		tests = append(tests, reportTests{
+			name:   t.name,
+			method: t.method,
+			site:   t.site,
+			mode:   t.mode,
+			dest:   t.dest,
+			report: t.method,
 		})
 	}
 	for _, test := range tests {
@@ -258,35 +246,50 @@ func TestAllowedResourceIsolationReportMode(t *testing.T) {
 			rec := safehttptest.NewResponseRecorder()
 
 			p := fetchmetadata.NewPlugin()
-			logger := &fooLog{}
-			p.SetReportOnly(logger)
+			logger := methodLogger{}
+			p.Logger = logger
 			p.Before(rec.ResponseWriter, req)
 
-			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); got != want {
+			if want, got := safehttp.StatusForbidden, safehttp.StatusCode(rec.Status()); want != got {
 				t.Errorf("status code got: %v want: %v", got, want)
 			}
-			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
+			wantHeaders := map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			}
+			if diff := cmp.Diff(wantHeaders, map[string][]string(rec.Header())); diff != "" {
 				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
 			}
-			if want, got := "", rec.Body(); got != want {
+			if want, got := "Forbidden\n", rec.Body(); got != want {
 				t.Errorf("response body got: %q want: %q", got, want)
 			}
-			if want := ""; logger.report != want {
-				t.Errorf("logger.report: got %s, want %s", logger.report, want)
+			if test.report != logger.report {
+				t.Errorf("logger.report: got %s, want %s", logger.report, test.report)
 			}
 		})
 	}
 }
 
-func TestRejectedResourceIsolationReportMode(t *testing.T) {
-	tests := disallowedRIPHeaders
-	for _, test := range disallowedRIPNavHeaders {
-		tests = append(tests, testHeaders{
-			name:   test.name,
-			method: test.method,
-			site:   test.site,
-			mode:   test.mode,
-			dest:   test.dest,
+func TestResourceIsolationReportMode(t *testing.T) {
+	var tests []reportTests
+	for _, t := range allowedRIPHeaders {
+		tests = append(tests, reportTests{
+			name:   t.name,
+			method: t.method,
+			site:   t.site,
+			mode:   t.mode,
+			dest:   t.dest,
+			report: "",
+		})
+	}
+	for _, t := range disallowedRIPHeaders {
+		tests = append(tests, reportTests{
+			name:   t.name,
+			method: t.method,
+			site:   t.site,
+			mode:   t.mode,
+			dest:   t.dest,
+			report: t.method,
 		})
 	}
 	for _, test := range tests {
@@ -298,8 +301,9 @@ func TestRejectedResourceIsolationReportMode(t *testing.T) {
 			rec := safehttptest.NewResponseRecorder()
 
 			p := fetchmetadata.NewPlugin()
-			logger := &fooLog{}
-			p.SetReportOnly(logger)
+			logger := methodLogger{}
+			p.Logger = logger
+			p.SetReportOnly()
 			p.Before(rec.ResponseWriter, req)
 
 			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); want != got {
@@ -314,8 +318,8 @@ func TestRejectedResourceIsolationReportMode(t *testing.T) {
 			if want, got := "", rec.Body(); got != want {
 				t.Errorf("response body got: %q want: %q", got, want)
 			}
-			if want := test.method; logger.report != want {
-				t.Errorf("logger.report: got %s, want %s", logger.report, want)
+			if logger.report != test.report {
+				t.Errorf("logger.report: got %s, want %s", logger.report, test.report)
 			}
 		})
 	}
@@ -328,20 +332,11 @@ func TestReportModeMissingLogger(t *testing.T) {
 			t.Error("p.SetReportOnly(nil) expected panic")
 		}
 	}()
-	p.SetReportOnly(nil)
+	p.SetReportOnly()
 }
 
-func TestNavIsolation(t *testing.T) {
-	tests := allowedRIPNavHeaders
-	for _, test := range disallowedRIPNavHeaders {
-		tests = append(tests, testHeaders{
-			name:   test.name,
-			method: test.method,
-			site:   test.site,
-			mode:   test.mode,
-			dest:   test.dest,
-		})
-	}
+func TestNavIsolationEnforceMode(t *testing.T) {
+	tests := append(allowedRIPNavHeaders, disallowedRIPNavHeaders...)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			req := safehttptest.NewRequest(test.method, "https://spaghetti.com/carbonara", nil)
@@ -371,15 +366,29 @@ func TestNavIsolation(t *testing.T) {
 	}
 }
 
-func TestCORSEndpoint(t *testing.T) {
-	tests := disallowedRIPHeaders
-	for _, test := range disallowedRIPNavHeaders {
-		tests = append(tests, testHeaders{
-			name:   test.name,
-			method: test.method,
-			site:   test.site,
-			mode:   test.mode,
-			dest:   test.dest,
+func TestNavIsolationReportMode(t *testing.T) {
+	type reportTests struct {
+		name, method, site, mode, dest, report string
+	}
+	var tests []reportTests
+	for _, t := range allowedRIPNavHeaders {
+		tests = append(tests, reportTests{
+			name:   t.name,
+			method: t.method,
+			site:   t.site,
+			mode:   t.mode,
+			dest:   t.dest,
+			report: t.method,
+		})
+	}
+	for _, t := range disallowedRIPNavHeaders {
+		tests = append(tests, reportTests{
+			name:   t.name,
+			method: t.method,
+			site:   t.site,
+			mode:   t.mode,
+			dest:   t.dest,
+			report: t.method,
 		})
 	}
 	for _, test := range tests {
@@ -390,7 +399,43 @@ func TestCORSEndpoint(t *testing.T) {
 			req.Header.Add("Sec-Fetch-Dest", test.dest)
 			rec := safehttptest.NewResponseRecorder()
 
-			p := fetchmetadata.NewPlugin("https://spaghetti.com/carbonara")
+			p := fetchmetadata.NewPlugin()
+			logger := methodLogger{}
+			p.Logger = logger
+			p.NavIsolation = true
+			p.SetReportOnly()
+			p.Before(rec.ResponseWriter, req)
+
+			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); want != got {
+				t.Errorf("status code got: %v want: %v", got, want)
+			}
+			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); got != want {
+				t.Errorf("status code got: %v want: %v", got, want)
+			}
+			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
+				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
+			}
+			if want, got := "", rec.Body(); got != want {
+				t.Errorf("response body got: %q want: %q", got, want)
+			}
+			if logger.report != test.report {
+				t.Errorf("logger.report: got %s, want %s", logger.report, test.report)
+			}
+		})
+	}
+}
+
+func TestCORSEndpoint(t *testing.T) {
+	tests := append(disallowedRIPHeaders, disallowedRIPNavHeaders...)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req := safehttptest.NewRequest(test.method, "https://spaghetti.com/carbonara", nil)
+			req.Header.Add("Sec-Fetch-Site", test.site)
+			req.Header.Add("Sec-Fetch-Mode", test.mode)
+			req.Header.Add("Sec-Fetch-Dest", test.dest)
+			rec := safehttptest.NewResponseRecorder()
+
+			p := fetchmetadata.NewPlugin("/carbonara")
 			p.Before(rec.ResponseWriter, req)
 
 			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); got != want {
