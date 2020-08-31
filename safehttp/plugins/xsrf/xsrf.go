@@ -41,13 +41,13 @@ type UserIdentifier interface {
 	UserID(*safehttp.IncomingRequest) (string, error)
 }
 
-// Interceptor implements XSRF protection. It requires an application key and a
-// storage service. The AppKey uniquely identifies each registered service and
-// should have high entropy. The storage service supports retrieving ID's of the
-// application's users. Both the AppKey and user ID are used in the XSRF
-// token generation and verification algorithm.
+// Interceptor implements XSRF protection.
 type Interceptor struct {
-	AppKey     string
+	// AppKey uniquely identifies each registered service and should have high
+	// entropy as it is use in generating the XSRF token.
+	AppKey string
+	// Identifier supports retrieving the user ID of application's user based on
+	// incoming requests. This is needed in generating the XSRF token.
 	Identifier UserIdentifier
 }
 
@@ -65,12 +65,15 @@ func Token(r *safehttp.IncomingRequest) (string, error) {
 
 // Before should be executed before directing the safehttp.IncomingRequest to
 // the handler to ensure it is not part of the Cross-Site Request
-// Forgery. In case of state changing requests (all except GET, HEAD and OPTIONS
-// requests), it checks for the presence of an xsrf-token in the request body
-// and validates it based on the userID associated with the request. For all
-// requests, it adds a cryptographically safe XSRF token to the
-// safehttp.IncomingRequest context.
-func (i *Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
+// Forgery attack.
+//
+// In case of state changing requests (all except GET, HEAD and OPTIONS), it
+// checks for the presence of an XSRF token in the request and validates it
+// based on the user ID associated with the request.
+//
+// For authorized requests, it adds a cryptographically safe XSRF token to the
+// incoming request. It can be later extracted using Token.
+func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
 	userID, err := i.Identifier.UserID(r)
 	if err != nil {
 		return w.ClientError(safehttp.StatusUnauthorized)
