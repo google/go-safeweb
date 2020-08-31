@@ -193,7 +193,7 @@ func TestAlreadyClaimed(t *testing.T) {
 			it := Interceptor{}
 			it.Before(rr.ResponseWriter, req)
 
-			if got, want := rr.Status(), int(safehttp.StatusInternalServerError); got != want {
+			if got, want := rr.Status(), safehttp.StatusInternalServerError; got != want {
 				t.Errorf("rr.Status() got: %v want: %v", got, want)
 			}
 
