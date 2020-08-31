@@ -80,31 +80,28 @@ func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 	}
 
 	actionID := r.Method() + " " + r.URL.Path()
-	if statePreservingMethods[r.Method()] {
-		tok := xsrftoken.Generate(i.AppKey, userID, actionID)
-		r.SetContext(context.WithValue(r.Context(), tokenCtxKey{}, tok))
-		return safehttp.Result{}
-	}
-
-	f, err := r.PostForm()
-	if err != nil {
-		mf, err := r.MultipartForm(32 << 20)
+	needsValidation := !statePreservingMethods[r.Method()]
+	if needsValidation {
+		f, err := r.PostForm()
 		if err != nil {
-			return w.ClientError(safehttp.StatusBadRequest)
+			mf, err := r.MultipartForm(32 << 20)
+			if err != nil {
+				return w.ClientError(safehttp.StatusBadRequest)
+			}
+			f = &mf.Form
 		}
-		f = &mf.Form
+
+		tok := f.String(TokenKey, "")
+		if f.Err() != nil || tok == "" {
+			return w.ClientError(safehttp.StatusUnauthorized)
+		}
+
+		if ok := xsrftoken.Valid(tok, i.AppKey, userID, actionID); !ok {
+			return w.ClientError(safehttp.StatusForbidden)
+		}
 	}
 
-	tok := f.String(TokenKey, "")
-	if f.Err() != nil || tok == "" {
-		return w.ClientError(safehttp.StatusUnauthorized)
-	}
-
-	if ok := xsrftoken.Valid(tok, i.AppKey, userID, actionID); !ok {
-		return w.ClientError(safehttp.StatusForbidden)
-	}
-
-	tok = xsrftoken.Generate(i.AppKey, userID, actionID)
+	tok := xsrftoken.Generate(i.AppKey, userID, actionID)
 	r.SetContext(context.WithValue(r.Context(), tokenCtxKey{}, tok))
 
 	return safehttp.Result{}
