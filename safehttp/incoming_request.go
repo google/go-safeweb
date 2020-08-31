@@ -47,23 +47,6 @@ func NewIncomingRequest(req *http.Request) *IncomingRequest {
 // Method specifies the HTTP method of an IncomingRequest.
 func (r *IncomingRequest) Method() string {
 	return r.req.Method
-<<<<<<< HEAD
-}
-
-// Host returns the host the request is targeted to.
-// TODO(@mihalimara22): Remove this after the safehttp.URL type has been implemented
-func (r *IncomingRequest) Host() string {
-	return r.req.Host
-}
-
-// Path returns the relative path of the URL in decoded format (e.g. %47%6f%2f
-// becomes /Go/).
-// TODO(@mihalimara22): Remove this after the safehttp.URL type has been
-// implemented.
-func (r *IncomingRequest) Path() string {
-	return r.req.URL.Path
-=======
->>>>>>> Added token generation functionality to the XSRF plugin. The generated token will be added to each of the safehttp.IncomingRequest contexts and subsequently injected as a hidden input in form by the htmlinject plugin
 }
 
 // PostForm parses the form parameters provided in the body of a POST, PATCH or
