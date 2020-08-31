@@ -72,12 +72,12 @@ var (
 func TestTokenPost(t *testing.T) {
 	for _, test := range formTokenTests {
 		t.Run(test.name, func(t *testing.T) {
-			i := Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
+			rec := safehttptest.NewResponseRecorder()
 			tok := xsrftoken.Generate("xsrf", test.userID, test.actionID)
 			req := safehttptest.NewRequest(safehttp.MethodPost, "https://foo.com/pizza", strings.NewReader(TokenKey+"="+tok))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-			rec := safehttptest.NewResponseRecorder()
 
+			i := Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
 			i.Before(rec.ResponseWriter, req, nil)
 
 			if got := rec.Status(); got != test.wantStatus {
@@ -96,7 +96,7 @@ func TestTokenPost(t *testing.T) {
 func TestTokenMultipart(t *testing.T) {
 	for _, test := range formTokenTests {
 		t.Run(test.name, func(t *testing.T) {
-			i := Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
+			rec := safehttptest.NewResponseRecorder()
 			tok := xsrftoken.Generate("xsrf", test.userID, test.actionID)
 			b := "--123\r\n" +
 				"Content-Disposition: form-data; name=\"xsrf-token\"\r\n" +
@@ -105,8 +105,8 @@ func TestTokenMultipart(t *testing.T) {
 				"--123--\r\n"
 			req := safehttptest.NewRequest(safehttp.MethodPost, "https://foo.com/pizza", strings.NewReader(b))
 			req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
-			rec := safehttptest.NewResponseRecorder()
 
+			i := Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
 			i.Before(rec.ResponseWriter, req, nil)
 
 			if got := rec.Status(); got != test.wantStatus {
@@ -171,9 +171,9 @@ func TestMissingTokenInBody(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		i := Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
 		rec := safehttptest.NewResponseRecorder()
 
+		i := Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
 		i.Before(rec.ResponseWriter, test.req, nil)
 
 		if want, got := safehttp.StatusUnauthorized, rec.Status(); got != want {
@@ -193,10 +193,10 @@ func TestMissingTokenInBody(t *testing.T) {
 }
 
 func TestBeforeTokenInRequestContext(t *testing.T) {
-	i := Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
-	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
 	rec := safehttptest.NewResponseRecorder()
+	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
 
+	i := Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
 	i.Before(rec.ResponseWriter, req, nil)
 
 	tok, err := Token(req)
