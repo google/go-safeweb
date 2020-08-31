@@ -31,8 +31,7 @@ func (userIdentifier) UserID(r *safehttp.IncomingRequest) (string, error) {
 }
 
 var (
-	stateChangingMet = []string{safehttp.MethodPost, safehttp.MethodPatch}
-	formTokenTests   = []struct {
+	formTokenTests = []struct {
 		name, userID, actionID, wantBody string
 		wantStatus                       safehttp.StatusCode
 		wantHeader                       map[string][]string
@@ -40,7 +39,7 @@ var (
 		{
 			name:       "Valid token",
 			userID:     "1234",
-			actionID:   "https://foo.com/pizza",
+			actionID:   "POST /pizza",
 			wantStatus: safehttp.StatusOK,
 			wantHeader: map[string][]string{},
 			wantBody:   "",
@@ -48,7 +47,7 @@ var (
 		{
 			name:       "Invalid actionID in token generation",
 			userID:     "1234",
-			actionID:   "http://bar.com/pizza",
+			actionID:   "HEAD /pizza",
 			wantStatus: safehttp.StatusForbidden,
 			wantHeader: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
@@ -59,7 +58,7 @@ var (
 		{
 			name:       "Invalid userID in token generation",
 			userID:     "5678",
-			actionID:   "http://foo.com/pizza",
+			actionID:   "POST /pizza",
 			wantStatus: safehttp.StatusForbidden,
 			wantHeader: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
@@ -71,59 +70,55 @@ var (
 )
 
 func TestTokenPost(t *testing.T) {
-	for _, method := range stateChangingMet {
-		for _, test := range formTokenTests {
-			t.Run(method+" "+test.name, func(t *testing.T) {
-				i := Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
-				tok := xsrftoken.Generate("xsrf", test.userID, test.actionID)
-				req := safehttptest.NewRequest(method, "https://foo.com/pizza", strings.NewReader(TokenKey+"="+tok))
-				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-				rec := safehttptest.NewResponseRecorder()
+	for _, test := range formTokenTests {
+		t.Run(test.name, func(t *testing.T) {
+			i := Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
+			tok := xsrftoken.Generate("xsrf", test.userID, test.actionID)
+			req := safehttptest.NewRequest(safehttp.MethodPost, "https://foo.com/pizza", strings.NewReader(TokenKey+"="+tok))
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			rec := safehttptest.NewResponseRecorder()
 
-				i.Before(rec.ResponseWriter, req, nil)
+			i.Before(rec.ResponseWriter, req, nil)
 
-				if got := safehttp.StatusCode(rec.Status()); got != test.wantStatus {
-					t.Errorf("response status: got %v, want %v", got, test.wantStatus)
-				}
-				if diff := cmp.Diff(test.wantHeader, map[string][]string(rec.Header())); diff != "" {
-					t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
-				}
-				if got := rec.Body(); got != test.wantBody {
-					t.Errorf("response body: got %q want %q", got, test.wantBody)
-				}
-			})
-		}
+			if got := rec.Status(); got != test.wantStatus {
+				t.Errorf("response status: got %v, want %v", got, test.wantStatus)
+			}
+			if diff := cmp.Diff(test.wantHeader, map[string][]string(rec.Header())); diff != "" {
+				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
+			}
+			if got := rec.Body(); got != test.wantBody {
+				t.Errorf("response body: got %q want %q", got, test.wantBody)
+			}
+		})
 	}
 }
 
 func TestTokenMultipart(t *testing.T) {
-	for _, method := range stateChangingMet {
-		for _, test := range formTokenTests {
-			t.Run(method+" "+test.name, func(t *testing.T) {
-				i := Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
-				tok := xsrftoken.Generate("xsrf", test.userID, test.actionID)
-				b := "--123\r\n" +
-					"Content-Disposition: form-data; name=\"xsrf-token\"\r\n" +
-					"\r\n" +
-					tok + "\r\n" +
-					"--123--\r\n"
-				req := safehttptest.NewRequest(method, "https://foo.com/pizza", strings.NewReader(b))
-				req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
-				rec := safehttptest.NewResponseRecorder()
+	for _, test := range formTokenTests {
+		t.Run(test.name, func(t *testing.T) {
+			i := Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
+			tok := xsrftoken.Generate("xsrf", test.userID, test.actionID)
+			b := "--123\r\n" +
+				"Content-Disposition: form-data; name=\"xsrf-token\"\r\n" +
+				"\r\n" +
+				tok + "\r\n" +
+				"--123--\r\n"
+			req := safehttptest.NewRequest(safehttp.MethodPost, "https://foo.com/pizza", strings.NewReader(b))
+			req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+			rec := safehttptest.NewResponseRecorder()
 
-				i.Before(rec.ResponseWriter, req, nil)
+			i.Before(rec.ResponseWriter, req, nil)
 
-				if got := safehttp.StatusCode(rec.Status()); got != test.wantStatus {
-					t.Errorf("response status: got %v, want %v", got, test.wantStatus)
-				}
-				if diff := cmp.Diff(test.wantHeader, map[string][]string(rec.Header())); diff != "" {
-					t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
-				}
-				if got := rec.Body(); got != test.wantBody {
-					t.Errorf("response body: got %q want %q", got, test.wantBody)
-				}
-			})
-		}
+			if got := rec.Status(); got != test.wantStatus {
+				t.Errorf("response status: got %v, want %v", got, test.wantStatus)
+			}
+			if diff := cmp.Diff(test.wantHeader, map[string][]string(rec.Header())); diff != "" {
+				t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+			}
+			if got := rec.Body(); got != test.wantBody {
+				t.Errorf("response body: got %q want %q", got, test.wantBody)
+			}
+		})
 	}
 }
 

@@ -79,8 +79,9 @@ func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 		return w.ClientError(safehttp.StatusUnauthorized)
 	}
 
-	if m := r.Method(); statePreservingMethods[m] {
-		tok := xsrftoken.Generate(i.AppKey, userID, r.URL.String())
+	actionID := r.Method() + " " + r.URL.Path()
+	if statePreservingMethods[r.Method()] {
+		tok := xsrftoken.Generate(i.AppKey, userID, actionID)
 		r.SetContext(context.WithValue(r.Context(), tokenCtxKey{}, tok))
 		return safehttp.Result{}
 	}
@@ -99,11 +100,11 @@ func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 		return w.ClientError(safehttp.StatusUnauthorized)
 	}
 
-	if ok := xsrftoken.Valid(tok, i.AppKey, userID, r.URL.String()); !ok {
+	if ok := xsrftoken.Valid(tok, i.AppKey, userID, actionID); !ok {
 		return w.ClientError(safehttp.StatusForbidden)
 	}
 
-	tok = xsrftoken.Generate(i.AppKey, userID, r.URL.String())
+	tok = xsrftoken.Generate(i.AppKey, userID, actionID)
 	r.SetContext(context.WithValue(r.Context(), tokenCtxKey{}, tok))
 
 	return safehttp.Result{}
