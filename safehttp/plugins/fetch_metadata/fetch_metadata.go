@@ -49,7 +49,7 @@ type Plugin struct {
 	// clickjacking and reflected XSS by rejecting all cross-site navigations
 	// unless targeted to endpoints that are CORS-protected.
 	//
-	// WARNING: This is still an experimental feature and will be disabled by
+	// WARNING: This is still an experimental feature and is disabled by
 	// default.
 	NavIsolation bool
 	// RedirectURL can optionally indicate an URL to which the user can be
@@ -72,7 +72,7 @@ func NewPlugin(endpoints ...string) *Plugin {
 	return &Plugin{corsProtected: m}
 }
 
-func (p *Plugin) resourceIsolationPolicy(r *safehttp.IncomingRequest) bool {
+func (p *Plugin) checkResourceIsolationPolicy(r *safehttp.IncomingRequest) bool {
 	h := r.Header
 	if h.Get("Sec-Fetch-Site") != "cross-site" {
 		// The request is allowed to pass because one of the following applies:
@@ -102,7 +102,7 @@ func (p *Plugin) resourceIsolationPolicy(r *safehttp.IncomingRequest) bool {
 	return false
 }
 
-func (p *Plugin) navigationIsolationPolicy(r *safehttp.IncomingRequest) bool {
+func (p *Plugin) checkNavigationIsolationPolicy(r *safehttp.IncomingRequest) bool {
 	if h := r.Header; p.NavIsolation && h.Get("Sec-Fetch-Site") == "cross-site" && navigationalModes[h.Get("Sec-Fetch-Mode")] {
 		return false
 	}
@@ -134,6 +134,8 @@ func (p *Plugin) SetEnforce() {
 // Isolation Policy is enabled and fails, the IncomingRequest will be
 // redirected to redirectURL.
 func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+	// TODO(mihalimara22): Remove and disable using configurations when those
+	// have been implemented
 	if p.corsProtected[r.URL.Path()] {
 		// The request is targeted to an endpoint on which Fetch Metadata
 		// policies are disabled because it is CORS-protected so we don't apply
@@ -142,14 +144,14 @@ func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) 
 	}
 
 	rejected := false
-	if !p.navigationIsolationPolicy(r) {
+	if !p.checkNavigationIsolationPolicy(r) {
 		rejected = true
 		if p.RedirectURL != nil {
 			return w.Redirect(r, p.RedirectURL.String(), safehttp.StatusMovedPermanently)
 		}
 	}
 
-	if rejected || !p.resourceIsolationPolicy(r) {
+	if rejected || !p.checkResourceIsolationPolicy(r) {
 		if p.Logger != nil {
 			p.Logger.Log(r)
 		}
