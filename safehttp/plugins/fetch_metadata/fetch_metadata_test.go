@@ -503,7 +503,7 @@ func TestCORSAfterRedirect(t *testing.T) {
 
 			p := fetchmetadata.NewPlugin("/carbonara")
 			p.NavIsolation = true
-			p.RedirectURL, _ = safehttp.Parse("https://spaghetti.com/carbonara")
+			p.RedirectURL, _ = safehttp.ParseURL("https://spaghetti.com/carbonara")
 			p.Before(rec.ResponseWriter, req)
 
 			if want, got := safehttp.StatusMovedPermanently, safehttp.StatusCode(rec.Status()); got != want {

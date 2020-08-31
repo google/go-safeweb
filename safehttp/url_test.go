@@ -55,7 +55,7 @@ func TestURLHost(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			netURL, err := url.Parse(tt.url)
 			if err != nil {
-				t.Fatalf("url.Parse(tt.url) got: %v want: nil", err)
+				t.Fatalf("url.Parse(tt.url) got err %v", err)
 			}
 
 			u := URL{url: netURL}
@@ -93,7 +93,7 @@ func TestURLHostname(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			netURL, err := url.Parse(tt.url)
 			if err != nil {
-				t.Fatalf("url.Parse(tt.url) got: %v want: nil", err)
+				t.Fatalf("url.Parse(tt.url) got err %v", err)
 			}
 
 			u := URL{url: netURL}
@@ -204,7 +204,7 @@ func TestURLInvalidQuery(t *testing.T) {
 	}
 }
 
-func TestURLParse(t *testing.T) {
+func TestURLParseURL(t *testing.T) {
 	var tests = []struct {
 		name, url string
 	}{
@@ -220,12 +220,12 @@ func TestURLParse(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			url, err := Parse(test.url)
+			url, err := ParseURL(test.url)
 			if url == nil {
-				t.Error("Parse(test.url): got nil, want URL")
+				t.Error("ParseURL(test.url): got nil, want URL")
 			}
 			if err != nil {
-				t.Errorf("Parse(test.url): got %v, want nil", err)
+				t.Errorf("ParseURL(test.url): got err %v", err)
 			}
 			if got := url.String(); got != test.url {
 				t.Errorf("url.String(): got %v, want %v", got, test.url)
@@ -234,12 +234,12 @@ func TestURLParse(t *testing.T) {
 	}
 }
 
-func TestURLInvalidParse(t *testing.T) {
-	url, err := Parse("http://www.example.com/path%%%x=0")
+func TestURLInvalidParseURL(t *testing.T) {
+	url, err := ParseURL("http://www.example.com/path%%%x=0")
 	if url != nil {
-		t.Errorf(`Parse: got %v, want nil`, url)
+		t.Errorf(`ParseURL: got err %v`, url)
 	}
 	if err == nil {
-		t.Errorf(`Parse: got nil, want error`)
+		t.Errorf(`ParseURL: got nil, want error`)
 	}
 }
