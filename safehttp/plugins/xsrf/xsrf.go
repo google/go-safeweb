@@ -53,33 +53,32 @@ type Interceptor struct {
 
 type tokenCtxKey struct{}
 
-// Token returns the XSRF token from the safehttp.IncomingRequest Context and a
-// nil error, if present, and, otherwise, returns an empty string and a non-nil
-// error.
+// Token extracts the XSRF token from the incoming request. If it is not
+// present, it returns a non-nil error.
 func Token(r *safehttp.IncomingRequest) (string, error) {
 	tok := r.Context().Value(tokenCtxKey{})
 	if tok == nil {
-		return "", errors.New("xsrf token not found in safehttp.IncomingRequest context")
+		return "", errors.New("xsrf token not found")
 	}
 	return tok.(string), nil
 }
 
 // Before should be executed before directing the safehttp.IncomingRequest to
 // the handler to ensure it is not part of the Cross-Site Request
-// Forgery. In case of state changing methods, it checks for the
-// presence of an xsrf-token in the request body and validates it based on the
-// userID associated with the request. It also adds a cryptographically safe
-// XSRF token to the safehttp.IncomingRequest context.
-func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
+// Forgery. In case of state changing requests (all except GET, HEAD and OPTIONS
+// requests), it checks for the presence of an xsrf-token in the request body
+// and validates it based on the userID associated with the request. For all
+// requests, it adds a cryptographically safe XSRF token to the
+// safehttp.IncomingRequest context.
+func (i *Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
 	userID, err := i.Identifier.UserID(r)
 	if err != nil {
 		return w.ClientError(safehttp.StatusUnauthorized)
 	}
 
-	tok := xsrftoken.Generate(i.AppKey, userID, r.URL.String())
-	r.SetContext(context.WithValue(r.Context(), tokenCtxKey{}, tok))
-
 	if m := r.Method(); statePreservingMethods[m] {
+		tok := xsrftoken.Generate(i.AppKey, userID, r.URL.String())
+		r.SetContext(context.WithValue(r.Context(), tokenCtxKey{}, tok))
 		return safehttp.Result{}
 	}
 
@@ -92,7 +91,7 @@ func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 		f = &mf.Form
 	}
 
-	tok = f.String(TokenKey, "")
+	tok := f.String(TokenKey, "")
 	if f.Err() != nil || tok == "" {
 		return w.ClientError(safehttp.StatusUnauthorized)
 	}
@@ -100,6 +99,9 @@ func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 	if ok := xsrftoken.Valid(tok, i.AppKey, userID, r.URL.String()); !ok {
 		return w.ClientError(safehttp.StatusForbidden)
 	}
+
+	tok = xsrftoken.Generate(i.AppKey, userID, r.URL.String())
+	r.SetContext(context.WithValue(r.Context(), tokenCtxKey{}, tok))
 
 	return safehttp.Result{}
 }
