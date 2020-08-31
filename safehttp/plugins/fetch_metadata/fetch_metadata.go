@@ -111,7 +111,7 @@ func (p *Plugin) checkNavigationIsolationPolicy(r *safehttp.IncomingRequest) boo
 
 // SetReportOnly sets the Fetch Metadata policy mode to "report". This will
 // allow requests that violate the policy to pass, but will report the violation
-// using the RequestLogger. The method will panic if RequestLogger is nil.
+// using the Logger. The method will panic if Logger is nil.
 func (p *Plugin) SetReportOnly() {
 	if p.Logger == nil {
 		panic("logging service required for Fetch Metadata report mode")
