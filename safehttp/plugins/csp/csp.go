@@ -84,6 +84,12 @@ type StrictCSPBuilder struct {
 	// ReportURI controls the report-uri directive. If ReportUri is empty, no report-uri
 	// directive will be set.
 	ReportURI string
+	// Hashes adds a set of hashes to script-src. An example of a hash would be:
+	//  sha256-CihokcEcBW4atb/CW/XWsvWwbTjqwQlE9nj9ii5ww5M=
+	// which is the SHA256 hash for the script "console.log(1)".
+	//
+	// For more info, see: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src
+	Hashes []string
 }
 
 // Build creates a Policy based on the specified options.
@@ -103,6 +109,12 @@ func (s StrictCSPBuilder) Build() Policy {
 
 			if s.UnsafeEval {
 				b.WriteString(" 'unsafe-eval'")
+			}
+
+			for _, h := range s.Hashes {
+				b.WriteString(" '")
+				b.WriteString(h)
+				b.WriteByte('\'')
 			}
 
 			b.WriteString("; base-uri ")
