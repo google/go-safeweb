@@ -58,11 +58,11 @@ type Interceptor struct {
 	// AllowCredentials determines if Access-Control-Allow-Credentials should be
 	// set to true, which would allow cookies to be attached to requests.
 	AllowCredentials bool
-	// MaxAge sets the Access-Control-Max-Age header. MaxAge indicates how long,
-	// in seconds, that the results of a preflight request can be cached.
-	// MaxAge=0 results in MaxAge: 5.
-	// This default of 5 seconds is set because it is the default used by Chromium
-	// according to https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Max-Age
+	// MaxAge sets the Access-Control-Max-Age header, indicating how many seconds
+	// the results of a preflight request can be cached.
+	//
+	// MaxAge=0 results in MaxAge: 5, the default used by Chromium according to
+	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Max-Age
 	MaxAge int
 }
 
@@ -83,7 +83,7 @@ func Default(allowedOrigins ...string) *Interceptor {
 	}
 }
 
-// SetAllowedHeaders sets which headers should be allowed in the Access-Control-Allow-Headers
+// SetAllowedHeaders sets the headers allowed in the Access-Control-Allow-Headers
 // header. The headers are first canonicalized using textproto.CanonicalMIMEHeaderKey.
 func (it *Interceptor) SetAllowedHeaders(headers ...string) {
 	it.allowedHeaders = map[string]bool{}
@@ -95,8 +95,16 @@ func (it *Interceptor) SetAllowedHeaders(headers ...string) {
 	}
 }
 
-// Before handles the incoming request and sets headers or responds with an error
-// accordingly.
+// Before handles the IncomingRequest according to the settings specified in the
+// Interceptor and sets the appropriate subset of the following headers:
+//
+//  - Access-Control-Allow-Credentials
+//  - Access-Control-Allow-Headers
+//  - Access-Control-Allow-Methods
+//  - Access-Control-Allow-Origin
+//  - Access-Control-Expose-Headers
+//  - Access-Control-Max-Age
+//  - Vary
 func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 	origin := r.Header.Get("Origin")
 	if origin != "" && !it.AllowedOrigins[origin] {
