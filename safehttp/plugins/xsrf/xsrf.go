@@ -44,10 +44,10 @@ type UserIdentifier interface {
 // Interceptor implements XSRF protection.
 type Interceptor struct {
 	// AppKey uniquely identifies each registered service and should have high
-	// entropy as it is use in generating the XSRF token.
+	// entropy as it is used for generating the XSRF token.
 	AppKey string
-	// Identifier supports retrieving the user ID of application's user based on
-	// incoming requests. This is needed in generating the XSRF token.
+	// Identifier supports retrieving the user ID based on the incoming
+	// request. This is needed for generating the XSRF token.
 	Identifier UserIdentifier
 }
 
@@ -84,6 +84,9 @@ func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 	if needsValidation {
 		f, err := r.PostForm()
 		if err != nil {
+			// We fallback to checking whether the form is multipart. Both types
+			// are valid in an incoming request as long as the XSRF token is
+			// present.
 			mf, err := r.MultipartForm(32 << 20)
 			if err != nil {
 				return w.ClientError(safehttp.StatusBadRequest)
