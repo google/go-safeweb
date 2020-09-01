@@ -54,13 +54,15 @@ func (w *ResponseWriter) Interceptor(key string) Interceptor {
 // Result TODO
 type Result struct{}
 
-// NotWritten is a Result which indicates that nothing has been written yet. It
+// NotWritten returns a Result which indicates that nothing has been written yet. It
 // can be used in all functions that return a Result, such as in the ServeHTTP method
 // of a Handler or in the Before method of an Interceptor. When returned, NotWritten
 // indicates that the writing of the response should take place later. When this
 // is returned by the Before method in Interceptors the next Interceptor in line
 // is run. When this is returned by a Handler, a 204 No Content response is written.
-var NotWritten Result
+func NotWritten() Result {
+	return Result{}
+}
 
 // Write TODO
 func (w *ResponseWriter) Write(resp Response) Result {
