@@ -205,7 +205,8 @@ type MultipartForm struct {
 }
 
 // FileHeaders returns the file parts associated with form key param or a nil
-// slice, if none. These can be then opened individually by calling Open.
+// slice, if none. These can be then opened individually by calling
+// FileHeader.Open.
 func (f *MultipartForm) FileHeaders(param string) []*multipart.FileHeader {
 	fh, ok := f.mf.File[param]
 	if !ok {

@@ -527,7 +527,8 @@ func TestMultipartFormValidFileAndVals(t *testing.T) {
 			File: map[string][]*multipart.FileHeader{
 				"foo": {fh},
 			},
-		}}
+		},
+	}
 
 	if want, got := int64(1), f.Int64("number", 0); want != got {
 		t.Errorf(`f.Int64("number"): got %d, want %d`, got, want)
