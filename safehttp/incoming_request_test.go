@@ -372,9 +372,9 @@ func TestIncomingRequestMultipartFileUpload(t *testing.T) {
 		t.Errorf("r.MultipartForm(1024): got err %v", err)
 	}
 
-	fhs := f.FileHeaders("file")
+	fhs := f.File("file")
 	if fhs == nil {
-		t.Error(`f.FileHeaders("file"): got nil, want file header`)
+		t.Error(`f.File("file"): got nil, want file header`)
 	}
 	defer f.RemoveFiles()
 
@@ -411,9 +411,9 @@ func TestIncomingRequestMultipartFormAndFileUpload(t *testing.T) {
 		t.Errorf("f.Err(): got err %v", err)
 	}
 
-	fhs := f.FileHeaders("file")
+	fhs := f.File("file")
 	if fhs == nil {
-		t.Error(`f.FileHeaders("file"): got nil, want file header`)
+		t.Error(`f.File("file"): got nil, want file header`)
 	}
 	defer f.RemoveFiles()
 
@@ -438,9 +438,9 @@ func TestIncomingRequestFileUploadMissingContent(t *testing.T) {
 		t.Errorf("r.MultipartForm(1024): got err %v", err)
 	}
 
-	fhs := f.FileHeaders("file")
+	fhs := f.File("file")
 	if fhs == nil {
-		t.Error(`f.FileHeaders("file"): got nil, want file header`)
+		t.Error(`f.File("file"): got nil, want file header`)
 	}
 	defer f.RemoveFiles()
 
