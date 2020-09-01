@@ -357,3 +357,97 @@ func TestIncomingRequestInvalidMultipartForm(t *testing.T) {
 		})
 	}
 }
+
+func TestIncomingRequestMultipartFileUpload(t *testing.T) {
+	body := "--123\r\n" +
+		"Content-Disposition: form-data; name=\"file\"; filename=\"myfile\"\r\n" +
+		"\r\n" +
+		"file content\r\n" +
+		"--123--\r\n"
+	r := safehttptest.NewRequest(safehttp.MethodPost, "/", strings.NewReader(body))
+	r.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+
+	f, err := r.MultipartForm(1024)
+	if err != nil {
+		t.Errorf("r.MultipartForm(1024): got err %v", err)
+	}
+
+	fhs := f.FileHeaders("file")
+	if fhs == nil {
+		t.Error(`f.FileHeaders("file"): got nil, want file header`)
+	}
+	defer f.RemoveFiles()
+
+	file, err := fhs[0].Open()
+	content := make([]byte, 12)
+	file.Read(content)
+	if want, got := "file content", string(content); want != got {
+		t.Errorf("file.Read(content): got %s, want %s", got, want)
+	}
+}
+
+func TestIncomingRequestMultipartFormAndFileUpload(t *testing.T) {
+	body := "--123\r\n" +
+		"Content-Disposition: form-data; name=\"key\"\r\n" +
+		"\r\n" +
+		"12\r\n" +
+		"--123\r\n" +
+		"Content-Disposition: form-data; name=\"file\"; filename=\"myfile\"\r\n" +
+		"\r\n" +
+		"file content\r\n" +
+		"--123--\r\n"
+	r := safehttptest.NewRequest(safehttp.MethodPost, "/", strings.NewReader(body))
+	r.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+
+	f, err := r.MultipartForm(1024)
+	if err != nil {
+		t.Errorf("r.MultipartForm(1024): got err %v", err)
+	}
+
+	if want, got := int64(12), f.Int64("key", 0); want != got {
+		t.Errorf(`f.Int64("key", 0): got %d, want %d`, got, want)
+	}
+	if err := f.Err(); err != nil {
+		t.Errorf("f.Err(): got err %v", err)
+	}
+
+	fhs := f.FileHeaders("file")
+	if fhs == nil {
+		t.Error(`f.FileHeaders("file"): got nil, want file header`)
+	}
+	defer f.RemoveFiles()
+
+	file, err := fhs[0].Open()
+	content := make([]byte, 12)
+	file.Read(content)
+	if want, got := "file content", string(content); want != got {
+		t.Errorf("file.Read(content): got %s, want %s", got, want)
+	}
+}
+
+func TestIncomingRequestFileUploadMissingContent(t *testing.T) {
+	body := "--123\r\n" +
+		"Content-Disposition: form-data; name=\"file\"; filename=\"myfile\"\r\n" +
+		"\r\n" +
+		"--123--\r\n"
+	r := safehttptest.NewRequest(safehttp.MethodPost, "/", strings.NewReader(body))
+	r.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+
+	f, err := r.MultipartForm(1024)
+	if err != nil {
+		t.Errorf("r.MultipartForm(1024): got err %v", err)
+	}
+
+	fhs := f.FileHeaders("file")
+	if fhs == nil {
+		t.Error(`f.FileHeaders("file"): got nil, want file header`)
+	}
+	defer f.RemoveFiles()
+
+	file, err := fhs[0].Open()
+	content := make([]byte, 0)
+	file.Read(content)
+	if want, got := "", string(content); want != got {
+		t.Errorf("file.Read(content): got %s, want %s", got, want)
+	}
+}

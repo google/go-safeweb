@@ -51,10 +51,10 @@ func (r *IncomingRequest) Method() string {
 
 // PostForm parses the form parameters provided in the body of a POST, PATCH or
 // PUT request that does not have Content-Type: multipart/form-data. It returns
-// the parsed form parameters as a Form object, if no error occurred. If a parsing
-// error occurs it will return it, together with a nil Form. Unless we expect the
-// header Content-Type: multipart/form-data in a POST request, this method should
-// always be used for forms in POST requests.
+// the parsed form parameters as a Form object. If a parsing
+// error occurs it will return it, together with a nil Form. Unless we expect
+// the header Content-Type: multipart/form-data in a POST request, this method
+// should  always be used for forms in POST requests.
 func (r *IncomingRequest) PostForm() (*Form, error) {
 	var err error
 	r.postParseOnce.Do(func() {
@@ -79,19 +79,14 @@ func (r *IncomingRequest) PostForm() (*Form, error) {
 // MultipartForm parses the form parameters provided in the body of a POST,
 // PATCH or PUT request that has Content-Type set to multipart/form-data. It
 // returns a MultipartForm object containing the parsed form parameters and
-// files, if no error occurred, or the parsing error together with a nil
-// MultipartForm otherwise. When a form file is passed as part of a request,
-// maxMemory determines the upper limit of how much of the file can be stored in
-// main memory. If the file is bigger than maxMemory, capped at 32 MB, the
-// remaining part is going to  be stored on disk. This method should  only be
-// used when the user expects a POST request with the Content-Type: multipart/form-data header.
+// file uploads (if any) or the parsing error together with a nil MultipartForm // otherwise.
+//
+// If the parsed request body is larger than maxMemory, up to maxMemory bytes
+// will be stored in main memory, with the rest stored on disk in temporary
+// files.
 func (r *IncomingRequest) MultipartForm(maxMemory int64) (*MultipartForm, error) {
 	var err error
 	r.multipartParseOnce.Do(func() {
-		// Ensures no more than 32 MB are stored in memory when a form file is
-		// passed as part of the request. If this is bigger than 32 MB, the rest
-		// will be stored on disk.
-		const defaultMaxMemory = 32 << 20
 		if m := r.req.Method; m != MethodPost && m != MethodPatch && m != MethodPut {
 			err = fmt.Errorf("got request method %s, want POST/PATCH/PUT", m)
 			return
@@ -101,10 +96,6 @@ func (r *IncomingRequest) MultipartForm(maxMemory int64) (*MultipartForm, error)
 			err = fmt.Errorf("invalid method called for Content-Type: %s", ct)
 			return
 		}
-		if maxMemory < 0 || maxMemory > defaultMaxMemory {
-			maxMemory = defaultMaxMemory
-		}
-
 		err = r.req.ParseMultipartForm(maxMemory)
 	})
 	if err != nil {
@@ -113,7 +104,9 @@ func (r *IncomingRequest) MultipartForm(maxMemory int64) (*MultipartForm, error)
 	return &MultipartForm{
 			Form: Form{
 				values: r.req.MultipartForm.Value,
-			}},
+			},
+			mf: r.req.MultipartForm,
+		},
 		nil
 }
 
