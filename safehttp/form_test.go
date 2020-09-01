@@ -510,9 +510,9 @@ func TestMultipartFormValidFile(t *testing.T) {
 			"foo": {fh},
 		},
 	}}
-	fhs := f.FileHeaders("foo")
+	fhs := f.File("foo")
 	if fhs == nil {
-		t.Errorf(`m.FileHeaders("foo"): got nil, want file headers`)
+		t.Errorf(`m.File("foo"): got nil, want file headers`)
 	}
 	if diff := cmp.Diff(fh, fhs[0], cmp.AllowUnexported(multipart.FileHeader{})); diff != "" {
 		t.Errorf("file headers mismatch (-want +got):\n%s", diff)
@@ -537,9 +537,9 @@ func TestMultipartFormValidFileAndVals(t *testing.T) {
 		t.Errorf(`f.Err(): got err %v`, err)
 	}
 
-	fhs := f.FileHeaders("foo")
+	fhs := f.File("foo")
 	if fhs == nil {
-		t.Errorf(`m.FileHeaders("foo"): got nil, want file headers`)
+		t.Errorf(`m.File("foo"): got nil, want file headers`)
 	}
 	if diff := cmp.Diff(fh, fhs[0], cmp.AllowUnexported(multipart.FileHeader{})); diff != "" {
 		t.Errorf("file headers mismatch (-want +got):\n%s", diff)
@@ -548,8 +548,8 @@ func TestMultipartFormValidFileAndVals(t *testing.T) {
 
 func TestMultipartFormMissingFile(t *testing.T) {
 	f := &MultipartForm{mf: &multipart.Form{}}
-	fhs := f.FileHeaders("x")
+	fhs := f.File("x")
 	if fhs != nil {
-		t.Errorf(`m.FileHeaders("x"): got file headers, want nil`)
+		t.Errorf(`m.File("x"): got file headers, want nil`)
 	}
 }
