@@ -70,5 +70,5 @@ func (p *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 		return w.ClientError(safehttp.StatusForbidden)
 	}
 
-	return safehttp.NotWritten
+	return safehttp.NotWritten()
 }

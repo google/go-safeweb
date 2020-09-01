@@ -172,7 +172,7 @@ func (p setHeaderInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.Inc
 	if err := w.Header().Set(p.name, p.value); err != nil {
 		return w.ServerError(safehttp.StatusInternalServerError)
 	}
-	return safehttp.NotWritten
+	return safehttp.NotWritten()
 }
 
 type internalErrorInterceptor struct{}
@@ -192,7 +192,7 @@ func (p *claimHeaderInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.
 		return w.ServerError(safehttp.StatusInternalServerError)
 	}
 	p.setValue = f
-	return safehttp.NotWritten
+	return safehttp.NotWritten()
 }
 
 func (p *claimHeaderInterceptor) SetHeader(value string) {
@@ -470,7 +470,7 @@ func TestMuxDeterministicInterceptorOrder(t *testing.T) {
 func TestMuxHandlerReturnsNotWritten(t *testing.T) {
 	mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
 	h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-		return safehttp.NotWritten
+		return safehttp.NotWritten()
 	})
 	mux.Handle("/bar", safehttp.MethodGet, h)
 	req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/bar", nil)

@@ -93,5 +93,5 @@ func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 		return w.ServerError(safehttp.StatusInternalServerError)
 	}
 	set([]string{value.String()})
-	return safehttp.NotWritten
+	return safehttp.NotWritten()
 }
