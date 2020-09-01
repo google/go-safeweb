@@ -16,6 +16,7 @@ package safehttp
 
 import (
 	"fmt"
+	"mime/multipart"
 	"strconv"
 )
 
@@ -195,9 +196,26 @@ func (f *Form) Err() error {
 	return f.err
 }
 
-// MultipartForm extends the Form structure to define a POST, PATCH or PUT
-// request that has Content-Type: multipart/form-data.
+// MultipartForm extends a parsed multipart form, part of the body of a
+// PATCH, POST or PUT request. A multipart form can include both form values and
+// file uploads, stored either in memory or on disk.
 type MultipartForm struct {
 	Form
-	// TODO(mihalimara22): add support for form files in the MultipartForm
+	mf *multipart.Form
+}
+
+// FileHeaders returns the file parts associated with form key param or a nil
+// slice, if none. These can be then opened individually by calling Open.
+func (f *MultipartForm) FileHeaders(param string) []*multipart.FileHeader {
+	fh, ok := f.mf.File[param]
+	if !ok {
+		return nil
+	}
+	return fh
+}
+
+// RemoveFiles removes any temporary files associated with a Form and returns
+// the first error that occured, if any.
+func (f *MultipartForm) RemoveFiles() error {
+	return f.mf.RemoveAll()
 }

@@ -16,6 +16,7 @@ package safehttp
 
 import (
 	"math"
+	"mime/multipart"
 	"strconv"
 	"testing"
 
@@ -499,5 +500,55 @@ func TestFormClearSliceUnknownType(t *testing.T) {
 	x := []int16{-1}
 	if err := clearSlice(&x); err == nil {
 		t.Error("clearSlice(&x) got: nil want: error")
+	}
+}
+
+func TestMultipartFormValidFile(t *testing.T) {
+	fh := &multipart.FileHeader{Filename: "bar"}
+	f := &MultipartForm{mf: &multipart.Form{
+		File: map[string][]*multipart.FileHeader{
+			"foo": {fh},
+		},
+	}}
+	fhs := f.FileHeaders("foo")
+	if fhs == nil {
+		t.Errorf(`m.FileHeaders("foo"): got nil, want file headers`)
+	}
+	if diff := cmp.Diff(fh, fhs[0], cmp.AllowUnexported(multipart.FileHeader{})); diff != "" {
+		t.Errorf("file headers mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestMultipartFormValidFileAndVals(t *testing.T) {
+	fh := &multipart.FileHeader{Filename: "bar"}
+	f := &MultipartForm{
+		Form: Form{values: map[string][]string{"number": {"1"}}},
+		mf: &multipart.Form{
+			File: map[string][]*multipart.FileHeader{
+				"foo": {fh},
+			},
+		}}
+
+	if want, got := int64(1), f.Int64("number", 0); want != got {
+		t.Errorf(`f.Int64("number"): got %d, want %d`, got, want)
+	}
+	if err := f.Err(); err != nil {
+		t.Errorf(`f.Err(): got err %v`, err)
+	}
+
+	fhs := f.FileHeaders("foo")
+	if fhs == nil {
+		t.Errorf(`m.FileHeaders("foo"): got nil, want file headers`)
+	}
+	if diff := cmp.Diff(fh, fhs[0], cmp.AllowUnexported(multipart.FileHeader{})); diff != "" {
+		t.Errorf("file headers mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestMultipartFormMissingFile(t *testing.T) {
+	f := &MultipartForm{mf: &multipart.Form{}}
+	fhs := f.FileHeaders("x")
+	if fhs != nil {
+		t.Errorf(`m.FileHeaders("x"): got file headers, want nil`)
 	}
 }
