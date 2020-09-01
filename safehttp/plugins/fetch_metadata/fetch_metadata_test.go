@@ -306,9 +306,6 @@ func TestResourceIsolationReportMode(t *testing.T) {
 			p.SetReportOnly()
 			p.Before(rec.ResponseWriter, req)
 
-			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); want != got {
-				t.Errorf("status code got: %v want: %v", got, want)
-			}
 			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); got != want {
 				t.Errorf("status code got: %v want: %v", got, want)
 			}
@@ -407,9 +404,6 @@ func TestNavIsolationReportMode(t *testing.T) {
 			p.Before(rec.ResponseWriter, req)
 
 			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); want != got {
-				t.Errorf("status code got: %v want: %v", got, want)
-			}
-			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); got != want {
 				t.Errorf("status code got: %v want: %v", got, want)
 			}
 			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
