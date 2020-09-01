@@ -50,7 +50,7 @@ func (testDispatcher) ExecuteTemplate(rw http.ResponseWriter, t safehttp.Templat
 type responseRecorder struct {
 	header http.Header
 	writer io.Writer
-	status int
+	status safehttp.StatusCode
 }
 
 func newResponseRecorder(w io.Writer) *responseRecorder {
@@ -62,7 +62,7 @@ func (r *responseRecorder) Header() http.Header {
 }
 
 func (r *responseRecorder) WriteHeader(statusCode int) {
-	r.status = statusCode
+	r.status = safehttp.StatusCode(statusCode)
 }
 
 func (r *responseRecorder) Write(data []byte) (int, error) {
