@@ -74,9 +74,9 @@ func (u URL) Path() string {
 	return u.url.Path
 }
 
-// ParseURL parses a rawURL string into a URL structure.
+// ParseURL parses a raw URL string into a URL structure.
 //
-// The rawURl may be relative (a path, without a host) or absolute (starting
+// The raw URl may be relative (a path, without a host) or absolute (starting
 // with a scheme). Trying to parse a hostname and path without a scheme is
 // invalid but may not necessarily return an error, due to parsing ambiguities.
 func ParseURL(rawurl string) (*URL, error) {
