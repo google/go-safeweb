@@ -72,6 +72,21 @@ func TestSerialize(t *testing.T) {
 			wantString: "object-src 'none'; script-src 'unsafe-inline' 'nonce-super-secret' 'strict-dynamic' https: http:; base-uri 'none'; report-uri https://example.com/collector",
 		},
 		{
+			name: "StrictCSP with one hash",
+			policy: StrictCSPBuilder{Hashes: []string{
+				"sha256-CihokcEcBW4atb/CW/XWsvWwbTjqwQlE9nj9ii5ww5M=",
+			}}.Build(),
+			wantString: "object-src 'none'; script-src 'unsafe-inline' 'nonce-super-secret' 'strict-dynamic' https: http: 'sha256-CihokcEcBW4atb/CW/XWsvWwbTjqwQlE9nj9ii5ww5M='; base-uri 'none'",
+		},
+		{
+			name: "StrictCSP with multiple hashes",
+			policy: StrictCSPBuilder{Hashes: []string{
+				"sha256-CihokcEcBW4atb/CW/XWsvWwbTjqwQlE9nj9ii5ww5M=",
+				"sha256-CihokcEcBW4atb/CW/XWsvWwbTjqwQlE9nj9ii5ww5M=",
+			}}.Build(),
+			wantString: "object-src 'none'; script-src 'unsafe-inline' 'nonce-super-secret' 'strict-dynamic' https: http: 'sha256-CihokcEcBW4atb/CW/XWsvWwbTjqwQlE9nj9ii5ww5M=' 'sha256-CihokcEcBW4atb/CW/XWsvWwbTjqwQlE9nj9ii5ww5M='; base-uri 'none'",
+		},
+		{
 			name:       "FramingCSP",
 			policy:     FramingPolicyBuilder{}.Build(),
 			wantString: "frame-ancestors 'self'",
