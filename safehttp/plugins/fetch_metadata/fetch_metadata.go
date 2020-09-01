@@ -133,7 +133,7 @@ func (p *Plugin) SetEnforce() {
 // the  violation is reported. If a redirectURL was provided and the Navigation
 // Isolation Policy is enabled and fails, the IncomingRequest will be
 // redirected to redirectURL.
-func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+func (p *Plugin) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 	// TODO(mihalimara22): Remove and disable using configurations when those
 	// have been implemented
 	if p.corsProtected[r.URL.Path()] {
