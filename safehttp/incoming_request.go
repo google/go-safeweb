@@ -79,7 +79,8 @@ func (r *IncomingRequest) PostForm() (*Form, error) {
 // MultipartForm parses the form parameters provided in the body of a POST,
 // PATCH or PUT request that has Content-Type set to multipart/form-data. It
 // returns a MultipartForm object containing the parsed form parameters and
-// file uploads (if any) or the parsing error together with a nil MultipartForm // otherwise.
+// file uploads (if any) or the parsing error together with a nil MultipartForm
+// otherwise.
 //
 // If the parsed request body is larger than maxMemory, up to maxMemory bytes
 // will be stored in main memory, with the rest stored on disk in temporary
