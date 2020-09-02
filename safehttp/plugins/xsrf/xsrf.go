@@ -16,8 +16,10 @@ package xsrf
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
-
+	"fmt"
 	"github.com/google/go-safeweb/safehttp"
 	"golang.org/x/net/xsrftoken"
 )
@@ -25,7 +27,8 @@ import (
 const (
 	// TokenKey is the form key used when sending the token as part of POST
 	// request.
-	TokenKey = "xsrf-token"
+	TokenKey    = "xsrf-token"
+	tokenCookie = "xsrf-cookie"
 )
 
 var statePreservingMethods = map[string]bool{
@@ -34,22 +37,11 @@ var statePreservingMethods = map[string]bool{
 	safehttp.MethodOptions: true,
 }
 
-// UserIdentifier provides the web application users' identifiers,
-// needed in generating the XSRF token.
-type UserIdentifier interface {
-	// UserID returns the user's identifier based on the
-	// safehttp.IncomingRequest received.
-	UserID(*safehttp.IncomingRequest) (string, error)
-}
-
 // Interceptor implements XSRF protection.
 type Interceptor struct {
-	// SecretAppKey uniquely identifies each registered service and should have high
-	// entropy as it is used for generating the XSRF token.
+	// SecretAppKey uniquely identifies each registered service and should have
+	// high entropy as it is used for generating the XSRF token.
 	SecretAppKey string
-	// Identifier supports retrieving the user ID based on the incoming
-	// request. This is needed for generating the XSRF token.
-	Identifier UserIdentifier
 }
 
 type tokenCtxKey struct{}
@@ -64,24 +56,52 @@ func Token(r *safehttp.IncomingRequest) (string, error) {
 	return tok.(string), nil
 }
 
+func addTokenCookie(w *safehttp.ResponseWriter) (*safehttp.Cookie, error) {
+	buf := make([]byte, 20)
+	_, err := rand.Read(buf)
+	if err != nil {
+		panic(fmt.Errorf("failed to generate entropy using crypto/rand/RandReader: %v", err))
+	}
+
+	c := safehttp.NewCookie(tokenCookie, base64.StdEncoding.EncodeToString(buf))
+	c.SetSameSite(safehttp.SameSiteStrictMode)
+	if err := w.SetCookie(c); err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
 // Before should be executed before directing the safehttp.IncomingRequest to
 // the handler to ensure it is not part of the Cross-Site Request
 // Forgery attack.
 //
+// On first user visit through a state preserving request (GET, HEAD or
+// OPTIONS), it sets a nonce-based cookie used to identify a user. This will be
+// used in the token generation and verification algorithm and is expected in
+// all subsequent incoming requests.
+//
 // In case of state changing requests (all except GET, HEAD and OPTIONS), it
 // checks for the presence of an XSRF token in the request and validates it
-// based on the user ID associated with the request.
+// based on the custom cookie.
 //
 // For authorized requests, it adds a cryptographically safe XSRF token to the
-// incoming request. It can be later extracted using Token.
+// incoming request. This can be later extracted using Token.
 func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
-	userID, err := i.Identifier.UserID(r)
-	if err != nil {
-		return w.WriteError(safehttp.StatusUnauthorized)
+	needsValidation := !statePreservingMethods[r.Method()]
+	c, err := r.Cookie(tokenCookie)
+	if c == nil {
+		if needsValidation {
+			return w.WriteError(safehttp.StatusForbidden)
+		}
+		c, err = addTokenCookie(w)
+		if err != nil {
+			// An error is returned when the plugin fails to Set the Set-Cookie
+			// header in the response writer as this is a server misconfiguration.
+			return w.WriteError(safehttp.StatusInternalServerError)
+		}
 	}
 
-	actionID := r.Method() + " " + r.URL.Path()
-	needsValidation := !statePreservingMethods[r.Method()]
+	actionID := r.URL.Path()
 	if needsValidation {
 		f, err := r.PostForm()
 		if err != nil {
@@ -100,12 +120,12 @@ func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 			return w.WriteError(safehttp.StatusUnauthorized)
 		}
 
-		if ok := xsrftoken.Valid(tok, i.SecretAppKey, userID, actionID); !ok {
+		if ok := xsrftoken.Valid(tok, i.SecretAppKey, c.Value(), actionID); !ok {
 			return w.WriteError(safehttp.StatusForbidden)
 		}
 	}
 
-	tok := xsrftoken.Generate(i.SecretAppKey, userID, actionID)
+	tok := xsrftoken.Generate(i.SecretAppKey, c.Value(), actionID)
 	r.SetContext(context.WithValue(r.Context(), tokenCtxKey{}, tok))
 	return safehttp.NotWritten()
 }
