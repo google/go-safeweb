@@ -80,7 +80,8 @@ type ServeMux struct {
 	handlers map[string]methodHandler
 
 	// Maps interceptor key to interceptor.
-	interceps map[string]Interceptor
+	interceps      map[string]Interceptor
+	intercepsOrder []string
 }
 
 // NewServeMux allocates and returns a new ServeMux
@@ -105,27 +106,21 @@ func NewServeMux(d Dispatcher, domains ...string) *ServeMux {
 // Configs can be optionally passed in order to modify the behavior of the
 // interceptors on a registered handler. Passing a Config whose corresponding
 // Interceptor was not installed will produce no effect.
-func (m *ServeMux) Handle(pattern string, method string, h Handler, configs ...Config) {
-	interceps := map[string]Interceptor{}
-	for k, i := range m.interceps {
-		interceps[k] = i
-	}
-	var changed bool
-	for _, c := range configs {
-		for k, i := range interceps {
-			if i, ok := c.Apply(i); ok {
-				interceps[k] = i
-				changed = true
+func (m *ServeMux) Handle(pattern string, method string, h Handler, cfgs ...Config) {
+	cfgMap := map[string]Config{}
+	for _, cfg := range cfgs {
+		for k, it := range m.interceps {
+			if cfg.Match(it) {
+				cfgMap[k] = cfg
 			}
 		}
 	}
-	if !changed {
-		interceps = m.interceps
-	}
 	hi := handlerWithInterceptors{
-		handler:   h,
-		interceps: interceps,
-		disp:      m.disp,
+		handler:        h,
+		interceps:      m.interceps,
+		disp:           m.disp,
+		configs:        cfgMap,
+		intercepsOrder: m.intercepsOrder,
 	}
 
 	mh, ok := m.handlers[pattern]
@@ -157,6 +152,7 @@ func (m *ServeMux) Install(key string, i Interceptor) {
 		panic("interceptor with same key already installed")
 	}
 	m.interceps[key] = i
+	m.intercepsOrder = append(m.intercepsOrder, key)
 }
 
 // ServeHTTP dispatches the request to the handler whose method matches the
@@ -192,9 +188,11 @@ func (m methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // handlerWithInterceptors encapsulates a handler and its corresponding
 // interceptors.
 type handlerWithInterceptors struct {
-	handler   Handler
-	interceps map[string]Interceptor
-	disp      Dispatcher
+	handler        Handler
+	configs        map[string]Config
+	interceps      map[string]Interceptor
+	intercepsOrder []string
+	disp           Dispatcher
 }
 
 // ServeHTTP calls the Before method of all the interceptors and then calls the
@@ -212,8 +210,8 @@ func (h handlerWithInterceptors) ServeHTTP(w http.ResponseWriter, r *http.Reques
 		}
 	}()
 
-	for _, it := range h.interceps {
-		it.Before(rw, ir)
+	for _, key := range h.intercepsOrder {
+		h.interceps[key].Before(rw, ir, h.configs[key])
 		if rw.written {
 			return
 		}

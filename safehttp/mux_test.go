@@ -168,7 +168,7 @@ type setHeaderInterceptor struct {
 	value string
 }
 
-func (p setHeaderInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest) safehttp.Result {
+func (p setHeaderInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
 	if err := w.Header().Set(p.name, p.value); err != nil {
 		return w.ServerError(safehttp.StatusInternalServerError)
 	}
@@ -177,7 +177,7 @@ func (p setHeaderInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.Inc
 
 type internalErrorInterceptor struct{}
 
-func (internalErrorInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest) safehttp.Result {
+func (internalErrorInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
 	return w.ServerError(safehttp.StatusInternalServerError)
 }
 
@@ -186,7 +186,7 @@ type claimHeaderInterceptor struct {
 	setValue      func([]string)
 }
 
-func (p *claimHeaderInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest) safehttp.Result {
+func (p *claimHeaderInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
 	f, err := w.Header().Claim(p.headerToClaim)
 	if err != nil {
 		return w.ServerError(safehttp.StatusInternalServerError)
@@ -201,7 +201,7 @@ func (p *claimHeaderInterceptor) SetHeader(value string) {
 
 type panickingInterceptor struct{}
 
-func (panickingInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest) safehttp.Result {
+func (panickingInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
 	panic("bad")
 }
 
@@ -317,22 +317,37 @@ func TestMuxInterceptors(t *testing.T) {
 	}
 }
 
-type setHeaderConfig struct{}
+type setHeaderConfig struct {
+	name  string
+	value string
+}
 
-func (setHeaderConfig) Apply(i safehttp.Interceptor) (safehttp.Interceptor, bool) {
-	p, ok := i.(setHeaderInterceptor)
-	if !ok {
-		return p, false
+func (setHeaderConfig) Match(i safehttp.Interceptor) bool {
+	if _, ok := i.(setHeaderConfigInterceptor); !ok {
+		return false
 	}
-	p.name = "Foo"
-	p.value = "Bar"
-	return p, true
+	return true
+}
+
+type setHeaderConfigInterceptor struct{}
+
+func (p setHeaderConfigInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
+	name := "Pizza"
+	value := "Hawaii"
+	if c, ok := cfg.(setHeaderConfig); ok {
+		name = c.name
+		value = c.value
+	}
+	if err := w.Header().Set(name, value); err != nil {
+		return w.ServerError(safehttp.StatusInternalServerError)
+	}
+	return safehttp.Result{}
 }
 
 type noInterceptorConfig struct{}
 
-func (noInterceptorConfig) Apply(i safehttp.Interceptor) (safehttp.Interceptor, bool) {
-	return i, false
+func (noInterceptorConfig) Match(i safehttp.Interceptor) bool {
+	return false
 }
 
 func TestMuxInterceptorConfigs(t *testing.T) {
@@ -345,13 +360,13 @@ func TestMuxInterceptorConfigs(t *testing.T) {
 	}{
 		{
 			name:        "SetHeaderInterceptor with config",
-			config:      setHeaderConfig{},
+			config:      setHeaderConfig{name: "Foo", value: "Bar"},
 			wantStatus:  safehttp.StatusOK,
 			wantHeaders: map[string][]string{"Foo": {"Bar"}},
 			wantBody:    "&lt;h1&gt;Hello World!&lt;/h1&gt;",
 		},
 		{
-			name:        "SetHeaderInterceptor with config",
+			name:        "SetHeaderInterceptor with mismatching config",
 			config:      noInterceptorConfig{},
 			wantStatus:  safehttp.StatusOK,
 			wantHeaders: map[string][]string{"Pizza": {"Hawaii"}},
@@ -362,7 +377,7 @@ func TestMuxInterceptorConfigs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-			mux.Install("setHeader", setHeaderInterceptor{name: "Pizza", value: "Hawaii"})
+			mux.Install("setHeader", setHeaderConfigInterceptor{})
 
 			registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
@@ -388,5 +403,69 @@ func TestMuxInterceptorConfigs(t *testing.T) {
 				t.Errorf("response body: got %q want %q", got, tt.wantBody)
 			}
 		})
+	}
+}
+
+type interceptorOne struct {
+}
+
+func (interceptorOne) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
+	w.Header().Set("pizza", "diavola")
+	return safehttp.Result{}
+}
+
+type interceptorTwo struct {
+}
+
+func (interceptorTwo) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
+	if w.Header().Get("pizza") != "diavola" {
+		w.ServerError(safehttp.StatusInternalServerError)
+	}
+	w.Header().Set("spaghetti", "bolognese")
+	return safehttp.Result{}
+}
+
+type interceptorThree struct {
+}
+
+func (interceptorThree) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
+	if w.Header().Get("spaghetti") != "bolognese" {
+		w.ServerError(safehttp.StatusInternalServerError)
+	}
+	w.Header().Set("dessert", "tiramisu")
+	return safehttp.Result{}
+}
+
+func TestMuxDeterministicInterceptorOrder(t *testing.T) {
+	mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+	mux.Install("one", interceptorOne{})
+	mux.Install("two", interceptorTwo{})
+	mux.Install("three", interceptorThree{})
+
+	registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
+	})
+	mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
+
+	b := &strings.Builder{}
+	rw := newResponseRecorder(b)
+
+	req := httptest.NewRequest("GET", "http://foo.com/bar", nil)
+
+	mux.ServeHTTP(rw, req)
+
+	if want := safehttp.StatusOK; rw.status != want {
+		t.Errorf("rw.status: got %v want %v", rw.status, want)
+	}
+	wantHeaders := map[string][]string{
+		"Dessert":   {"tiramisu"},
+		"Pizza":     {"diavola"},
+		"Spaghetti": {"bolognese"},
+	}
+	if diff := cmp.Diff(wantHeaders, map[string][]string(rw.header)); diff != "" {
+		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+	}
+	if got, want := b.String(), "&lt;h1&gt;Hello World!&lt;/h1&gt;"; got != want {
+		t.Errorf(`response body: got %q want %q`, got, want)
 	}
 }
