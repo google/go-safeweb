@@ -333,3 +333,33 @@ func TestClaimClaimed(t *testing.T) {
 	}()
 	h.Claim("Foo-Key")
 }
+
+func TestHeaderIsClaimed(t *testing.T) {
+	h := newHeader(http.Header{})
+	h.Claim("Foo-Key")
+	if got := h.IsClaimed("Foo-Key"); got != true {
+		t.Errorf(`h.IsClaimed("Foo-Key") got: %v want: true`, got)
+	}
+}
+
+func TestHeaderIsClaimedCanonicalization(t *testing.T) {
+	h := newHeader(http.Header{})
+	h.Claim("fOo-KEY")
+	if got := h.IsClaimed("foo-keY"); got != true {
+		t.Errorf(`h.IsClaimed("foo-keY") got: %v want: true`, got)
+	}
+}
+
+func TestHeaderIsClaimedNotClaimed(t *testing.T) {
+	h := newHeader(http.Header{})
+	if got := h.IsClaimed("Foo-Key"); got != false {
+		t.Errorf(`h.IsClaimed("Foo-Key") got: %v want: true`, got)
+	}
+}
+
+func TestHeaderIsClaimedSetCookie(t *testing.T) {
+	h := newHeader(http.Header{})
+	if got := h.IsClaimed("Set-Cookie"); got != true {
+		t.Errorf(`h.IsClaimed("Set-Cookie") got: %v want: true`, got)
+	}
+}

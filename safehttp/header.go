@@ -56,6 +56,15 @@ func (h Header) Claim(name string) (set func([]string)) {
 	}
 }
 
+// IsClaimed returns whether the provided header is already claimed. The name is
+// first canonicalized using textproto.CanonicalMIMEHeaderKey. The Set-Cookie header
+// is always pre-claimed.
+func (h Header) IsClaimed(name string) bool {
+	name = textproto.CanonicalMIMEHeaderKey(name)
+	err := h.writableHeader(name)
+	return err != nil
+}
+
 // Set sets the header with the given name to the given value.
 // The name is first canonicalized using textproto.CanonicalMIMEHeaderKey.
 // This method first removes all other values associated with this
