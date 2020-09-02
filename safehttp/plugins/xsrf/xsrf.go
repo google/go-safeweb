@@ -43,9 +43,9 @@ type UserIdentifier interface {
 
 // Interceptor implements XSRF protection.
 type Interceptor struct {
-	// AppKey uniquely identifies each registered service and should have high
+	// SecretAppKey uniquely identifies each registered service and should have high
 	// entropy as it is used for generating the XSRF token.
-	AppKey string
+	SecretAppKey string
 	// Identifier supports retrieving the user ID based on the incoming
 	// request. This is needed for generating the XSRF token.
 	Identifier UserIdentifier
@@ -99,12 +99,12 @@ func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 			return w.ClientError(safehttp.StatusUnauthorized)
 		}
 
-		if ok := xsrftoken.Valid(tok, i.AppKey, userID, actionID); !ok {
+		if ok := xsrftoken.Valid(tok, i.SecretAppKey, userID, actionID); !ok {
 			return w.ClientError(safehttp.StatusForbidden)
 		}
 	}
 
-	tok := xsrftoken.Generate(i.AppKey, userID, actionID)
+	tok := xsrftoken.Generate(i.SecretAppKey, userID, actionID)
 	r.SetContext(context.WithValue(r.Context(), tokenCtxKey{}, tok))
 
 	return safehttp.Result{}

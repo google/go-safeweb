@@ -73,11 +73,11 @@ func TestTokenPost(t *testing.T) {
 	for _, test := range formTokenTests {
 		t.Run(test.name, func(t *testing.T) {
 			rec := safehttptest.NewResponseRecorder()
-			tok := xsrftoken.Generate("testAppKey", test.userID, test.actionID)
+			tok := xsrftoken.Generate("testSecretAppKey", test.userID, test.actionID)
 			req := safehttptest.NewRequest(safehttp.MethodPost, "https://foo.com/pizza", strings.NewReader(TokenKey+"="+tok))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-			i := Interceptor{AppKey: "testAppKey", Identifier: userIdentifier{}}
+			i := Interceptor{SecretAppKey: "testSecretAppKey", Identifier: userIdentifier{}}
 			i.Before(rec.ResponseWriter, req, nil)
 
 			if got := rec.Status(); got != test.wantStatus {
@@ -97,7 +97,7 @@ func TestTokenMultipart(t *testing.T) {
 	for _, test := range formTokenTests {
 		t.Run(test.name, func(t *testing.T) {
 			rec := safehttptest.NewResponseRecorder()
-			tok := xsrftoken.Generate("testAppKey", test.userID, test.actionID)
+			tok := xsrftoken.Generate("testSecretAppKey", test.userID, test.actionID)
 			b := "--123\r\n" +
 				"Content-Disposition: form-data; name=\"xsrf-token\"\r\n" +
 				"\r\n" +
@@ -106,7 +106,7 @@ func TestTokenMultipart(t *testing.T) {
 			req := safehttptest.NewRequest(safehttp.MethodPost, "https://foo.com/pizza", strings.NewReader(b))
 			req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
 
-			i := Interceptor{AppKey: "testAppKey", Identifier: userIdentifier{}}
+			i := Interceptor{SecretAppKey: "testSecretAppKey", Identifier: userIdentifier{}}
 			i.Before(rec.ResponseWriter, req, nil)
 
 			if got := rec.Status(); got != test.wantStatus {
@@ -173,7 +173,7 @@ func TestMissingTokenInBody(t *testing.T) {
 	for _, test := range tests {
 		rec := safehttptest.NewResponseRecorder()
 
-		i := Interceptor{AppKey: "testAppKey", Identifier: userIdentifier{}}
+		i := Interceptor{SecretAppKey: "testSecretAppKey", Identifier: userIdentifier{}}
 		i.Before(rec.ResponseWriter, test.req, nil)
 
 		if want, got := safehttp.StatusUnauthorized, rec.Status(); got != want {
@@ -196,7 +196,7 @@ func TestBeforeTokenInRequestContext(t *testing.T) {
 	rec := safehttptest.NewResponseRecorder()
 	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
 
-	i := Interceptor{AppKey: "testAppKey", Identifier: userIdentifier{}}
+	i := Interceptor{SecretAppKey: "testSecretAppKey", Identifier: userIdentifier{}}
 	i.Before(rec.ResponseWriter, req, nil)
 
 	tok, err := Token(req)
