@@ -24,30 +24,24 @@ import (
 	"testing"
 )
 
-type userIdentifier struct{}
-
-func (userIdentifier) UserID(r *safehttp.IncomingRequest) (string, error) {
-	return "1234", nil
-}
-
 var (
 	formTokenTests = []struct {
-		name, userID, actionID, wantBody string
-		wantStatus                       safehttp.StatusCode
-		wantHeader                       map[string][]string
+		name, cookieVal, actionID, wantBody string
+		wantStatus                          safehttp.StatusCode
+		wantHeader                          map[string][]string
 	}{
 		{
 			name:       "Valid token",
-			userID:     "1234",
-			actionID:   "POST /pizza",
+			cookieVal:  "abcdef",
+			actionID:   "/pizza",
 			wantStatus: safehttp.StatusOK,
 			wantHeader: map[string][]string{},
 			wantBody:   "",
 		},
 		{
 			name:       "Invalid actionID in token generation",
-			userID:     "1234",
-			actionID:   "HEAD /pizza",
+			cookieVal:  "abcdef",
+			actionID:   "/spaghetti",
 			wantStatus: safehttp.StatusForbidden,
 			wantHeader: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
@@ -56,9 +50,9 @@ var (
 			wantBody: "Forbidden\n",
 		},
 		{
-			name:       "Invalid userID in token generation",
-			userID:     "5678",
-			actionID:   "POST /pizza",
+			name:       "Invalid cookie value in token generation",
+			cookieVal:  "evilvalue",
+			actionID:   "/pizza",
 			wantStatus: safehttp.StatusForbidden,
 			wantHeader: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
@@ -73,11 +67,12 @@ func TestTokenPost(t *testing.T) {
 	for _, test := range formTokenTests {
 		t.Run(test.name, func(t *testing.T) {
 			rec := safehttptest.NewResponseRecorder()
-			tok := xsrftoken.Generate("testSecretAppKey", test.userID, test.actionID)
+			tok := xsrftoken.Generate("testSecretAppKey", test.cookieVal, test.actionID)
 			req := safehttptest.NewRequest(safehttp.MethodPost, "https://foo.com/pizza", strings.NewReader(TokenKey+"="+tok))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			req.Header.Set("Cookie", tokenCookie+"=abcdef")
 
-			i := Interceptor{SecretAppKey: "testSecretAppKey", Identifier: userIdentifier{}}
+			i := Interceptor{SecretAppKey: "testSecretAppKey"}
 			i.Before(rec.ResponseWriter, req, nil)
 
 			if got := rec.Status(); got != test.wantStatus {
@@ -97,7 +92,7 @@ func TestTokenMultipart(t *testing.T) {
 	for _, test := range formTokenTests {
 		t.Run(test.name, func(t *testing.T) {
 			rec := safehttptest.NewResponseRecorder()
-			tok := xsrftoken.Generate("testSecretAppKey", test.userID, test.actionID)
+			tok := xsrftoken.Generate("testSecretAppKey", test.cookieVal, test.actionID)
 			b := "--123\r\n" +
 				"Content-Disposition: form-data; name=\"xsrf-token\"\r\n" +
 				"\r\n" +
@@ -105,8 +100,9 @@ func TestTokenMultipart(t *testing.T) {
 				"--123--\r\n"
 			req := safehttptest.NewRequest(safehttp.MethodPost, "https://foo.com/pizza", strings.NewReader(b))
 			req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+			req.Header.Set("Cookie", tokenCookie+"=abcdef")
 
-			i := Interceptor{SecretAppKey: "testSecretAppKey", Identifier: userIdentifier{}}
+			i := Interceptor{SecretAppKey: "testSecretAppKey"}
 			i.Before(rec.ResponseWriter, req, nil)
 
 			if got := rec.Status(); got != test.wantStatus {
@@ -122,6 +118,30 @@ func TestTokenMultipart(t *testing.T) {
 	}
 }
 
+func TestMalformedForm(t *testing.T) {
+	rec := safehttptest.NewResponseRecorder()
+	req := safehttptest.NewRequest(safehttp.MethodPost, "https://foo.com/pizza", nil)
+	req.Header.Set("Content-Type", "wrong")
+	req.Header.Set("Cookie", tokenCookie+"=abcdef")
+
+	i := Interceptor{SecretAppKey: "testSecretAppKey"}
+	i.Before(rec.ResponseWriter, req, nil)
+
+	if want, got := safehttp.StatusBadRequest, rec.Status(); got != want {
+		t.Errorf("response status: got %v, want %v", got, want)
+	}
+	wantHeaders := map[string][]string{
+		"Content-Type":           {"text/plain; charset=utf-8"},
+		"X-Content-Type-Options": {"nosniff"},
+	}
+	if diff := cmp.Diff(wantHeaders, map[string][]string(rec.Header())); diff != "" {
+		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+	}
+	if want, got := "Bad Request\n", rec.Body(); got != want {
+		t.Errorf("response body: got %q want %q", got, want)
+	}
+}
+
 func TestMissingTokenInBody(t *testing.T) {
 	tests := []struct {
 		name string
@@ -132,6 +152,7 @@ func TestMissingTokenInBody(t *testing.T) {
 			req: func() *safehttp.IncomingRequest {
 				req := safehttptest.NewRequest(safehttp.MethodPost, "/", strings.NewReader("foo=bar"))
 				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+				req.Header.Set("Cookie", tokenCookie+"=abcdef")
 				return req
 			}(),
 		},
@@ -140,6 +161,7 @@ func TestMissingTokenInBody(t *testing.T) {
 			req: func() *safehttp.IncomingRequest {
 				req := safehttptest.NewRequest(safehttp.MethodPatch, "/", strings.NewReader("foo=bar"))
 				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+				req.Header.Set("Cookie", tokenCookie+"=abcdef")
 				return req
 			}(),
 		},
@@ -153,6 +175,7 @@ func TestMissingTokenInBody(t *testing.T) {
 					"--123--\r\n"
 				req := safehttptest.NewRequest(safehttp.MethodPost, "/", strings.NewReader(b))
 				req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+				req.Header.Set("Cookie", tokenCookie+"=abcdef")
 				return req
 			}(),
 		},
@@ -166,6 +189,7 @@ func TestMissingTokenInBody(t *testing.T) {
 					"--123--\r\n"
 				req := safehttptest.NewRequest(safehttp.MethodPatch, "/", strings.NewReader(b))
 				req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
+				req.Header.Set("Cookie", tokenCookie+"=abcdef")
 				return req
 			}(),
 		},
@@ -173,7 +197,7 @@ func TestMissingTokenInBody(t *testing.T) {
 	for _, test := range tests {
 		rec := safehttptest.NewResponseRecorder()
 
-		i := Interceptor{SecretAppKey: "testSecretAppKey", Identifier: userIdentifier{}}
+		i := Interceptor{SecretAppKey: "testSecretAppKey"}
 		i.Before(rec.ResponseWriter, test.req, nil)
 
 		if want, got := safehttp.StatusUnauthorized, rec.Status(); got != want {
@@ -195,8 +219,9 @@ func TestMissingTokenInBody(t *testing.T) {
 func TestBeforeTokenInRequestContext(t *testing.T) {
 	rec := safehttptest.NewResponseRecorder()
 	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
+	req.Header.Set("Cookie", tokenCookie+"=abcdef")
 
-	i := Interceptor{SecretAppKey: "testSecretAppKey", Identifier: userIdentifier{}}
+	i := Interceptor{SecretAppKey: "testSecretAppKey"}
 	i.Before(rec.ResponseWriter, req, nil)
 
 	tok, err := Token(req)
@@ -207,7 +232,7 @@ func TestBeforeTokenInRequestContext(t *testing.T) {
 		t.Errorf("Token(req): got %v, want nil", err)
 	}
 
-	if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); want != got {
+	if want, got := safehttp.StatusOK, rec.Status(); want != got {
 		t.Errorf("response status: got %v, want %v", got, want)
 	}
 	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
@@ -242,5 +267,51 @@ func TestMissingTokenInRequestContext(t *testing.T) {
 	}
 	if err == nil {
 		t.Error("Token(req): got nil, want error")
+	}
+}
+
+func TestMissingCookieInGetRequest(t *testing.T) {
+	rec := safehttptest.NewResponseRecorder()
+	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
+
+	i := Interceptor{SecretAppKey: "testSecretAppKey"}
+	i.Before(rec.ResponseWriter, req, nil)
+
+	if want, got := safehttp.StatusOK, rec.Status(); want != got {
+		t.Errorf("response status: got %v, want %v", got, want)
+	}
+	tokCookieDefaults := "HttpOnly; Secure; SameSite=Strict"
+	got := map[string][]string(rec.Header())["Set-Cookie"][0]
+	if got == "" {
+		t.Error("rec.Header(): expected Set-Cookie header to be set")
+	}
+	if !strings.Contains(got, tokCookieDefaults) {
+		t.Errorf("Set-Cookie header: got %s, want defaults %s", got, tokCookieDefaults)
+	}
+	if want, got := "", rec.Body(); got != want {
+		t.Errorf("response body: got %q want %q", got, want)
+	}
+}
+
+func TestMissingCookiePostRequest(t *testing.T) {
+	rec := safehttptest.NewResponseRecorder()
+	req := safehttptest.NewRequest(safehttp.MethodPost, "/", strings.NewReader("foo=bar"))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	i := Interceptor{SecretAppKey: "testSecretAppKey"}
+	i.Before(rec.ResponseWriter, req, nil)
+
+	if want, got := safehttp.StatusForbidden, rec.Status(); got != want {
+		t.Errorf("response status: got %v, want %v", got, want)
+	}
+	wantHeaders := map[string][]string{
+		"Content-Type":           {"text/plain; charset=utf-8"},
+		"X-Content-Type-Options": {"nosniff"},
+	}
+	if diff := cmp.Diff(wantHeaders, map[string][]string(rec.Header())); diff != "" {
+		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+	}
+	if want, got := "Forbidden\n", rec.Body(); got != want {
+		t.Errorf("response body: got %q want %q", got, want)
 	}
 }
