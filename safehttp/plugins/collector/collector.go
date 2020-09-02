@@ -37,8 +37,8 @@ type Report struct {
 	UserAgent string
 	// Body contains the body of the report. This will be different for every Type.
 	// If Type is csp-violation then Body will be a CSPReport. Otherwise Body will
-	// be a map[string]interface{} containing the JavaScript object that was passed
-	// as unmarshalled using encoding/json.
+	// be a map[string]interface{} containing the object that was passed, as unmarshalled
+	// using encoding/json.
 	Body interface{}
 }
 
@@ -104,24 +104,6 @@ func Handler(handler func(Report), cspHandler func(CSPReport)) safehttp.Handler 
 
 		return w.ClientError(safehttp.StatusUnsupportedMediaType)
 	})
-}
-
-func stringOrEmpty(x interface{}) string {
-	s, ok := x.(string)
-	if !ok {
-		return ""
-	}
-	return s
-}
-
-func uintOrZero(x interface{}) uint {
-	// x must be a float64 that will be converted to a uint since this is how json stores
-	// its numbers.
-	f, ok := x.(float64)
-	if !ok || f < 0 {
-		return 0
-	}
-	return uint(f)
 }
 
 func handleDeprecatedCSPReports(h func(CSPReport), w *safehttp.ResponseWriter, b []byte) safehttp.Result {
@@ -197,45 +179,91 @@ func handleDeprecatedCSPReports(h func(CSPReport), w *safehttp.ResponseWriter, b
 	return w.NoContent()
 }
 
+var reportHandlers = map[string]func(json.RawMessage) (body interface{}, ok bool){
+	"csp-violation": cspViolationHandler,
+}
+
 func handleReport(h func(Report), w *safehttp.ResponseWriter, b []byte) safehttp.Result {
-	var rList []Report
+	var rList []struct {
+		Type      string          `json:"type"`
+		Age       uint64          `json:"age"`
+		URL       string          `json:"url"`
+		UserAgent string          `json:"userAgent"`
+		Body      json.RawMessage `json:"body"`
+	}
 	if err := json.Unmarshal(b, &rList); err != nil {
 		return w.ClientError(safehttp.StatusBadRequest)
 	}
 
-	badRequest := false
+	badReport := false
 	for _, r := range rList {
-		m, ok := r.Body.(map[string]interface{})
-		if !ok {
-			badRequest = true
-			continue
+		reportToSend := Report{
+			Type:      r.Type,
+			Age:       r.Age,
+			URL:       r.URL,
+			UserAgent: r.UserAgent,
 		}
 
-		if r.Type == "csp-violation" {
-			// https://w3c.github.io/webappsec-csp/#reporting
-			r.Body = CSPReport{
-				BlockedURL:         stringOrEmpty(m["blockedURL"]),
-				Disposition:        stringOrEmpty(m["disposition"]),
-				DocumentURL:        stringOrEmpty(m["documentURL"]),
-				EffectiveDirective: stringOrEmpty(m["effectiveDirective"]),
-				OriginalPolicy:     stringOrEmpty(m["originalPolicy"]),
-				Referrer:           stringOrEmpty(m["referrer"]),
-				Sample:             stringOrEmpty(m["sample"]),
-				StatusCode:         uintOrZero(m["statusCode"]),
-				// In CSP3 ViolatedDirective has been removed but is kept as
-				// a copy of EffectiveDirective for backwards compatibility.
-				ViolatedDirective: stringOrEmpty(m["effectiveDirective"]),
-				SourceFile:        stringOrEmpty(m["sourceFile"]),
-				LineNumber:        uintOrZero(m["lineNumber"]),
-				ColumnNumber:      uintOrZero(m["columnNumber"]),
+		if f, ok := reportHandlers[r.Type]; ok {
+			b, ok := f(r.Body)
+			if !ok {
+				badReport = true
+				continue
 			}
+			reportToSend.Body = b
+		} else {
+			b := map[string]interface{}{}
+			if err := json.Unmarshal(r.Body, &b); err != nil {
+				badReport = true
+				continue
+			}
+			reportToSend.Body = b
 		}
-		h(r)
+
+		h(reportToSend)
 	}
 
-	if badRequest {
+	if badReport {
 		return w.ClientError(safehttp.StatusBadRequest)
 	}
 
 	return w.NoContent()
+}
+
+// cspViolationHandler parses reports of type csp-violation and returns a CSPReport.
+func cspViolationHandler(m json.RawMessage) (body interface{}, ok bool) {
+	// https://w3c.github.io/webappsec-csp/#reporting
+	r := struct {
+		BlockedURL         string `json:"blockedURL"`
+		Disposition        string `json:"disposition"`
+		DocumentURL        string `json:"documentURL"`
+		EffectiveDirective string `json:"effectiveDirective"`
+		OriginalPolicy     string `json:"originalPolicy"`
+		Referrer           string `json:"referrer"`
+		Sample             string `json:"sample"`
+		StatusCode         uint   `json:"statusCode"`
+		SourceFile         string `json:"sourceFile"`
+		LineNumber         uint   `json:"lineNumber"`
+		ColumnNumber       uint   `json:"columnNumber"`
+	}{}
+	if err := json.Unmarshal(m, &r); err != nil {
+		return nil, false
+	}
+
+	return CSPReport{
+		BlockedURL:         r.BlockedURL,
+		Disposition:        r.Disposition,
+		DocumentURL:        r.DocumentURL,
+		EffectiveDirective: r.EffectiveDirective,
+		OriginalPolicy:     r.OriginalPolicy,
+		Referrer:           r.Referrer,
+		Sample:             r.Sample,
+		StatusCode:         r.StatusCode,
+		// In CSP3 ViolatedDirective has been removed but is kept as
+		// a copy of EffectiveDirective for backwards compatibility.
+		ViolatedDirective: r.EffectiveDirective,
+		SourceFile:        r.SourceFile,
+		LineNumber:        r.LineNumber,
+		ColumnNumber:      r.ColumnNumber,
+	}, true
 }
