@@ -65,7 +65,7 @@ func Default() Interceptor {
 // The function redirects HTTP requests to HTTPS. When HTTPS traffic
 // is received the Strict-Transport-Security header is applied to the
 // response.
-func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfgs interface{}) safehttp.Result {
 	if it.MaxAge < 0 {
 		return w.ServerError(safehttp.StatusInternalServerError)
 	}
