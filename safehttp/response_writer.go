@@ -89,26 +89,10 @@ func (w *ResponseWriter) NoContent() Result {
 	return Result{}
 }
 
-// ClientError TODO
-func (w *ResponseWriter) ClientError(code StatusCode) Result {
+// WriteError writes an error response (4xx, 5xx) according to the provided status
+// code.
+func (w *ResponseWriter) WriteError(code StatusCode) Result {
 	w.markWritten()
-	if code < 400 || code >= 500 {
-		// TODO(@mihalimara22): Replace this when we decide how to handle this case
-		panic("wrong method called")
-	}
-	http.Error(w.rw, http.StatusText(int(code)), int(code))
-	return Result{}
-}
-
-// ServerError TODO
-func (w *ResponseWriter) ServerError(code StatusCode) Result {
-	w.markWritten()
-	if code < 500 || code >= 600 {
-		// TODO(@mattiasgrenfeldt, @mihalimara22, @kele, @empijei): Decide how it should
-		// be communicated to the user of the framework that they've called the wrong
-		// method.
-		panic("wrong method called")
-	}
 	http.Error(w.rw, http.StatusText(int(code)), int(code))
 	return Result{}
 }

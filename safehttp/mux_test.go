@@ -176,7 +176,7 @@ func (p setHeaderInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.Inc
 type internalErrorInterceptor struct{}
 
 func (internalErrorInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
-	return w.ServerError(safehttp.StatusInternalServerError)
+	return w.WriteError(safehttp.StatusInternalServerError)
 }
 
 type claimHeaderInterceptor struct {
@@ -408,7 +408,7 @@ type interceptorTwo struct {
 
 func (interceptorTwo) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
 	if w.Header().Get("pizza") != "diavola" {
-		w.ServerError(safehttp.StatusInternalServerError)
+		w.WriteError(safehttp.StatusInternalServerError)
 	}
 	w.Header().Set("spaghetti", "bolognese")
 	return safehttp.Result{}
@@ -419,7 +419,7 @@ type interceptorThree struct {
 
 func (interceptorThree) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
 	if w.Header().Get("spaghetti") != "bolognese" {
-		w.ServerError(safehttp.StatusInternalServerError)
+		w.WriteError(safehttp.StatusInternalServerError)
 	}
 	w.Header().Set("dessert", "tiramisu")
 	return safehttp.Result{}

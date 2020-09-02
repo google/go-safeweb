@@ -81,17 +81,10 @@ func TestResponseWriterWriteTwicePanic(t *testing.T) {
 			},
 		},
 		{
-			name: "Call ClientError twice",
+			name: "Call WriteError twice",
 			write: func(w *safehttp.ResponseWriter) {
-				w.ClientError(safehttp.StatusBadRequest)
-				w.ClientError(safehttp.StatusBadRequest)
-			},
-		},
-		{
-			name: "Call ServerError twice",
-			write: func(w *safehttp.ResponseWriter) {
-				w.ServerError(safehttp.StatusInternalServerError)
-				w.ServerError(safehttp.StatusInternalServerError)
+				w.WriteError(safehttp.StatusInternalServerError)
+				w.WriteError(safehttp.StatusInternalServerError)
 			},
 		},
 		{
