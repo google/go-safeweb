@@ -155,14 +155,11 @@ func TestValidReport(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var gotReports []collector.Report
-			h := collector.HandlerBuilder{
-				Handler: func(r collector.Report) {
-					gotReports = append(gotReports, r)
-				},
-				CSPHandler: func(r collector.CSPReport) {
-					t.Fatalf("expected CSP reports handler not to be called")
-				},
-			}.Build()
+			h := collector.Handler(func(r collector.Report) {
+				gotReports = append(gotReports, r)
+			}, func(r collector.CSPReport) {
+				t.Fatalf("expected CSP reports handler not to be called")
+			})
 
 			req := safehttptest.NewRequest(safehttp.MethodPost, "/collector", strings.NewReader(tt.report))
 			req.Header.Set("Content-Type", "application/reports+json")
@@ -307,16 +304,13 @@ func TestValidDeprecatedCSPReport(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := collector.HandlerBuilder{
-				Handler: func(r collector.Report) {
-					t.Fatalf("expected generic reports handler not to be called")
-				},
-				CSPHandler: func(r collector.CSPReport) {
-					if diff := cmp.Diff(tt.want, r); diff != "" {
-						t.Errorf("report mismatch (-want +got):\n%s", diff)
-					}
-				},
-			}.Build()
+			h := collector.Handler(func(r collector.Report) {
+				t.Fatalf("expected generic reports handler not to be called")
+			}, func(r collector.CSPReport) {
+				if diff := cmp.Diff(tt.want, r); diff != "" {
+					t.Errorf("report mismatch (-want +got):\n%s", diff)
+				}
+			})
 
 			req := safehttptest.NewRequest(safehttp.MethodPost, "/collector", strings.NewReader(tt.report))
 			req.Header.Set("Content-Type", "application/csp-report")
@@ -435,14 +429,11 @@ func TestInvalidRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := collector.HandlerBuilder{
-				Handler: func(r collector.Report) {
-					t.Errorf("expected collector not to be called")
-				},
-				CSPHandler: func(r collector.CSPReport) {
-					t.Errorf("expected collector not to be called")
-				},
-			}.Build()
+			h := collector.Handler(func(r collector.Report) {
+				t.Errorf("expected collector not to be called")
+			}, func(r collector.CSPReport) {
+				t.Errorf("expected collector not to be called")
+			})
 
 			rr := safehttptest.NewResponseRecorder()
 			h.ServeHTTP(rr.ResponseWriter, tt.req)

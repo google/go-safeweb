@@ -80,20 +80,11 @@ type CSPReport struct {
 	ColumnNumber uint
 }
 
-// HandlerBuilder creates a safehttp.Handler based on the report handlers that
-// it's created with.
-type HandlerBuilder struct {
-	// Handler handles all generic reports received with the Content-Type application/reports+json.
-	Handler func(Report)
-	// CSPHandler handles all CSP reports received with the Content-Type application/csp-report.
-	CSPHandler func(CSPReport)
-}
-
-// Build builds a safehttp.Handler which calls the given Handler or CSPHandler when
+// Handler builds a safehttp.Handler which calls the given handler or cspHandler when
 // a violation report is received. Make sure to register the handler to receive POST
 // requests. If the handler recieves anything other than POST requests it will
 // respond with a 405 Method Not Allowed.
-func (hb HandlerBuilder) Build() safehttp.Handler {
+func Handler(handler func(Report), cspHandler func(CSPReport)) safehttp.Handler {
 	return safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		if r.Method() != safehttp.MethodPost {
 			return w.ClientError(safehttp.StatusMethodNotAllowed)
@@ -105,10 +96,10 @@ func (hb HandlerBuilder) Build() safehttp.Handler {
 		}
 
 		ct := r.Header.Get("Content-Type")
-		if ct == "application/csp-report" && hb.CSPHandler != nil {
-			return handleDeprecatedCSPReports(hb.CSPHandler, w, b)
-		} else if ct == "application/reports+json" && hb.Handler != nil {
-			return handleReport(hb.Handler, w, b)
+		if ct == "application/csp-report" {
+			return handleDeprecatedCSPReports(cspHandler, w, b)
+		} else if ct == "application/reports+json" {
+			return handleReport(handler, w, b)
 		}
 
 		return w.ClientError(safehttp.StatusUnsupportedMediaType)
