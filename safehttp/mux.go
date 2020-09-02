@@ -206,7 +206,7 @@ func (h handlerWithInterceptors) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	// respond with a 500 Internal Server Error.
 	defer func() {
 		if r := recover(); r != nil {
-			rw.ServerError(StatusInternalServerError)
+			rw.WriteError(StatusInternalServerError)
 		}
 	}()
 

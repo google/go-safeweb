@@ -17,6 +17,7 @@ package xsrf
 import (
 	"context"
 	"errors"
+
 	"github.com/google/go-safeweb/safehttp"
 	"golang.org/x/net/xsrftoken"
 )
@@ -76,7 +77,7 @@ func Token(r *safehttp.IncomingRequest) (string, error) {
 func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
 	userID, err := i.Identifier.UserID(r)
 	if err != nil {
-		return w.ClientError(safehttp.StatusUnauthorized)
+		return w.WriteError(safehttp.StatusUnauthorized)
 	}
 
 	actionID := r.Method() + " " + r.URL.Path()
@@ -89,18 +90,18 @@ func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 			// present.
 			mf, err := r.MultipartForm(32 << 20)
 			if err != nil {
-				return w.ClientError(safehttp.StatusBadRequest)
+				return w.WriteError(safehttp.StatusBadRequest)
 			}
 			f = &mf.Form
 		}
 
 		tok := f.String(TokenKey, "")
 		if f.Err() != nil || tok == "" {
-			return w.ClientError(safehttp.StatusUnauthorized)
+			return w.WriteError(safehttp.StatusUnauthorized)
 		}
 
 		if ok := xsrftoken.Valid(tok, i.SecretAppKey, userID, actionID); !ok {
-			return w.ClientError(safehttp.StatusForbidden)
+			return w.WriteError(safehttp.StatusForbidden)
 		}
 	}
 

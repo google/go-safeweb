@@ -67,13 +67,13 @@ func Default() Interceptor {
 // response.
 func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfgs interface{}) safehttp.Result {
 	if it.MaxAge < 0 {
-		return w.ServerError(safehttp.StatusInternalServerError)
+		return w.WriteError(safehttp.StatusInternalServerError)
 	}
 
 	if !it.BehindProxy && r.TLS == nil {
 		u, err := url.Parse(r.URL.String())
 		if err != nil {
-			return w.ServerError(safehttp.StatusInternalServerError)
+			return w.WriteError(safehttp.StatusInternalServerError)
 		}
 		u.Scheme = "https"
 		return w.Redirect(r, u.String(), safehttp.StatusMovedPermanently)
