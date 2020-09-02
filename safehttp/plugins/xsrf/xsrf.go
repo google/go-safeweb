@@ -106,6 +106,5 @@ func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 
 	tok := xsrftoken.Generate(i.SecretAppKey, userID, actionID)
 	r.SetContext(context.WithValue(r.Context(), tokenCtxKey{}, tok))
-
-	return safehttp.Result{}
+	return safehttp.NotWritten()
 }
