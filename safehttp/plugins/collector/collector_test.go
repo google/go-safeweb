@@ -287,19 +287,6 @@ func TestValidDeprecatedCSPReport(t *testing.T) {
 				ColumnNumber: 8,
 			},
 		},
-		{
-			name: "Negative uints",
-			report: `{
-				"csp-report": {
-					"status-code": -1,
-					"lineno": -1,
-					"colno": -1,
-					"line-number": -1,
-					"column-number": -1
-				}
-			}`,
-			want: collector.CSPReport{},
-		},
 	}
 
 	for _, tt := range tests {
@@ -416,6 +403,28 @@ func TestInvalidRequest(t *testing.T) {
 					"body": "not an object"
 				}]`))
 				r.Header.Set("Content-Type", "application/reports+json")
+				return r
+			}(),
+			wantStatus: safehttp.StatusBadRequest,
+			wantHeaders: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Bad Request\n",
+		},
+		{
+			name: "Negative uints",
+			req: func() *safehttp.IncomingRequest {
+				r := safehttptest.NewRequest(safehttp.MethodPost, "/collector", strings.NewReader(`{
+					"csp-report": {
+						"status-code": -1,
+						"lineno": -1,
+						"colno": -1,
+						"line-number": -1,
+						"column-number": -1
+					}
+				}`))
+				r.Header.Set("Content-Type", "application/csp-report")
 				return r
 			}(),
 			wantStatus: safehttp.StatusBadRequest,
