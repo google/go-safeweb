@@ -46,36 +46,3 @@ func TestPlugin(t *testing.T) {
 		t.Errorf("rr.Body() got: %q want: %q", got, want)
 	}
 }
-
-func TestAlreadyClaimed(t *testing.T) {
-	alreadyClaimed := []string{"X-Content-Type-Options", "X-XSS-Protection"}
-
-	for _, h := range alreadyClaimed {
-		t.Run(h, func(t *testing.T) {
-			req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
-			rr := safehttptest.NewResponseRecorder()
-			if _, err := rr.ResponseWriter.Header().Claim(h); err != nil {
-				t.Fatalf("rr.ResponseWriter.Header().Claim(h) got: %v want: nil", err)
-			}
-
-			p := staticheaders.Plugin{}
-			p.Before(rr.ResponseWriter, req, nil)
-
-			if got, want := rr.Status(), safehttp.StatusInternalServerError; got != want {
-				t.Errorf("rr.Status() got: %v want: %v", got, want)
-			}
-
-			wantHeaders := map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			}
-			if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
-				t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
-			}
-
-			if got, want := rr.Body(), "Internal Server Error\n"; got != want {
-				t.Errorf("rr.Body() got: %q want: %q", got, want)
-			}
-		})
-	}
-}

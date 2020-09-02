@@ -169,9 +169,7 @@ type setHeaderInterceptor struct {
 }
 
 func (p setHeaderInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
-	if err := w.Header().Set(p.name, p.value); err != nil {
-		return w.ServerError(safehttp.StatusInternalServerError)
-	}
+	w.Header().Set(p.name, p.value)
 	return safehttp.NotWritten()
 }
 
@@ -187,11 +185,7 @@ type claimHeaderInterceptor struct {
 }
 
 func (p *claimHeaderInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
-	f, err := w.Header().Claim(p.headerToClaim)
-	if err != nil {
-		return w.ServerError(safehttp.StatusInternalServerError)
-	}
-	p.setValue = f
+	p.setValue = w.Header().Claim(p.headerToClaim)
 	return safehttp.NotWritten()
 }
 
@@ -336,9 +330,7 @@ func (p setHeaderConfigInterceptor) Before(w *safehttp.ResponseWriter, _ *safeht
 		name = c.name
 		value = c.value
 	}
-	if err := w.Header().Set(name, value); err != nil {
-		return w.ServerError(safehttp.StatusInternalServerError)
-	}
+	w.Header().Set(name, value)
 	return safehttp.Result{}
 }
 

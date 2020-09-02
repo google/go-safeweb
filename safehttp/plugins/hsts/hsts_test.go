@@ -141,30 +141,3 @@ func TestHSTS(t *testing.T) {
 		})
 	}
 }
-
-func TestStrictTransportSecurityAlreadyImmutable(t *testing.T) {
-	p := hsts.Default()
-
-	req := safehttptest.NewRequest(safehttp.MethodGet, "https://localhost/", nil)
-
-	rr := safehttptest.NewResponseRecorder()
-	rr.ResponseWriter.Header().Claim("Strict-Transport-Security")
-
-	p.Before(rr.ResponseWriter, req, nil)
-
-	if want := safehttp.StatusInternalServerError; rr.Status() != want {
-		t.Errorf("status code got: %v want: %v", rr.Status(), want)
-	}
-
-	wantHeaders := map[string][]string{
-		"Content-Type":           {"text/plain; charset=utf-8"},
-		"X-Content-Type-Options": {"nosniff"},
-	}
-	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
-		t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
-	}
-
-	if got, want := rr.Body(), "Internal Server Error\n"; got != want {
-		t.Errorf("response body got: %q want: %q", got, want)
-	}
-}

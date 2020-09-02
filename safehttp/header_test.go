@@ -23,9 +23,7 @@ import (
 
 func TestSet(t *testing.T) {
 	h := newHeader(http.Header{})
-	if err := h.Set("Foo-Key", "Bar-Value"); err != nil {
-		t.Errorf(`h.Set("Foo-Key", "Bar-Value") got err: %v want: nil`, err)
-	}
+	h.Set("Foo-Key", "Bar-Value")
 	if got, want := h.Get("Foo-Key"), "Bar-Value"; got != want {
 		t.Errorf(`h.Get("Foo-Key") got: %q want %q`, got, want)
 	}
@@ -38,9 +36,7 @@ func TestSet(t *testing.T) {
 // when accessing and modifying the same header.
 func TestSetCanonicalization(t *testing.T) {
 	h := newHeader(http.Header{})
-	if err := h.Set("fOo-KeY", "Bar-Value"); err != nil {
-		t.Errorf(`h.Set("fOo-KeY", "Bar-Value") got err: %v want: nil`, err)
-	}
+	h.Set("fOo-KeY", "Bar-Value")
 	if got, want := h.Get("FoO-kEy"), "Bar-Value"; got != want {
 		t.Errorf(`h.Get("FoO-kEy") got: %q want %q`, got, want)
 	}
@@ -48,9 +44,12 @@ func TestSetCanonicalization(t *testing.T) {
 
 func TestSetEmptySetCookie(t *testing.T) {
 	h := newHeader(http.Header{})
-	if err := h.Set("Set-Cookie", "x=y"); err == nil {
-		t.Error(`h.Set("Set-Cookie", "x=y") got: nil want: error`)
-	}
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf(`h.Set("Set-Cookie", "x=y") expected panic`)
+		}
+	}()
+	h.Set("Set-Cookie", "x=y")
 	if diff := cmp.Diff([]string{}, h.Values("Set-Cookie")); diff != "" {
 		t.Errorf("h.Values(\"Set-Cookie\") mismatch (-want +got):\n%s", diff)
 	}
@@ -58,15 +57,14 @@ func TestSetEmptySetCookie(t *testing.T) {
 
 func TestSetClaimed(t *testing.T) {
 	h := newHeader(http.Header{})
-	if err := h.Set("Foo-Key", "Pizza-Value"); err != nil {
-		t.Errorf(`h.Set("Foo-Key", "Pizza-Value") got: %v want: nil`, err)
-	}
-	if _, err := h.Claim("Foo-Key"); err != nil {
-		t.Errorf(`h.Claim("Foo-Key") got: %v want: nil`, err)
-	}
-	if err := h.Set("Foo-Key", "Bar-Value"); err == nil {
-		t.Error(`h.Set("Foo-Key", "Bar-Value") got: nil want: error`)
-	}
+	h.Set("Foo-Key", "Pizza-Value")
+	h.Claim("Foo-Key")
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf(`h.Set("Foo-Key", "Bar-Value") expected panic`)
+		}
+	}()
+	h.Set("Foo-Key", "Bar-Value")
 	if diff := cmp.Diff([]string{"Pizza-Value"}, h.Values("Foo-Key")); diff != "" {
 		t.Errorf("h.Values(\"Foo-Key\") mismatch (-want +got):\n%s", diff)
 	}
@@ -74,12 +72,13 @@ func TestSetClaimed(t *testing.T) {
 
 func TestSetEmptyClaimed(t *testing.T) {
 	h := newHeader(http.Header{})
-	if _, err := h.Claim("Foo-Key"); err != nil {
-		t.Errorf(`h.Claim("Foo-Key") got: %v want: nil`, err)
-	}
-	if err := h.Set("Foo-Key", "Bar-Value"); err == nil {
-		t.Error(`h.Set("Foo-Key", "Bar-Value") got: nil want: error`)
-	}
+	h.Claim("Foo-Key")
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf(`h.Set("Foo-Key", "Bar-Value") expected panic`)
+		}
+	}()
+	h.Set("Foo-Key", "Bar-Value")
 	if diff := cmp.Diff([]string{}, h.Values("Foo-Key")); diff != "" {
 		t.Errorf("h.Values(\"Foo-Key\") mismatch (-want +got):\n%s", diff)
 	}
@@ -87,12 +86,8 @@ func TestSetEmptyClaimed(t *testing.T) {
 
 func TestAdd(t *testing.T) {
 	h := newHeader(http.Header{})
-	if err := h.Add("Foo-Key", "Bar-Value"); err != nil {
-		t.Errorf(`h.Add("Foo-Key", "Bar-Value") got err: %v want: nil`, err)
-	}
-	if err := h.Add("Foo-Key", "Pizza-Value"); err != nil {
-		t.Errorf(`h.Add("Foo-Key", "Pizza-Value") got err: %v want: nil`, err)
-	}
+	h.Add("Foo-Key", "Bar-Value")
+	h.Add("Foo-Key", "Pizza-Value")
 	if diff := cmp.Diff([]string{"Bar-Value", "Pizza-Value"}, h.Values("Foo-Key")); diff != "" {
 		t.Errorf("h.Values(\"Foo-Key\") mismatch (-want +got):\n%s", diff)
 	}
@@ -105,12 +100,8 @@ func TestAdd(t *testing.T) {
 // when accessing and modifying the same header.
 func TestAddCanonicalization(t *testing.T) {
 	h := newHeader(http.Header{})
-	if err := h.Add("fOo-KeY", "Bar-Value"); err != nil {
-		t.Errorf(`h.Add("fOo-KeY", "Bar-Value") got err: %v want: nil`, err)
-	}
-	if err := h.Add("FoO-kEy", "Pizza-Value"); err != nil {
-		t.Errorf(`h.Add("FoO-kEy", "Pizza-Value") got err: %v want: nil`, err)
-	}
+	h.Add("fOo-KeY", "Bar-Value")
+	h.Add("FoO-kEy", "Pizza-Value")
 	if diff := cmp.Diff([]string{"Bar-Value", "Pizza-Value"}, h.Values("fOO-KEY")); diff != "" {
 		t.Errorf("h.Values(\"fOO-KEY\")) mismatch (-want +got):\n%s", diff)
 	}
@@ -118,9 +109,12 @@ func TestAddCanonicalization(t *testing.T) {
 
 func TestAddEmptySetCookie(t *testing.T) {
 	h := newHeader(http.Header{})
-	if err := h.Add("Set-Cookie", "x=y"); err == nil {
-		t.Error(`h.Add("Set-Cookie", "x=y") got: nil want: error`)
-	}
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf(`h.Add("Set-Cookie", "x=y") expected panic`)
+		}
+	}()
+	h.Add("Set-Cookie", "x=y")
 	if diff := cmp.Diff([]string{}, h.Values("Set-Cookie")); diff != "" {
 		t.Errorf("h.Values(\"Set-Cookie\") mismatch (-want +got):\n%s", diff)
 	}
@@ -128,15 +122,14 @@ func TestAddEmptySetCookie(t *testing.T) {
 
 func TestAddClaimed(t *testing.T) {
 	h := newHeader(http.Header{})
-	if err := h.Add("Foo-Key", "Bar-Value"); err != nil {
-		t.Errorf(`h.Add("Foo-Key", "Bar-Value") got err: %v want: nil`, err)
-	}
-	if _, err := h.Claim("Foo-Key"); err != nil {
-		t.Errorf(`h.Claim("Foo-Key") got: %v want: nil`, err)
-	}
-	if err := h.Add("Foo-Key", "Pizza-Value"); err == nil {
-		t.Error(`h.Add("Foo-Key", "Pizza-Value") got: nil want: error`)
-	}
+	h.Add("Foo-Key", "Bar-Value")
+	h.Claim("Foo-Key")
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf(`h.Add("Foo-Key", "Pizza-Value") expected panic`)
+		}
+	}()
+	h.Add("Foo-Key", "Pizza-Value")
 	if diff := cmp.Diff([]string{"Bar-Value"}, h.Values("Foo-Key")); diff != "" {
 		t.Errorf("h.Values(\"Foo-Key\") mismatch (-want +got):\n%s", diff)
 	}
@@ -144,12 +137,13 @@ func TestAddClaimed(t *testing.T) {
 
 func TestAddEmptyClaimed(t *testing.T) {
 	h := newHeader(http.Header{})
-	if _, err := h.Claim("Foo-Key"); err != nil {
-		t.Errorf(`h.Claim("Foo-Key") got: %v want: nil`, err)
-	}
-	if err := h.Add("Foo-Key", "Pizza-Value"); err == nil {
-		t.Error(`h.Add("Foo-Key", "Pizza-Value") got: nil want: error`)
-	}
+	h.Claim("Foo-Key")
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf(`h.Add("Foo-Key", "Pizza-Value") expected panic`)
+		}
+	}()
+	h.Add("Foo-Key", "Pizza-Value")
 	if diff := cmp.Diff([]string{}, h.Values("Foo-Key")); diff != "" {
 		t.Errorf("h.Values(\"Foo-Key\") mismatch (-want +got):\n%s", diff)
 	}
@@ -157,12 +151,8 @@ func TestAddEmptyClaimed(t *testing.T) {
 
 func TestDel(t *testing.T) {
 	h := newHeader(http.Header{})
-	if err := h.Set("Foo-Key", "Bar-Value"); err != nil {
-		t.Errorf(`h.Set("Foo-Key", "Bar-Value") got err: %v want: nil`, err)
-	}
-	if err := h.Del("Foo-Key"); err != nil {
-		t.Errorf(`h.Del("Foo-Key") got err: %v want: nil`, err)
-	}
+	h.Set("Foo-Key", "Bar-Value")
+	h.Del("Foo-Key")
 	if diff := cmp.Diff([]string{}, h.Values("Foo-Key")); diff != "" {
 		t.Errorf("h.Values(\"Foo-Key\") mismatch (-want +got):\n%s", diff)
 	}
@@ -175,12 +165,8 @@ func TestDel(t *testing.T) {
 // when accessing and modifying the same header.
 func TestDelCanonicalization(t *testing.T) {
 	h := newHeader(http.Header{})
-	if err := h.Set("fOo-KeY", "Bar-Value"); err != nil {
-		t.Errorf(`h.Set("fOo-KeY", "Bar-Value") got err: %v want: nil`, err)
-	}
-	if err := h.Del("FoO-kEy"); err != nil {
-		t.Errorf(`h.Del("FoO-kEy") got err: %v want: nil`, err)
-	}
+	h.Set("fOo-KeY", "Bar-Value")
+	h.Del("FoO-kEy")
 	if diff := cmp.Diff([]string{}, h.Values("FOO-kEY")); diff != "" {
 		t.Errorf("h.Values(\"FOO-kEY\") mismatch (-want +got):\n%s", diff)
 	}
@@ -188,9 +174,12 @@ func TestDelCanonicalization(t *testing.T) {
 
 func TestDelEmptySetCookie(t *testing.T) {
 	h := newHeader(http.Header{})
-	if err := h.Del("Set-Cookie"); err == nil {
-		t.Error(`h.Del("Set-Cookie") got: nil want: error`)
-	}
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf(`h.Del("Set-Cookie") expected panic`)
+		}
+	}()
+	h.Del("Set-Cookie")
 	if diff := cmp.Diff([]string{}, h.Values("Set-Cookie")); diff != "" {
 		t.Errorf("h.Values(\"Set-Cookie\") mismatch (-want +got):\n%s", diff)
 	}
@@ -198,15 +187,14 @@ func TestDelEmptySetCookie(t *testing.T) {
 
 func TestDelClaimed(t *testing.T) {
 	h := newHeader(http.Header{})
-	if err := h.Set("Foo-Key", "Bar-Value"); err != nil {
-		t.Errorf(`h.Set("Foo-Key", "Bar-Value") got err: %v want: nil`, err)
-	}
-	if _, err := h.Claim("Foo-Key"); err != nil {
-		t.Errorf(`h.Claim("Foo-Key") got: %v want: nil`, err)
-	}
-	if err := h.Del("Foo-Key"); err == nil {
-		t.Error(`h.Del("Foo-Key") got: nil want: error`)
-	}
+	h.Set("Foo-Key", "Bar-Value")
+	h.Claim("Foo-Key")
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf(`h.Del("Foo-Key") expected panic`)
+		}
+	}()
+	h.Del("Foo-Key")
 	if diff := cmp.Diff([]string{"Bar-Value"}, h.Values("Foo-Key")); diff != "" {
 		t.Errorf("h.Values(\"Foo-Key\") mismatch (-want +got):\n%s", diff)
 	}
@@ -214,12 +202,13 @@ func TestDelClaimed(t *testing.T) {
 
 func TestDelEmptyClaimed(t *testing.T) {
 	h := newHeader(http.Header{})
-	if _, err := h.Claim("Foo-Key"); err != nil {
-		t.Errorf(`h.Claim("Foo-Key") got: %v want: nil`, err)
-	}
-	if err := h.Del("Foo-Key"); err == nil {
-		t.Error(`h.Del("Foo-Key") got: nil want: error`)
-	}
+	h.Claim("Foo-Key")
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf(`h.Del("Foo-Key") expected panic`)
+		}
+	}()
+	h.Del("Foo-Key")
 	if diff := cmp.Diff([]string{}, h.Values("Foo-Key")); diff != "" {
 		t.Errorf("h.Values(\"Foo-Key\") mismatch (-want +got):\n%s", diff)
 	}
@@ -231,12 +220,8 @@ func TestDelEmptyClaimed(t *testing.T) {
 // of the underlying slice.
 func TestValuesModifyClaimed(t *testing.T) {
 	h := newHeader(http.Header{})
-	if err := h.Set("Foo-Key", "Bar-Value"); err != nil {
-		t.Errorf(`h.Set("Foo-Key", "Bar-Value") got err: %v want: nil`, err)
-	}
-	if _, err := h.Claim("Foo-Key"); err != nil {
-		t.Errorf(`h.Claim("Foo-Key") got: %v want: nil`, err)
-	}
+	h.Set("Foo-Key", "Bar-Value")
+	h.Claim("Foo-Key")
 	v := h.Values("Foo-Key")
 	if diff := cmp.Diff([]string{"Bar-Value"}, v); diff != "" {
 		t.Errorf("h.Values(\"Foo-Key\") mismatch (-want +got):\n%s", diff)
@@ -268,12 +253,8 @@ func TestValuesOrdering(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			h := newHeader(http.Header{})
-			if err := h.Add("Foo-Key", tt.values[0]); err != nil {
-				t.Errorf(`h.Add("Foo-Key", tt.values[0]) got err: %v want: nil`, err)
-			}
-			if err := h.Add("Foo-Key", tt.values[1]); err != nil {
-				t.Errorf(`h.Add("Foo-Key", tt.values[1]) got err: %v want: nil`, err)
-			}
+			h.Add("Foo-Key", tt.values[0])
+			h.Add("Foo-Key", tt.values[1])
 			if diff := cmp.Diff(tt.values, h.Values("Foo-Key")); diff != "" {
 				t.Errorf("h.Values(\"Foo-Key\") mismatch (-want +got):\n%s", diff)
 			}
@@ -283,12 +264,8 @@ func TestValuesOrdering(t *testing.T) {
 
 func TestManyEqualKeyValuePairs(t *testing.T) {
 	h := newHeader(http.Header{})
-	if err := h.Add("Foo-Key", "Bar-Value"); err != nil {
-		t.Errorf(`h.Add("Foo-Key", "Bar-Value") got err: %v want: nil`, err)
-	}
-	if err := h.Add("Foo-Key", "Bar-Value"); err != nil {
-		t.Errorf(`h.Add("Foo-Key", "Bar-Value") got err: %v want: nil`, err)
-	}
+	h.Add("Foo-Key", "Bar-Value")
+	h.Add("Foo-Key", "Bar-Value")
 	if diff := cmp.Diff([]string{"Bar-Value", "Bar-Value"}, h.Values("Foo-Key")); diff != "" {
 		t.Errorf("h.Values(\"Foo-Key\") mismatch (-want +got):\n%s", diff)
 	}
@@ -299,12 +276,8 @@ func TestManyEqualKeyValuePairs(t *testing.T) {
 // the new one.
 func TestAddSet(t *testing.T) {
 	h := newHeader(http.Header{})
-	if err := h.Add("Foo-Key", "Bar-Value"); err != nil {
-		t.Errorf(`h.Add("Foo-Key", "Bar-Value") got err: %v want: nil`, err)
-	}
-	if err := h.Set("Foo-Key", "Pizza-Value"); err != nil {
-		t.Errorf(`h.Set("Foo-Key", "Pizza-Value") got err: %v want: nil`, err)
-	}
+	h.Add("Foo-Key", "Bar-Value")
+	h.Set("Foo-Key", "Pizza-Value")
 	if diff := cmp.Diff([]string{"Pizza-Value"}, h.Values("Foo-Key")); diff != "" {
 		t.Errorf("h.Values(\"Foo-Key\") mismatch (-want +got):\n%s", diff)
 	}
@@ -319,10 +292,7 @@ func TestValuesEmptyHeader(t *testing.T) {
 
 func TestClaim(t *testing.T) {
 	h := newHeader(http.Header{})
-	set, err := h.Claim("Foo-Key")
-	if err != nil {
-		t.Fatalf(`h.Claim("Foo-Key") got: %v want: nil`, err)
-	}
+	set := h.Claim("Foo-Key")
 	set([]string{"Bar-Value", "Pizza-Value"})
 	if diff := cmp.Diff([]string{"Bar-Value", "Pizza-Value"}, h.Values("Foo-Key")); diff != "" {
 		t.Errorf("h.Values(\"Foo-Key\") mismatch (-want +got):\n%s", diff)
@@ -336,10 +306,7 @@ func TestClaim(t *testing.T) {
 // when accessing and modifying the same header.
 func TestClaimCanonicalization(t *testing.T) {
 	h := newHeader(http.Header{})
-	set, err := h.Claim("fOO-kEY")
-	if err != nil {
-		t.Fatalf(`h.Claim("fOO-kEY") got: %v want: nil`, err)
-	}
+	set := h.Claim("fOO-kEY")
 	set([]string{"Bar-Value", "Pizza-Value"})
 	if diff := cmp.Diff([]string{"Bar-Value", "Pizza-Value"}, h.Values("fOo-kEy")); diff != "" {
 		t.Errorf("h.Values(\"fOo-kEy\") mismatch (-want +got):\n%s", diff)
@@ -348,17 +315,21 @@ func TestClaimCanonicalization(t *testing.T) {
 
 func TestClaimSetCookie(t *testing.T) {
 	h := newHeader(http.Header{})
-	if _, err := h.Claim("Set-Cookie"); err == nil {
-		t.Error(`h.Claim("Set-Cookie") got: nil want: error`)
-	}
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf(`h.Claim("Set-Cookie") expected panic`)
+		}
+	}()
+	h.Claim("Set-Cookie")
 }
 
 func TestClaimClaimed(t *testing.T) {
 	h := newHeader(http.Header{})
-	if _, err := h.Claim("Foo-Key"); err != nil {
-		t.Errorf(`h.Claim("Foo-Key") got: %v want: nil`, err)
-	}
-	if _, err := h.Claim("Foo-Key"); err == nil {
-		t.Error(`h.Claim("Foo-Key") got: nil want: error`)
-	}
+	h.Claim("Foo-Key")
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf(`h.Claim("Foo-Key") expected panic`)
+		}
+	}()
+	h.Claim("Foo-Key")
 }
