@@ -39,13 +39,13 @@ func newHeader(h http.Header) Header {
 // which can be used to set the header. The name is first canonicalized
 // using textproto.CanonicalMIMEHeaderKey. Other methods in
 // the struct can't write to, change or delete the header with this
-// name. These methods will instead fail when applied on an claimed
+// name. These methods will instead panic when applied on an claimed
 // header. The only way to modify the header is to use the returned
 // function. The Set-Cookie header can't be claimed.
-func (h Header) Claim(name string) (set func([]string), err error) {
+func (h Header) Claim(name string) (set func([]string)) {
 	name = textproto.CanonicalMIMEHeaderKey(name)
 	if err := h.writableHeader(name); err != nil {
-		return nil, err
+		panic(err)
 	}
 	h.claimed[name] = true
 	return func(v []string) {
@@ -53,47 +53,43 @@ func (h Header) Claim(name string) (set func([]string), err error) {
 			return
 		}
 		h.wrapped[name] = v
-	}, nil
+	}
 }
 
 // Set sets the header with the given name to the given value.
 // The name is first canonicalized using textproto.CanonicalMIMEHeaderKey.
 // This method first removes all other values associated with this
-// header before setting the new value. Returns an error when
-// applied on claimed headers or on the Set-Cookie header.
-func (h Header) Set(name, value string) error {
+// header before setting the new value. Panics when applied on claimed headers
+// or on the Set-Cookie header.
+func (h Header) Set(name, value string) {
 	name = textproto.CanonicalMIMEHeaderKey(name)
 	if err := h.writableHeader(name); err != nil {
-		return err
+		panic(err)
 	}
 	h.wrapped.Set(name, value)
-	return nil
 }
 
 // Add adds a new header with the given name and the given value to
 // the collection of headers. The name is first canonicalized using
-// textproto.CanonicalMIMEHeaderKey. Returns an error when applied
+// textproto.CanonicalMIMEHeaderKey. Panics when applied
 // on claimed headers or on the Set-Cookie header.
-func (h Header) Add(name, value string) error {
+func (h Header) Add(name, value string) {
 	name = textproto.CanonicalMIMEHeaderKey(name)
 	if err := h.writableHeader(name); err != nil {
-		return err
+		panic(err)
 	}
 	h.wrapped.Add(name, value)
-	return nil
 }
 
-// Del deletes all headers with the given name. The name is first
-// canonicalized using textproto.CanonicalMIMEHeaderKey. Returns an
-// error when applied on claimed headers or on the Set-Cookie
-// header.
-func (h Header) Del(name string) error {
+// Del deletes all headers with the given name. The name is first canonicalized
+// using textproto.CanonicalMIMEHeaderKey. Panics when applied on claimed headers
+// or on the Set-Cookie header.
+func (h Header) Del(name string) {
 	name = textproto.CanonicalMIMEHeaderKey(name)
 	if err := h.writableHeader(name); err != nil {
-		return err
+		panic(err)
 	}
 	h.wrapped.Del(name)
-	return nil
 }
 
 // Get returns the value of the first header with the given name.

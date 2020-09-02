@@ -88,10 +88,7 @@ func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 	if it.Preload {
 		value.WriteString("; preload")
 	}
-	set, err := w.Header().Claim("Strict-Transport-Security")
-	if err != nil {
-		return w.ServerError(safehttp.StatusInternalServerError)
-	}
+	set := w.Header().Claim("Strict-Transport-Security")
 	set([]string{value.String()})
 	return safehttp.NotWritten()
 }

@@ -198,14 +198,8 @@ func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 	}
 
 	h := w.Header()
-	setCSP, err := h.Claim("Content-Security-Policy")
-	if err != nil {
-		return w.ServerError(safehttp.StatusInternalServerError)
-	}
-	setCSPReportOnly, err := h.Claim("Content-Security-Policy-Report-Only")
-	if err != nil {
-		return w.ServerError(safehttp.StatusInternalServerError)
-	}
+	setCSP := h.Claim("Content-Security-Policy")
+	setCSPReportOnly := h.Claim("Content-Security-Policy-Report-Only")
 
 	setCSP(CSPs)
 	setCSPReportOnly(reportCSPs)
