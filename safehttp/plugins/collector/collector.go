@@ -142,43 +142,57 @@ func handleDeprecatedCSPReports(h func(CSPReport), w *safehttp.ResponseWriter, b
 	// Source: https://w3c.github.io/webappsec-csp/#deprecated-serialize-violation
 	//
 	// Because of this we have to support both. :/
-	m := make(map[string]interface{})
-	if err := json.Unmarshal(b, &m); err != nil {
+	r := struct {
+		CSPReport         json.RawMessage `json:"csp-report"`
+		BlockedURL        string          `json:"blocked-uri"`
+		Disposition       string          `json:"disposition"`
+		DocumentURL       string          `json:"document-uri"`
+		EffectiveDirectiv string          `json:"effective-directive"`
+		OriginalPolicy    string          `json:"original-policy"`
+		Referrer          string          `json:"referrer"`
+		Sample            string          `json:"script-sample"`
+		StatusCode        uint            `json:"status-code"`
+		ViolatedDirective string          `json:"violated-directive"`
+		SourceFile        string          `json:"source-file"`
+		LineNo            uint            `json:"lineno"`
+		LineNumber        uint            `json:"line-number"`
+		ColNo             uint            `json:"colno"`
+		ColumnNumber      uint            `json:"column-number"`
+	}{}
+	if err := json.Unmarshal(b, &r); err != nil {
 		return w.ClientError(safehttp.StatusBadRequest)
 	}
 
-	if report, exists := m["csp-report"]; exists {
-		var ok bool
-		m, ok = report.(map[string]interface{})
-		if !ok {
+	if len(r.CSPReport) != 0 {
+		if err := json.Unmarshal(r.CSPReport, &r); err != nil {
 			return w.ClientError(safehttp.StatusBadRequest)
 		}
 	}
 
-	ln := uintOrZero(m["lineno"])
+	ln := r.LineNo
 	if ln == 0 {
-		ln = uintOrZero(m["line-number"])
+		ln = r.LineNumber
 	}
-	cn := uintOrZero(m["colno"])
+	cn := r.ColNo
 	if cn == 0 {
-		cn = uintOrZero(m["column-number"])
+		cn = r.ColumnNumber
 	}
 
-	r := CSPReport{
-		BlockedURL:         stringOrEmpty(m["blocked-uri"]),
-		Disposition:        stringOrEmpty(m["disposition"]),
-		DocumentURL:        stringOrEmpty(m["document-uri"]),
-		EffectiveDirective: stringOrEmpty(m["effective-directive"]),
-		OriginalPolicy:     stringOrEmpty(m["original-policy"]),
-		Referrer:           stringOrEmpty(m["referrer"]),
-		Sample:             stringOrEmpty(m["script-sample"]),
-		StatusCode:         uintOrZero(m["status-code"]),
-		ViolatedDirective:  stringOrEmpty(m["violated-directive"]),
-		SourceFile:         stringOrEmpty(m["source-file"]),
+	rr := CSPReport{
+		BlockedURL:         r.BlockedURL,
+		Disposition:        r.Disposition,
+		DocumentURL:        r.DocumentURL,
+		EffectiveDirective: r.EffectiveDirectiv,
+		OriginalPolicy:     r.OriginalPolicy,
+		Referrer:           r.Referrer,
+		Sample:             r.Sample,
+		StatusCode:         r.StatusCode,
+		ViolatedDirective:  r.ViolatedDirective,
+		SourceFile:         r.SourceFile,
 		LineNumber:         ln,
 		ColumnNumber:       cn,
 	}
-	h(r)
+	h(rr)
 
 	return w.NoContent()
 }
