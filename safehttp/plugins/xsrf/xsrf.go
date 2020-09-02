@@ -15,6 +15,8 @@
 package xsrf
 
 import (
+	"context"
+	"errors"
 	"github.com/google/go-safeweb/safehttp"
 	"golang.org/x/net/xsrftoken"
 )
@@ -25,6 +27,12 @@ const (
 	TokenKey = "xsrf-token"
 )
 
+var statePreservingMethods = map[string]bool{
+	safehttp.MethodGet:     true,
+	safehttp.MethodHead:    true,
+	safehttp.MethodOptions: true,
+}
+
 // UserIdentifier provides the web application users' identifiers,
 // needed in generating the XSRF token.
 type UserIdentifier interface {
@@ -33,42 +41,70 @@ type UserIdentifier interface {
 	UserID(*safehttp.IncomingRequest) (string, error)
 }
 
-// Interceptor implements XSRF protection. It requires an application key and a
-// storage service. The appKey uniquely identifies each registered service and
-// should have high entropy. The storage service supports retrieving ID's of the
-// application's users. Both the appKey and user ID are used in the XSRF
-// token generation algorithm.
+// Interceptor implements XSRF protection.
 type Interceptor struct {
-	AppKey     string
+	// SecretAppKey uniquely identifies each registered service and should have high
+	// entropy as it is used for generating the XSRF token.
+	SecretAppKey string
+	// Identifier supports retrieving the user ID based on the incoming
+	// request. This is needed for generating the XSRF token.
 	Identifier UserIdentifier
 }
 
+type tokenCtxKey struct{}
+
+// Token extracts the XSRF token from the incoming request. If it is not
+// present, it returns a non-nil error.
+func Token(r *safehttp.IncomingRequest) (string, error) {
+	tok := r.Context().Value(tokenCtxKey{})
+	if tok == nil {
+		return "", errors.New("xsrf token not found")
+	}
+	return tok.(string), nil
+}
+
 // Before should be executed before directing the safehttp.IncomingRequest to
-// the handler to ensure it is not part of the Cross Site Request
-// Forgery. It checks for the presence of an xsrf-token in the request body and
-// validates it based on the userID associated with the request.
-func (p *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
-	userID, err := p.Identifier.UserID(r)
+// the handler to ensure it is not part of the Cross-Site Request
+// Forgery attack.
+//
+// In case of state changing requests (all except GET, HEAD and OPTIONS), it
+// checks for the presence of an XSRF token in the request and validates it
+// based on the user ID associated with the request.
+//
+// For authorized requests, it adds a cryptographically safe XSRF token to the
+// incoming request. It can be later extracted using Token.
+func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
+	userID, err := i.Identifier.UserID(r)
 	if err != nil {
 		return w.ClientError(safehttp.StatusUnauthorized)
 	}
-	f, err := r.PostForm()
-	if err != nil {
-		mf, err := r.MultipartForm(32 << 20)
+
+	actionID := r.Method() + " " + r.URL.Path()
+	needsValidation := !statePreservingMethods[r.Method()]
+	if needsValidation {
+		f, err := r.PostForm()
 		if err != nil {
-			return w.ClientError(safehttp.StatusBadRequest)
+			// We fallback to checking whether the form is multipart. Both types
+			// are valid in an incoming request as long as the XSRF token is
+			// present.
+			mf, err := r.MultipartForm(32 << 20)
+			if err != nil {
+				return w.ClientError(safehttp.StatusBadRequest)
+			}
+			f = &mf.Form
 		}
-		f = &mf.Form
+
+		tok := f.String(TokenKey, "")
+		if f.Err() != nil || tok == "" {
+			return w.ClientError(safehttp.StatusUnauthorized)
+		}
+
+		if ok := xsrftoken.Valid(tok, i.SecretAppKey, userID, actionID); !ok {
+			return w.ClientError(safehttp.StatusForbidden)
+		}
 	}
 
-	tok := f.String(TokenKey, "")
-	if f.Err() != nil || tok == "" {
-		return w.ClientError(safehttp.StatusUnauthorized)
-	}
-
-	if ok := xsrftoken.Valid(tok, p.AppKey, userID, r.Host()+r.Path()); !ok {
-		return w.ClientError(safehttp.StatusForbidden)
-	}
-
+	tok := xsrftoken.Generate(i.SecretAppKey, userID, actionID)
+	r.SetContext(context.WithValue(r.Context(), tokenCtxKey{}, tok))
 	return safehttp.NotWritten()
 }

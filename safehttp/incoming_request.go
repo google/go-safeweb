@@ -49,20 +49,6 @@ func (r *IncomingRequest) Method() string {
 	return r.req.Method
 }
 
-// Host returns the host the request is targeted to.
-// TODO(@mihalimara22): Remove this after the safehttp.URL type has been implemented
-func (r *IncomingRequest) Host() string {
-	return r.req.Host
-}
-
-// Path returns the relative path of the URL in decoded format (e.g. %47%6f%2f
-// becomes /Go/).
-// TODO(@mihalimara22): Remove this after the safehttp.URL type has been
-// implemented.
-func (r *IncomingRequest) Path() string {
-	return r.req.URL.Path
-}
-
 // PostForm parses the form parameters provided in the body of a POST, PATCH or
 // PUT request that does not have Content-Type: multipart/form-data. It returns
 // the parsed form parameters as a Form object, if no error occurred. If a parsing
