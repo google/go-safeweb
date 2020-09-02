@@ -26,16 +26,10 @@ type Plugin struct{}
 //  - X-XSS-Protection: 0
 func (Plugin) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
 	h := w.Header()
-	setXCTO, err := h.Claim("X-Content-Type-Options")
-	if err != nil {
-		return w.ServerError(safehttp.StatusInternalServerError)
-	}
-	setXCTO([]string{"nosniff"})
+	setXCTO := h.Claim("X-Content-Type-Options")
+	setXXP := h.Claim("X-XSS-Protection")
 
-	setXXP, err := h.Claim("X-XSS-Protection")
-	if err != nil {
-		return w.ServerError(safehttp.StatusInternalServerError)
-	}
+	setXCTO([]string{"nosniff"})
 	setXXP([]string{"0"})
 	return safehttp.NotWritten()
 }
