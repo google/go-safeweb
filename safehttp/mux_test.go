@@ -323,10 +323,8 @@ type setHeaderConfig struct {
 }
 
 func (setHeaderConfig) Match(i safehttp.Interceptor) bool {
-	if _, ok := i.(setHeaderConfigInterceptor); !ok {
-		return false
-	}
-	return true
+	_, ok := i.(setHeaderConfigInterceptor)
+	return ok
 }
 
 type setHeaderConfigInterceptor struct{}
