@@ -404,8 +404,7 @@ func TestMuxInterceptorConfigs(t *testing.T) {
 	}
 }
 
-type interceptorOne struct {
-}
+type interceptorOne struct {}
 
 func (interceptorOne) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
 	w.Header().Set("pizza", "diavola")
