@@ -87,12 +87,12 @@ type CSPReport struct {
 func Handler(handler func(Report), cspHandler func(CSPReport)) safehttp.Handler {
 	return safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		if r.Method() != safehttp.MethodPost {
-			return w.ClientError(safehttp.StatusMethodNotAllowed)
+			return w.WriteError(safehttp.StatusMethodNotAllowed)
 		}
 
 		b, err := ioutil.ReadAll(r.Body())
 		if err != nil {
-			return w.ClientError(safehttp.StatusBadRequest)
+			return w.WriteError(safehttp.StatusBadRequest)
 		}
 
 		ct := r.Header.Get("Content-Type")
@@ -102,7 +102,7 @@ func Handler(handler func(Report), cspHandler func(CSPReport)) safehttp.Handler 
 			return handleReport(handler, w, b)
 		}
 
-		return w.ClientError(safehttp.StatusUnsupportedMediaType)
+		return w.WriteError(safehttp.StatusUnsupportedMediaType)
 	})
 }
 
@@ -142,12 +142,12 @@ func handleDeprecatedCSPReports(h func(CSPReport), w *safehttp.ResponseWriter, b
 		ColumnNumber      uint            `json:"column-number"`
 	}{}
 	if err := json.Unmarshal(b, &r); err != nil {
-		return w.ClientError(safehttp.StatusBadRequest)
+		return w.WriteError(safehttp.StatusBadRequest)
 	}
 
 	if len(r.CSPReport) != 0 {
 		if err := json.Unmarshal(r.CSPReport, &r); err != nil {
-			return w.ClientError(safehttp.StatusBadRequest)
+			return w.WriteError(safehttp.StatusBadRequest)
 		}
 	}
 
@@ -192,7 +192,7 @@ func handleReport(h func(Report), w *safehttp.ResponseWriter, b []byte) safehttp
 		Body      json.RawMessage `json:"body"`
 	}
 	if err := json.Unmarshal(b, &rList); err != nil {
-		return w.ClientError(safehttp.StatusBadRequest)
+		return w.WriteError(safehttp.StatusBadRequest)
 	}
 
 	badReport := false
@@ -224,7 +224,7 @@ func handleReport(h func(Report), w *safehttp.ResponseWriter, b []byte) safehttp
 	}
 
 	if badReport {
-		return w.ClientError(safehttp.StatusBadRequest)
+		return w.WriteError(safehttp.StatusBadRequest)
 	}
 
 	return w.NoContent()

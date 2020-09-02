@@ -158,7 +158,7 @@ func (p *Plugin) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest)
 		if p.reportOnly {
 			return safehttp.Result{}
 		}
-		return w.ClientError(safehttp.StatusForbidden)
+		return w.WriteError(safehttp.StatusForbidden)
 	}
 
 	return safehttp.Result{}
