@@ -22,5 +22,5 @@ type Interceptor interface {
 	// response is written to the ResponseWriter, then the remaining
 	// interceptors and the handler won't execute. If Before panics, it will be
 	// recovered and the ServeMux will respond with 500 Internal Server Error.
-	Before(*ResponseWriter, *IncomingRequest) Result
+	Before(w *ResponseWriter, r *IncomingRequest, cfg interface{}) Result
 }

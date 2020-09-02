@@ -28,7 +28,7 @@ func TestPlugin(t *testing.T) {
 	rr := safehttptest.NewResponseRecorder()
 
 	p := staticheaders.Plugin{}
-	p.Before(rr.ResponseWriter, req)
+	p.Before(rr.ResponseWriter, req, nil)
 
 	if got, want := rr.Status(), safehttp.StatusOK; got != want {
 		t.Errorf("rr.Status() got: %v want: %v", got, want)
@@ -59,7 +59,7 @@ func TestAlreadyClaimed(t *testing.T) {
 			}
 
 			p := staticheaders.Plugin{}
-			p.Before(rr.ResponseWriter, req)
+			p.Before(rr.ResponseWriter, req, nil)
 
 			if got, want := rr.Status(), safehttp.StatusInternalServerError; got != want {
 				t.Errorf("rr.Status() got: %v want: %v", got, want)

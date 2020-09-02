@@ -94,7 +94,7 @@ func TestXSRFTokenPost(t *testing.T) {
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 		rec := safehttptest.NewResponseRecorder()
-		i.Before(rec.ResponseWriter, req)
+		i.Before(rec.ResponseWriter, req, nil)
 
 		if rec.Status() != test.wantStatus {
 			t.Errorf("response status: got %v, want %v", rec.Status(), test.wantStatus)
@@ -176,7 +176,7 @@ func TestXSRFTokenMultipart(t *testing.T) {
 		req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
 
 		rec := safehttptest.NewResponseRecorder()
-		i.Before(rec.ResponseWriter, req)
+		i.Before(rec.ResponseWriter, req, nil)
 
 		if rec.Status() != test.wantStatus {
 			t.Errorf("response status: got %v, want %v", rec.Status(), test.wantStatus)
@@ -235,7 +235,7 @@ func TestXSRFMissingToken(t *testing.T) {
 	for _, test := range tests {
 		i := xsrf.Interceptor{AppKey: "xsrf", Identifier: userIdentifier{}}
 		rec := safehttptest.NewResponseRecorder()
-		i.Before(rec.ResponseWriter, test.req)
+		i.Before(rec.ResponseWriter, test.req, nil)
 
 		if rec.Status() != test.wantStatus {
 			t.Errorf("response status: got %v, want %v", rec.Status(), test.wantStatus)

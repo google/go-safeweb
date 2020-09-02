@@ -125,7 +125,7 @@ func TestHSTS(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			rr := safehttptest.NewResponseRecorder()
 
-			tt.interceptor.Before(rr.ResponseWriter, tt.req)
+			tt.interceptor.Before(rr.ResponseWriter, tt.req, nil)
 
 			if rr.Status() != tt.wantStatus {
 				t.Errorf("status code got: %v want: %v", rr.Status(), tt.wantStatus)
@@ -150,7 +150,7 @@ func TestStrictTransportSecurityAlreadyImmutable(t *testing.T) {
 	rr := safehttptest.NewResponseRecorder()
 	rr.ResponseWriter.Header().Claim("Strict-Transport-Security")
 
-	p.Before(rr.ResponseWriter, req)
+	p.Before(rr.ResponseWriter, req, nil)
 
 	if want := safehttp.StatusInternalServerError; rr.Status() != want {
 		t.Errorf("status code got: %v want: %v", rr.Status(), want)
