@@ -37,5 +37,5 @@ func (Plugin) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cf
 		return w.ServerError(safehttp.StatusInternalServerError)
 	}
 	setXXP([]string{"0"})
-	return safehttp.Result{}
+	return safehttp.NotWritten()
 }

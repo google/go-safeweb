@@ -74,6 +74,13 @@ func TestResponseWriterWriteTwicePanic(t *testing.T) {
 			},
 		},
 		{
+			name: "Call NoContent twice",
+			write: func(w *safehttp.ResponseWriter) {
+				w.NoContent()
+				w.NoContent()
+			},
+		},
+		{
 			name: "Call ClientError twice",
 			write: func(w *safehttp.ResponseWriter) {
 				w.ClientError(safehttp.StatusBadRequest)
