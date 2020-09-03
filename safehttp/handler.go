@@ -14,9 +14,6 @@
 
 package safehttp
 
-// HandleFunc TODO
-type HandleFunc func(*ResponseWriter, *IncomingRequest) Result
-
 // Handler TODO
 type Handler interface {
 	ServeHTTP(*ResponseWriter, *IncomingRequest) Result
