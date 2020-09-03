@@ -89,7 +89,7 @@ func addTokenCookie(w *safehttp.ResponseWriter) (*safehttp.Cookie, error) {
 func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
 	needsValidation := !statePreservingMethods[r.Method()]
 	c, err := r.Cookie(tokenCookie)
-	if c == nil {
+	if err != nil {
 		if needsValidation {
 			return w.WriteError(safehttp.StatusForbidden)
 		}
