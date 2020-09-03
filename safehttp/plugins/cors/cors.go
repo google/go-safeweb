@@ -85,6 +85,7 @@ func Default(allowedOrigins ...string) *Interceptor {
 
 // SetAllowedHeaders sets the headers allowed in the Access-Control-Allow-Headers
 // header. The headers are first canonicalized using textproto.CanonicalMIMEHeaderKey.
+// The wildcard "*" is not allowed.
 func (it *Interceptor) SetAllowedHeaders(headers ...string) {
 	it.allowedHeaders = map[string]bool{}
 	for _, h := range headers {
