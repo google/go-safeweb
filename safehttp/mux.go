@@ -107,7 +107,7 @@ type appliedInterceptor struct {
 // Configs can be optionally passed in order to modify the behavior of the
 // interceptors on a registered handler. Passing a Config whose corresponding
 // Interceptor was not installed will produce no effect. If multiple Configs are
-// passed for the same Interceptor, only the first one is applied.
+// passed for the same Interceptor, only the first one will take effect.
 func (m *ServeMux) Handle(pattern string, method string, h Handler, cfgs ...Config) {
 	var interceps []appliedInterceptor
 	for _, it := range m.interceps {
@@ -121,9 +121,9 @@ func (m *ServeMux) Handle(pattern string, method string, h Handler, cfgs ...Conf
 		interceps = append(interceps, appliedInterceptor{it: it, cfg: cfg})
 	}
 	hi := handlerWithInterceptors{
-		handler:          h,
-		appliedInterceps: interceps,
-		disp:             m.disp,
+		handler:   h,
+		interceps: interceps,
+		disp:      m.disp,
 	}
 
 	mh, ok := m.handlers[pattern]
@@ -182,9 +182,9 @@ func (m methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // handlerWithInterceptors encapsulates a handler and its corresponding
 // interceptors.
 type handlerWithInterceptors struct {
-	handler          Handler
-	appliedInterceps []appliedInterceptor
-	disp             Dispatcher
+	handler   Handler
+	interceps []appliedInterceptor
+	disp      Dispatcher
 }
 
 // ServeHTTP calls the Before method of all the interceptors and then calls the
@@ -202,7 +202,7 @@ func (h handlerWithInterceptors) ServeHTTP(w http.ResponseWriter, r *http.Reques
 		}
 	}()
 
-	for _, ai := range h.appliedInterceps {
+	for _, ai := range h.interceps {
 		ai.it.Before(rw, ir, ai.cfg)
 		if rw.written {
 			return
