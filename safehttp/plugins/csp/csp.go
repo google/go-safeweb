@@ -206,3 +206,7 @@ func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 
 	return safehttp.Result{}
 }
+
+func (it Interceptor) Commit(w *safehttp.CommitResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
+	return safehttp.Result{}
+}

@@ -23,3 +23,9 @@ type Response interface{}
 type Template interface {
 	Execute(wr io.Writer, data interface{}) error
 }
+
+// DataTemplate TODO
+type DataTemplate struct {
+	Template *Template
+	Data     *interface{}
+}
