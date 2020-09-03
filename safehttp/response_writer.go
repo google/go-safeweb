@@ -89,7 +89,7 @@ func (w *ResponseWriter) NoContent() Result {
 	return Result{}
 }
 
-// WriteError writes an error response (4xx, 5xx) according to the provided status
+// WriteError writes an error response (400-599) according to the provided status
 // code.
 func (w *ResponseWriter) WriteError(code StatusCode) Result {
 	w.markWritten()
