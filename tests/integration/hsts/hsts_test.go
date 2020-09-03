@@ -68,7 +68,7 @@ func (r *responseRecorder) Write(data []byte) (int, error) {
 func TestHSTSServeMuxInstall(t *testing.T) {
 	mux := safehttp.NewServeMux(&dispatcher{}, "foo.com")
 
-	mux.Install("hsts", hsts.Default())
+	mux.Install(hsts.Default())
 	handler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 	})
