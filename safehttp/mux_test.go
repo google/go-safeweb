@@ -15,6 +15,7 @@
 package safehttp_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -181,16 +182,19 @@ func (internalErrorInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.I
 
 type claimHeaderInterceptor struct {
 	headerToClaim string
-	setValue      func([]string)
 }
 
-func (p *claimHeaderInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
-	p.setValue = w.Header().Claim(p.headerToClaim)
+type claimCtxKey struct{}
+
+func (p *claimHeaderInterceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
+	f := w.Header().Claim(p.headerToClaim)
+	r.SetContext(context.WithValue(r.Context(), claimCtxKey{}, f))
 	return safehttp.NotWritten()
 }
 
-func (p *claimHeaderInterceptor) SetHeader(value string) {
-	p.setValue([]string{value})
+func claimInterceptorSetHeader(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, value string) {
+	f := r.Context().Value(claimCtxKey{}).(func([]string))
+	f([]string{value})
 }
 
 type panickingInterceptor struct{}
@@ -211,7 +215,7 @@ func TestMuxInterceptors(t *testing.T) {
 			name: "Install ServeMux Interceptor before handler registration",
 			mux: func() *safehttp.ServeMux {
 				mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-				mux.Install("test", setHeaderInterceptor{
+				mux.Install(setHeaderInterceptor{
 					name:  "Foo",
 					value: "bar",
 				})
@@ -230,7 +234,7 @@ func TestMuxInterceptors(t *testing.T) {
 			name: "Install Interrupting Interceptor",
 			mux: func() *safehttp.ServeMux {
 				mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-				mux.Install("test", internalErrorInterceptor{})
+				mux.Install(internalErrorInterceptor{})
 
 				registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
@@ -250,11 +254,10 @@ func TestMuxInterceptors(t *testing.T) {
 			name: "Handler Communication With ServeMux Interceptor",
 			mux: func() *safehttp.ServeMux {
 				mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-				mux.Install("claim", &claimHeaderInterceptor{headerToClaim: "Foo"})
+				mux.Install(&claimHeaderInterceptor{headerToClaim: "Foo"})
 
 				registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-					p := w.Interceptor("claim").(*claimHeaderInterceptor)
-					p.SetHeader("bar")
+					claimInterceptorSetHeader(w, r, "bar")
 					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 				})
 				mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
@@ -269,7 +272,7 @@ func TestMuxInterceptors(t *testing.T) {
 			name: "Panicking interceptor recovered by ServeMux",
 			mux: func() *safehttp.ServeMux {
 				mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-				mux.Install("panic", panickingInterceptor{})
+				mux.Install(panickingInterceptor{})
 
 				registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
@@ -367,7 +370,7 @@ func TestMuxInterceptorConfigs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-			mux.Install("setHeader", setHeaderConfigInterceptor{})
+			mux.Install(setHeaderConfigInterceptor{})
 
 			registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
@@ -427,9 +430,9 @@ func (interceptorThree) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingR
 
 func TestMuxDeterministicInterceptorOrder(t *testing.T) {
 	mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
-	mux.Install("one", interceptorOne{})
-	mux.Install("two", interceptorTwo{})
-	mux.Install("three", interceptorThree{})
+	mux.Install(interceptorOne{})
+	mux.Install(interceptorTwo{})
+	mux.Install(interceptorThree{})
 
 	registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))

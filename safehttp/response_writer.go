@@ -25,30 +25,19 @@ type ResponseWriter struct {
 
 	// Having this field unexported is essential for security. Otherwise one can
 	// easily overwrite the struct bypassing all our safety guarantees.
-	header       Header
-	muxInterceps map[string]Interceptor
-	written      bool
+	header  Header
+	written bool
 }
 
 // NewResponseWriter creates a ResponseWriter from a safehttp.Dispatcher, an
 // http.ResponseWriter and a list of interceptors associated with a ServeMux.
-func NewResponseWriter(d Dispatcher, rw http.ResponseWriter, muxInterceps map[string]Interceptor) *ResponseWriter {
+func NewResponseWriter(d Dispatcher, rw http.ResponseWriter) *ResponseWriter {
 	header := newHeader(rw.Header())
 	return &ResponseWriter{
-		d:            d,
-		rw:           rw,
-		header:       header,
-		muxInterceps: muxInterceps,
+		d:      d,
+		rw:     rw,
+		header: header,
 	}
-}
-
-// Interceptor returns the interceptor associated with the given key.
-func (w *ResponseWriter) Interceptor(key string) Interceptor {
-	mp, ok := w.muxInterceps[key]
-	if !ok {
-		return nil
-	}
-	return mp
 }
 
 // Result TODO
