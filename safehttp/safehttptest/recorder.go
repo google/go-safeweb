@@ -61,7 +61,7 @@ func NewResponseRecorder() *ResponseRecorder {
 	return &ResponseRecorder{
 		rw:             rw,
 		b:              &b,
-		ResponseWriter: safehttp.NewResponseWriter(testDispatcher{}, rw, nil),
+		ResponseWriter: safehttp.NewResponseWriter(testDispatcher{}, rw),
 	}
 }
 
@@ -73,7 +73,7 @@ func NewResponseRecorderFromDispatcher(d safehttp.Dispatcher) *ResponseRecorder 
 	return &ResponseRecorder{
 		rw:             rw,
 		b:              &b,
-		ResponseWriter: safehttp.NewResponseWriter(d, rw, nil),
+		ResponseWriter: safehttp.NewResponseWriter(d, rw),
 	}
 }
 

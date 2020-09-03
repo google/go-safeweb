@@ -77,11 +77,8 @@ type ServeMux struct {
 	disp    Dispatcher
 
 	// Maps patterns to handlers supporting multiple HTTP methods.
-	handlers map[string]methodHandler
-
-	// Maps interceptor key to interceptor.
-	interceps      map[string]Interceptor
-	intercepsOrder []string
+	handlers  map[string]methodHandler
+	interceps []Interceptor
 }
 
 // NewServeMux allocates and returns a new ServeMux
@@ -92,12 +89,16 @@ func NewServeMux(d Dispatcher, domains ...string) *ServeMux {
 		dm[host] = true
 	}
 	return &ServeMux{
-		mux:       http.NewServeMux(),
-		domains:   dm,
-		disp:      d,
-		handlers:  map[string]methodHandler{},
-		interceps: map[string]Interceptor{},
+		mux:      http.NewServeMux(),
+		domains:  dm,
+		disp:     d,
+		handlers: map[string]methodHandler{},
 	}
+}
+
+type appliedInterceptor struct {
+	it  Interceptor
+	cfg Config
 }
 
 // Handle registers a handler for the given pattern and method. If another
@@ -105,22 +106,24 @@ func NewServeMux(d Dispatcher, domains ...string) *ServeMux {
 //
 // Configs can be optionally passed in order to modify the behavior of the
 // interceptors on a registered handler. Passing a Config whose corresponding
-// Interceptor was not installed will produce no effect.
+// Interceptor was not installed will produce no effect. If multiple Configs are
+// passed for the same Interceptor, only the first one is applied.
 func (m *ServeMux) Handle(pattern string, method string, h Handler, cfgs ...Config) {
-	cfgMap := map[string]Config{}
-	for _, cfg := range cfgs {
-		for k, it := range m.interceps {
-			if cfg.Match(it) {
-				cfgMap[k] = cfg
+	var interceps []appliedInterceptor
+	for _, it := range m.interceps {
+		var cfg Config
+		for _, c := range cfgs {
+			if c.Match(it) {
+				cfg = c
+				break
 			}
 		}
+		interceps = append(interceps, appliedInterceptor{it: it, cfg: cfg})
 	}
 	hi := handlerWithInterceptors{
-		handler:        h,
-		interceps:      m.interceps,
-		disp:           m.disp,
-		configs:        cfgMap,
-		intercepsOrder: m.intercepsOrder,
+		handler:          h,
+		appliedInterceps: interceps,
+		disp:             m.disp,
 	}
 
 	mh, ok := m.handlers[pattern]
@@ -141,18 +144,9 @@ func (m *ServeMux) Handle(pattern string, method string, h Handler, cfgs ...Conf
 	mh.handlers[method] = hi
 }
 
-// Install installs an Interceptor. Interceptor keys need to be unique. If an
-// Interceptor with the same key has already been installed, Install panics.
-//
-// TODO(@empijei, @grenfeldt, @kele, @mihalimara22): Right now you could install
-// the same interceptor twice with different keys, we need to figure out how
-// exactly we want to avoid that and how we define key uniqueness.
-func (m *ServeMux) Install(key string, i Interceptor) {
-	if _, exists := m.interceps[key]; exists {
-		panic("interceptor with same key already installed")
-	}
-	m.interceps[key] = i
-	m.intercepsOrder = append(m.intercepsOrder, key)
+// Install installs an Interceptor.
+func (m *ServeMux) Install(i Interceptor) {
+	m.interceps = append(m.interceps, i)
 }
 
 // ServeHTTP dispatches the request to the handler whose method matches the
@@ -188,17 +182,15 @@ func (m methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // handlerWithInterceptors encapsulates a handler and its corresponding
 // interceptors.
 type handlerWithInterceptors struct {
-	handler        Handler
-	configs        map[string]Config
-	interceps      map[string]Interceptor
-	intercepsOrder []string
-	disp           Dispatcher
+	handler          Handler
+	appliedInterceps []appliedInterceptor
+	disp             Dispatcher
 }
 
 // ServeHTTP calls the Before method of all the interceptors and then calls the
 // underlying handler.
 func (h handlerWithInterceptors) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	rw := NewResponseWriter(h.disp, w, h.interceps)
+	rw := NewResponseWriter(h.disp, w)
 	ir := NewIncomingRequest(r)
 
 	// The `net/http` package recovers handler panics, but we cannot rely on that behavior here.
@@ -210,8 +202,8 @@ func (h handlerWithInterceptors) ServeHTTP(w http.ResponseWriter, r *http.Reques
 		}
 	}()
 
-	for _, key := range h.intercepsOrder {
-		h.interceps[key].Before(rw, ir, h.configs[key])
+	for _, ai := range h.appliedInterceps {
+		ai.it.Before(rw, ir, ai.cfg)
 		if rw.written {
 			return
 		}
