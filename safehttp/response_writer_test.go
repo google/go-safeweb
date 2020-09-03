@@ -27,7 +27,11 @@ import (
 
 func TestResponseWriterSetCookie(t *testing.T) {
 	rr := newResponseRecorder(&strings.Builder{})
+<<<<<<< HEAD
 	rw := safehttp.NewResponseWriter(testDispatcher{}, rr)
+=======
+	rw := safehttp.NewResponseWriter(testDispatcher{}, rr, nil, nil)
+>>>>>>> Added the Commit phase.
 
 	c := safehttp.NewCookie("foo", "bar")
 	err := rw.SetCookie(c)
@@ -45,7 +49,7 @@ func TestResponseWriterSetCookie(t *testing.T) {
 
 func TestResponseWriterSetInvalidCookie(t *testing.T) {
 	rr := newResponseRecorder(&strings.Builder{})
-	rw := safehttp.NewResponseWriter(testDispatcher{}, rr)
+	rw := safehttp.NewResponseWriter(testDispatcher{}, rr, nil, nil)
 
 	c := safehttp.NewCookie("f=oo", "bar")
 	err := rw.SetCookie(c)
@@ -99,7 +103,7 @@ func TestResponseWriterWriteTwicePanic(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			w := safehttp.NewResponseWriter(testDispatcher{}, newResponseRecorder(&strings.Builder{}))
+			w := safehttp.NewResponseWriter(testDispatcher{}, newResponseRecorder(&strings.Builder{}), nil, nil)
 			defer func() {
 				if r := recover(); r == nil {
 					t.Errorf("tt.write(w) expected panic")

@@ -174,10 +174,19 @@ func (p setHeaderInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.Inc
 	return safehttp.NotWritten()
 }
 
+func (p setHeaderInterceptor) Commit(w *safehttp.CommitResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
+	return safehttp.NotWritten()
+}
+
 type internalErrorInterceptor struct{}
 
 func (internalErrorInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
 	return w.WriteError(safehttp.StatusInternalServerError)
+}
+
+func (internalErrorInterceptor) Commit(w *safehttp.CommitResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
+	w.Header().Set("Foo", "this should not be reached")
+	return safehttp.NotWritten()
 }
 
 type claimHeaderInterceptor struct {
@@ -192,6 +201,10 @@ func (p *claimHeaderInterceptor) Before(w *safehttp.ResponseWriter, r *safehttp.
 	return safehttp.NotWritten()
 }
 
+func (p *claimHeaderInterceptor) Commit(w *safehttp.CommitResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
+	return safehttp.NotWritten()
+}
+
 func claimInterceptorSetHeader(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, value string) {
 	f := r.Context().Value(claimCtxKey{}).(func([]string))
 	f([]string{value})
@@ -201,6 +214,32 @@ type panickingInterceptor struct{}
 
 func (panickingInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
 	panic("bad")
+}
+
+func (panickingInterceptor) Commit(w *safehttp.CommitResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
+	return safehttp.NotWritten()
+}
+
+type committerInterceptor struct{}
+
+func (committerInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
+	return safehttp.NotWritten()
+}
+
+func (committerInterceptor) Commit(w *safehttp.CommitResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
+	w.Header().Set("foo", "bar")
+	return safehttp.NotWritten()
+}
+
+type commitErroringInterceptor struct{}
+
+func (commitErroringInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
+	w.Header().Set("foo", "bar")
+	return safehttp.NotWritten()
+}
+
+func (commitErroringInterceptor) Commit(w *safehttp.CommitResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
+	return w.WriteError(safehttp.StatusInternalServerError)
 }
 
 func TestMuxInterceptors(t *testing.T) {
@@ -281,7 +320,44 @@ func TestMuxInterceptors(t *testing.T) {
 
 				return mux
 			}(),
-			wantStatus: 500,
+			wantStatus: safehttp.StatusInternalServerError,
+			wantHeaders: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Internal Server Error\n",
+		},
+		{
+			name: "Commit phase sets header",
+			mux: func() *safehttp.ServeMux {
+				mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+				mux.Install("commiter", committerInterceptor{})
+
+				registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
+				})
+				mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
+
+				return mux
+			}(),
+			wantStatus:  safehttp.StatusOK,
+			wantHeaders: map[string][]string{"Foo": {"bar"}},
+			wantBody:    "&lt;h1&gt;Hello World!&lt;/h1&gt;",
+		},
+		{
+			name: "Commit error clears headers set by Before",
+			mux: func() *safehttp.ServeMux {
+				mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+				mux.Install("test", commitErroringInterceptor{})
+
+				registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
+				})
+				mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
+
+				return mux
+			}(),
+			wantStatus: safehttp.StatusInternalServerError,
 			wantHeaders: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
 				"X-Content-Type-Options": {"nosniff"},
@@ -315,8 +391,8 @@ func TestMuxInterceptors(t *testing.T) {
 }
 
 type setHeaderConfig struct {
-	name  string
-	value string
+	pizzaValue string
+	pastaValue string
 }
 
 func (setHeaderConfig) Match(i safehttp.Interceptor) bool {
@@ -327,14 +403,21 @@ func (setHeaderConfig) Match(i safehttp.Interceptor) bool {
 type setHeaderConfigInterceptor struct{}
 
 func (p setHeaderConfigInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
-	name := "Pizza"
 	value := "Hawaii"
 	if c, ok := cfg.(setHeaderConfig); ok {
-		name = c.name
-		value = c.value
+		value = c.pizzaValue
 	}
-	w.Header().Set(name, value)
+	w.Header().Set("Pizza", value)
 	return safehttp.Result{}
+}
+
+func (p setHeaderConfigInterceptor) Commit(w *safehttp.CommitResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
+	value := "Fusili"
+	if c, ok := cfg.(setHeaderConfig); ok {
+		value = c.pastaValue
+	}
+	w.Header().Set("Pasta", value)
+	return safehttp.NotWritten()
 }
 
 type noInterceptorConfig struct{}
@@ -352,18 +435,24 @@ func TestMuxInterceptorConfigs(t *testing.T) {
 		wantBody    string
 	}{
 		{
-			name:        "SetHeaderInterceptor with config",
-			config:      setHeaderConfig{name: "Foo", value: "Bar"},
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{"Foo": {"Bar"}},
-			wantBody:    "&lt;h1&gt;Hello World!&lt;/h1&gt;",
+			name:       "SetHeaderInterceptor with config",
+			config:     setHeaderConfig{pizzaValue: "Diavola", pastaValue: "Bolognese"},
+			wantStatus: safehttp.StatusOK,
+			wantHeaders: map[string][]string{
+				"Pizza": {"Diavola"},
+				"Pasta": {"Bolognese"},
+			},
+			wantBody: "&lt;h1&gt;Hello World!&lt;/h1&gt;",
 		},
 		{
-			name:        "SetHeaderInterceptor with mismatching config",
-			config:      noInterceptorConfig{},
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{"Pizza": {"Hawaii"}},
-			wantBody:    "&lt;h1&gt;Hello World!&lt;/h1&gt;",
+			name:       "SetHeaderInterceptor with mismatching config",
+			config:     noInterceptorConfig{},
+			wantStatus: safehttp.StatusOK,
+			wantHeaders: map[string][]string{
+				"Pizza": {"Hawaii"},
+				"Pasta": {"Fusili"},
+			},
+			wantBody: "&lt;h1&gt;Hello World!&lt;/h1&gt;",
 		},
 	}
 
@@ -402,30 +491,52 @@ func TestMuxInterceptorConfigs(t *testing.T) {
 type interceptorOne struct{}
 
 func (interceptorOne) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
-	w.Header().Set("pizza", "diavola")
-	return safehttp.Result{}
+	w.Header().Set("Foo", "0")
+	return safehttp.NotWritten()
 }
 
-type interceptorTwo struct {
+func (interceptorOne) Commit(w *safehttp.CommitResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
+	if w.Header().Get("Bar") != "1" {
+		w.WriteError(safehttp.StatusInternalServerError)
+	}
+	w.Header().Set("Bar", "2")
+	return safehttp.NotWritten()
 }
+
+type interceptorTwo struct{}
 
 func (interceptorTwo) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
-	if w.Header().Get("pizza") != "diavola" {
+	if w.Header().Get("Foo") != "0" {
 		w.WriteError(safehttp.StatusInternalServerError)
 	}
-	w.Header().Set("spaghetti", "bolognese")
-	return safehttp.Result{}
+	w.Header().Set("Foo", "1")
+	return safehttp.NotWritten()
 }
 
-type interceptorThree struct {
+func (interceptorTwo) Commit(w *safehttp.CommitResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
+	if w.Header().Get("Bar") != "0" {
+		w.WriteError(safehttp.StatusInternalServerError)
+	}
+	w.Header().Set("Bar", "1")
+	return safehttp.NotWritten()
 }
+
+type interceptorThree struct{}
 
 func (interceptorThree) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
-	if w.Header().Get("spaghetti") != "bolognese" {
+	if w.Header().Get("Foo") != "1" {
 		w.WriteError(safehttp.StatusInternalServerError)
 	}
-	w.Header().Set("dessert", "tiramisu")
-	return safehttp.Result{}
+	w.Header().Set("Foo", "2")
+	return safehttp.NotWritten()
+}
+
+func (interceptorThree) Commit(w *safehttp.CommitResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
+	if w.Header().Get("Foo") != "2" {
+		w.WriteError(safehttp.StatusInternalServerError)
+	}
+	w.Header().Set("Bar", "0")
+	return safehttp.NotWritten()
 }
 
 func TestMuxDeterministicInterceptorOrder(t *testing.T) {
@@ -450,9 +561,8 @@ func TestMuxDeterministicInterceptorOrder(t *testing.T) {
 		t.Errorf("rw.status: got %v want %v", rw.status, want)
 	}
 	wantHeaders := map[string][]string{
-		"Dessert":   {"tiramisu"},
-		"Pizza":     {"diavola"},
-		"Spaghetti": {"bolognese"},
+		"Foo": {"2"},
+		"Bar": {"2"},
 	}
 	if diff := cmp.Diff(wantHeaders, map[string][]string(rw.header)); diff != "" {
 		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)

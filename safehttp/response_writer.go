@@ -25,18 +25,23 @@ type ResponseWriter struct {
 
 	// Having this field unexported is essential for security. Otherwise one can
 	// easily overwrite the struct bypassing all our safety guarantees.
-	header  Header
-	written bool
+	header       Header
+	muxInterceps map[string]Interceptor
+	written      bool
+
+	commitPhase *CommitPhase
 }
 
 // NewResponseWriter creates a ResponseWriter from a safehttp.Dispatcher, an
 // http.ResponseWriter and a list of interceptors associated with a ServeMux.
-func NewResponseWriter(d Dispatcher, rw http.ResponseWriter) *ResponseWriter {
+func NewResponseWriter(d Dispatcher, rw http.ResponseWriter, muxInterceps map[string]Interceptor, cp *CommitPhase) *ResponseWriter {
 	header := newHeader(rw.Header())
 	return &ResponseWriter{
-		d:      d,
-		rw:     rw,
-		header: header,
+		d:            d,
+		rw:           rw,
+		header:       header,
+		muxInterceps: muxInterceps,
+		commitPhase:  cp,
 	}
 }
 
@@ -55,6 +60,10 @@ func NotWritten() Result {
 
 // Write TODO
 func (w *ResponseWriter) Write(resp Response) Result {
+	w.commitPhase.commit(&CommitResponseWriter{rw: w}, resp)
+	if w.written {
+		return Result{}
+	}
 	w.markWritten()
 	if err := w.d.Write(w.rw, resp); err != nil {
 		panic("error")
@@ -64,6 +73,11 @@ func (w *ResponseWriter) Write(resp Response) Result {
 
 // WriteTemplate TODO
 func (w *ResponseWriter) WriteTemplate(t Template, data interface{}) Result {
+	d := DataTemplate{Template: &t, Data: &data}
+	w.commitPhase.commit(&CommitResponseWriter{rw: w}, d)
+	if w.written {
+		return Result{}
+	}
 	w.markWritten()
 	if err := w.d.ExecuteTemplate(w.rw, t, data); err != nil {
 		panic("error")
@@ -79,19 +93,23 @@ func (w *ResponseWriter) NoContent() Result {
 }
 
 // WriteError writes an error response (400-599) according to the provided status
-// code.
+// code. Any headers previously set will be removed.
 func (w *ResponseWriter) WriteError(code StatusCode) Result {
 	w.markWritten()
+	h := w.rw.Header()
+	for k := range h {
+		h.Del(k)
+	}
 	http.Error(w.rw, http.StatusText(int(code)), int(code))
 	return Result{}
 }
 
 // Redirect responds with a redirect to a given url, using code as the status code.
 func (w *ResponseWriter) Redirect(r *IncomingRequest, url string, code StatusCode) Result {
-	w.markWritten()
 	if code < 300 || code >= 400 {
 		panic("wrong method called")
 	}
+	w.markWritten()
 	http.Redirect(w.rw, r.req, url, int(code))
 	return Result{}
 }
@@ -123,4 +141,19 @@ func (w *ResponseWriter) SetCookie(c *Cookie) error {
 type Dispatcher interface {
 	Write(rw http.ResponseWriter, resp Response) error
 	ExecuteTemplate(rw http.ResponseWriter, t Template, data interface{}) error
+}
+
+// CommitResponseWriter TODO
+type CommitResponseWriter struct {
+	rw *ResponseWriter
+}
+
+// Header TODO
+func (w *CommitResponseWriter) Header() Header {
+	return w.rw.Header()
+}
+
+// WriteError TODO
+func (w *CommitResponseWriter) WriteError(code StatusCode) Result {
+	return w.rw.WriteError(code)
 }

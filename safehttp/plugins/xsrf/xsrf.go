@@ -131,3 +131,7 @@ func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 	r.SetContext(context.WithValue(r.Context(), tokenCtxKey{}, tok))
 	return safehttp.NotWritten()
 }
+
+func (i *Interceptor) Commit(w *safehttp.CommitResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
+	return safehttp.Result{}
+}
