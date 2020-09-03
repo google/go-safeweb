@@ -190,8 +190,14 @@ type handlerWithInterceptors struct {
 // ServeHTTP calls the Before method of all the interceptors and then calls the
 // underlying handler.
 func (h handlerWithInterceptors) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	rw := NewResponseWriter(h.disp, w)
 	ir := NewIncomingRequest(r)
+	cp := &CommitPhase{
+		Req:            ir,
+		Interceps:      h.interceps,
+		Configs:        h.configs,
+		IntercepsOrder: h.intercepsOrder,
+	}
+	rw := NewResponseWriter(h.disp, w, h.interceps, cp)
 
 	// The `net/http` package recovers handler panics, but we cannot rely on that behavior here.
 	// The reason is, we might need to run After/Commit stages of the interceptors before we
@@ -212,5 +218,26 @@ func (h handlerWithInterceptors) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	h.handler.ServeHTTP(rw, ir)
 	if !rw.written {
 		rw.NoContent()
+	}
+}
+
+// CommitPhase contains the configured interceptors that are associated with
+// handler and the incoming request.
+type CommitPhase struct {
+	Req            *IncomingRequest
+	Configs        map[string]Config
+	Interceps      map[string]Interceptor
+	IntercepsOrder []string
+}
+
+func (c *CommitPhase) commit(w *CommitResponseWriter, resp Response) {
+	for i := len(c.IntercepsOrder) - 1; i >= 0; i-- {
+		key := c.IntercepsOrder[i]
+		it := c.Interceps[key]
+		cfg := c.Configs[key]
+		it.Commit(w, c.Req, resp, cfg)
+		if w.rw.written {
+			return
+		}
 	}
 }

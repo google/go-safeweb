@@ -23,4 +23,10 @@ type Interceptor interface {
 	// interceptors and the handler won't execute. If Before panics, it will be
 	// recovered and the ServeMux will respond with 500 Internal Server Error.
 	Before(w *ResponseWriter, r *IncomingRequest, cfg interface{}) Result
+
+	// Commit runs before the response is written by the Dispatcher. If an error
+	// is written to the CommitResponseWriter, then the Commit phases from the
+	// remaining interceptors won't execute and any headers set in the
+	// ResponseWriter would be removed.
+	Commit(w *CommitResponseWriter, r *IncomingRequest, resp Response, cfg interface{}) Result
 }
