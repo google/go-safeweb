@@ -16,6 +16,9 @@ package header
 
 import (
 	"bufio"
+	"encoding/json"
+	"errors"
+	"github.com/google/safehtml/template"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -29,6 +32,17 @@ import (
 
 type testDispatcher struct{}
 
+func (testDispatcher) ContentType(resp safehttp.Response) (string, error) {
+	switch resp.(type) {
+	case safehtml.HTML, *template.Template:
+		return "text/html; charset=utf-8", nil
+	case safehttp.JSONResponse:
+		return "application/json; charset=utf-8", nil
+	default:
+		return "", errors.New("not a safe response")
+	}
+}
+
 func (testDispatcher) Write(rw http.ResponseWriter, resp safehttp.Response) error {
 	switch x := resp.(type) {
 	case safehtml.HTML:
@@ -37,6 +51,15 @@ func (testDispatcher) Write(rw http.ResponseWriter, resp safehttp.Response) erro
 	default:
 		panic("not a safe response type")
 	}
+}
+
+func (testDispatcher) WriteJSON(rw http.ResponseWriter, resp safehttp.JSONResponse) error {
+	obj, err := json.Marshal(resp.Data)
+	if err != nil {
+		panic("invalid json")
+	}
+	_, err = rw.Write(obj)
+	return err
 }
 
 func (testDispatcher) ExecuteTemplate(rw http.ResponseWriter, t safehttp.Template, data interface{}) error {

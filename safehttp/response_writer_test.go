@@ -15,6 +15,7 @@
 package safehttp_test
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 	"text/template"
@@ -64,6 +65,18 @@ func TestResponseWriterWriteTwicePanic(t *testing.T) {
 			write: func(w *safehttp.ResponseWriter) {
 				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
 				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
+			},
+		},
+		{
+			name: "Call WriteJSON twice",
+			write: func(w *safehttp.ResponseWriter) {
+				data := struct{ Field string }{Field: "myField"}
+				jsonObj, err := json.Marshal(data)
+				if err != nil {
+					t.Fatalf("invalid json object")
+				}
+				w.WriteJSON(jsonObj)
+				w.WriteJSON(jsonObj)
 			},
 		},
 		{

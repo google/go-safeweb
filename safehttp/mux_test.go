@@ -38,8 +38,10 @@ func TestMuxOneHandlerOneRequest(t *testing.T) {
 			name:       "Valid Request",
 			req:        httptest.NewRequest(safehttp.MethodGet, "http://foo.com/", nil),
 			wantStatus: safehttp.StatusOK,
-			wantHeader: map[string][]string{},
-			wantBody:   "&lt;h1&gt;Hello World!&lt;/h1&gt;",
+			wantHeader: map[string][]string{
+				"Content-Type": {"text/html; charset=utf-8"},
+			},
+			wantBody: "&lt;h1&gt;Hello World!&lt;/h1&gt;",
 		},
 		{
 			name:       "Invalid Host",
@@ -107,9 +109,11 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 			hf: safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World! GET</h1>"))
 			}),
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{},
-			wantBody:    "&lt;h1&gt;Hello World! GET&lt;/h1&gt;",
+			wantStatus: safehttp.StatusOK,
+			wantHeaders: map[string][]string{
+				"Content-Type": {"text/html; charset=utf-8"},
+			},
+			wantBody: "&lt;h1&gt;Hello World! GET&lt;/h1&gt;",
 		},
 		{
 			name: "POST Handler",
@@ -117,9 +121,11 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 			hf: safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World! POST</h1>"))
 			}),
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{},
-			wantBody:    "&lt;h1&gt;Hello World! POST&lt;/h1&gt;",
+			wantStatus: safehttp.StatusOK,
+			wantHeaders: map[string][]string{
+				"Content-Type": {"text/html; charset=utf-8"},
+			},
+			wantBody: "&lt;h1&gt;Hello World! POST&lt;/h1&gt;",
 		},
 	}
 
@@ -265,9 +271,12 @@ func TestMuxInterceptors(t *testing.T) {
 				mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
 				return mux
 			}(),
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{"Foo": {"bar"}},
-			wantBody:    "&lt;h1&gt;Hello World!&lt;/h1&gt;",
+			wantStatus: safehttp.StatusOK,
+			wantHeaders: map[string][]string{
+				"Content-Type": {"text/html; charset=utf-8"},
+				"Foo":          {"bar"},
+			},
+			wantBody: "&lt;h1&gt;Hello World!&lt;/h1&gt;",
 		},
 		{
 			name: "Install Interrupting Interceptor",
@@ -303,9 +312,12 @@ func TestMuxInterceptors(t *testing.T) {
 
 				return mux
 			}(),
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{"Foo": {"bar"}},
-			wantBody:    "&lt;h1&gt;Hello World!&lt;/h1&gt;",
+			wantStatus: safehttp.StatusOK,
+			wantHeaders: map[string][]string{
+				"Content-Type": {"text/html; charset=utf-8"},
+				"Foo":          {"bar"},
+			},
+			wantBody: "&lt;h1&gt;Hello World!&lt;/h1&gt;",
 		},
 		{
 			name: "Panicking interceptor recovered by ServeMux",
@@ -419,18 +431,23 @@ func TestMuxInterceptorConfigs(t *testing.T) {
 		wantBody    string
 	}{
 		{
-			name:        "SetHeaderInterceptor with config",
-			config:      setHeaderConfig{name: "Foo", value: "Bar"},
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{"Foo": {"Bar"}, "Commit-Foo": {"Bar"}},
-			wantBody:    "&lt;h1&gt;Hello World!&lt;/h1&gt;",
+			name:       "SetHeaderInterceptor with config",
+			config:     setHeaderConfig{name: "Foo", value: "Bar"},
+			wantStatus: safehttp.StatusOK,
+			wantHeaders: map[string][]string{
+				"Content-Type": {"text/html; charset=utf-8"},
+				"Foo":          {"Bar"}},
+			wantBody: "&lt;h1&gt;Hello World!&lt;/h1&gt;",
 		},
 		{
-			name:        "SetHeaderInterceptor with mismatching config",
-			config:      noInterceptorConfig{},
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{"Pizza": {"Hawaii"}, "Commit-Pizza": {"Hawaii"}},
-			wantBody:    "&lt;h1&gt;Hello World!&lt;/h1&gt;",
+			name:       "SetHeaderInterceptor with mismatching config",
+			config:     noInterceptorConfig{},
+			wantStatus: safehttp.StatusOK,
+			wantHeaders: map[string][]string{
+				"Content-Type": {"text/html; charset=utf-8"},
+				"Pizza":        {"Hawaii"},
+			},
+			wantBody: "&lt;h1&gt;Hello World!&lt;/h1&gt;",
 		},
 	}
 
@@ -539,12 +556,13 @@ func TestMuxDeterministicInterceptorOrder(t *testing.T) {
 		t.Errorf("rw.status: got %v want %v", rw.status, want)
 	}
 	wantHeaders := map[string][]string{
-		"Dessert":   {"tiramisu"},
-		"Pizza":     {"diavola"},
-		"Spaghetti": {"bolognese"},
-		"Commit1":   {"a"},
-		"Commit2":   {"b"},
-		"Commit3":   {"c"},
+		"Dessert":      {"tiramisu"},
+		"Pizza":        {"diavola"},
+		"Spaghetti":    {"bolognese"},
+		"Commit1":      {"a"},
+		"Commit2":      {"b"},
+		"Commit3":      {"c"},
+		"Content-Type": {"text/html; charset=utf-8"},
 	}
 	if diff := cmp.Diff(wantHeaders, map[string][]string(rw.header)); diff != "" {
 		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
@@ -576,4 +594,13 @@ func TestMuxHandlerReturnsNotWritten(t *testing.T) {
 	if got := b.String(); got != "" {
 		t.Errorf(`response body got: %q want: ""`, got)
 	}
+}
+
+func TestMuxNilDispatcher(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf(`mux.NewServeMux(nil): expected panic`)
+		}
+	}()
+	_ = safehttp.NewServeMux(nil)
 }
