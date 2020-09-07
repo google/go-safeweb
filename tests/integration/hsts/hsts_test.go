@@ -15,6 +15,9 @@
 package hsts_test
 
 import (
+	"encoding/json"
+	"errors"
+	"github.com/google/safehtml/template"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -29,6 +32,17 @@ import (
 
 type dispatcher struct{}
 
+func (dispatcher) ContentType(resp safehttp.Response) (string, error) {
+	switch resp.(type) {
+	case safehtml.HTML, *template.Template:
+		return "text/html; charset=utf-8", nil
+	case safehttp.JSONResponse:
+		return "application/json; charset=utf-8", nil
+	default:
+		return "", errors.New("not a safe response")
+	}
+}
+
 func (dispatcher) Write(rw http.ResponseWriter, resp safehttp.Response) error {
 	switch x := resp.(type) {
 	case safehtml.HTML:
@@ -37,6 +51,15 @@ func (dispatcher) Write(rw http.ResponseWriter, resp safehttp.Response) error {
 	default:
 		panic("not a safe response type")
 	}
+}
+
+func (dispatcher) WriteJSON(rw http.ResponseWriter, resp safehttp.JSONResponse) error {
+	obj, err := json.Marshal(resp.Data)
+	if err != nil {
+		panic("invalid json")
+	}
+	_, err = rw.Write(obj)
+	return err
 }
 
 func (dispatcher) ExecuteTemplate(rw http.ResponseWriter, t safehttp.Template, data interface{}) error {
@@ -86,6 +109,7 @@ func TestHSTSServeMuxInstall(t *testing.T) {
 	}
 
 	wantHeaders := map[string][]string{
+		"Content-Type":              {"text/html; charset=utf-8"},
 		"Strict-Transport-Security": {"max-age=63072000; includeSubDomains"},
 	}
 	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.header)); diff != "" {

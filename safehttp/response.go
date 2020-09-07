@@ -21,6 +21,12 @@ import "io"
 // supported by the Dispatcher.
 type Response interface{}
 
+// JSONResponse encapsulate a JSON response that will be passed as an argument
+// to ResponseWriter.WriteJSON>
+type JSONResponse struct {
+	Data interface{}
+}
+
 // Template implements a template.
 type Template interface {
 	// Execute applies data to the template and then writes the result to
