@@ -28,7 +28,7 @@ const (
 	// TokenKey is the form key used when sending the token as part of POST
 	// request.
 	TokenKey    = "xsrf-token"
-	tokenCookie = "xsrf-cookie"
+	cookieIDKey = "xsrf-cookie"
 )
 
 var statePreservingMethods = map[string]bool{
@@ -56,14 +56,14 @@ func Token(r *safehttp.IncomingRequest) (string, error) {
 	return tok.(string), nil
 }
 
-func addTokenCookie(w *safehttp.ResponseWriter) (*safehttp.Cookie, error) {
+func addCookieID(w *safehttp.ResponseWriter) (*safehttp.Cookie, error) {
 	buf := make([]byte, 20)
 	_, err := rand.Read(buf)
 	if err != nil {
-		panic(fmt.Errorf("failed to generate entropy using crypto/rand/RandReader: %v", err))
+		panic(fmt.Errorf("crypto/rand.Read: %v", err))
 	}
 
-	c := safehttp.NewCookie(tokenCookie, base64.StdEncoding.EncodeToString(buf))
+	c := safehttp.NewCookie(cookieIDKey, base64.StdEncoding.EncodeToString(buf))
 	c.SetSameSite(safehttp.SameSiteStrictMode)
 	if err := w.SetCookie(c); err != nil {
 		return nil, err
@@ -72,28 +72,31 @@ func addTokenCookie(w *safehttp.ResponseWriter) (*safehttp.Cookie, error) {
 }
 
 // Before should be executed before directing the safehttp.IncomingRequest to
-// the handler to ensure it is not part of the Cross-Site Request
+// the handler to ensure it is not part of a Cross-Site Request
 // Forgery attack.
 //
 // On first user visit through a state preserving request (GET, HEAD or
-// OPTIONS), it sets a nonce-based cookie used to identify a user. This will be
-// used in the token generation and verification algorithm and is expected in
-// all subsequent incoming requests.
+// OPTIONS), a nonce-based cookie will be set in the response as a way to
+// distinguish between users and prevent pre-login XSRF attacks. The cookie will
+// be used in the token generation and verification algorithm and is expected to
+// be present in all subsequent incoming requests.
 //
-// In case of state changing requests (all except GET, HEAD and OPTIONS), it
-// checks for the presence of an XSRF token in the request and validates it
-// based on the custom cookie.
+// For every authorized request, the interceptor will also generate a
+// cryptographically-safe XSRF token using the appKey, the cookie and the path
+// visited. This can be later extracted using Token and should be injected as a
+// hidden input field in HTML forms.
 //
-// For authorized requests, it adds a cryptographically safe XSRF token to the
-// incoming request. This can be later extracted using Token.
+// In case of state changing requests (all except GET, HEAD and OPTIONS), the
+// interceptor checks for the presence of the XSRF token in the request body
+// (expected to have been injected) and validates it.
 func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
 	needsValidation := !statePreservingMethods[r.Method()]
-	c, err := r.Cookie(tokenCookie)
+	cookieID, err := r.Cookie(cookieIDKey)
 	if err != nil {
 		if needsValidation {
 			return w.WriteError(safehttp.StatusForbidden)
 		}
-		c, err = addTokenCookie(w)
+		cookieID, err = addCookieID(w)
 		if err != nil {
 			// An error is returned when the plugin fails to Set the Set-Cookie
 			// header in the response writer as this is a server misconfiguration.
@@ -120,12 +123,12 @@ func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 			return w.WriteError(safehttp.StatusUnauthorized)
 		}
 
-		if ok := xsrftoken.Valid(tok, i.SecretAppKey, c.Value(), actionID); !ok {
+		if ok := xsrftoken.Valid(tok, i.SecretAppKey, cookieID.Value(), actionID); !ok {
 			return w.WriteError(safehttp.StatusForbidden)
 		}
 	}
 
-	tok := xsrftoken.Generate(i.SecretAppKey, c.Value(), actionID)
+	tok := xsrftoken.Generate(i.SecretAppKey, cookieID.Value(), actionID)
 	r.SetContext(context.WithValue(r.Context(), tokenCtxKey{}, tok))
 	return safehttp.NotWritten()
 }

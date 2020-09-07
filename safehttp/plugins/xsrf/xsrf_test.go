@@ -70,7 +70,7 @@ func TestTokenPost(t *testing.T) {
 			tok := xsrftoken.Generate("testSecretAppKey", test.cookieVal, test.actionID)
 			req := safehttptest.NewRequest(safehttp.MethodPost, "https://foo.com/pizza", strings.NewReader(TokenKey+"="+tok))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-			req.Header.Set("Cookie", tokenCookie+"=abcdef")
+			req.Header.Set("Cookie", cookieIDKey+"=abcdef")
 
 			i := Interceptor{SecretAppKey: "testSecretAppKey"}
 			i.Before(rec.ResponseWriter, req, nil)
@@ -100,7 +100,7 @@ func TestTokenMultipart(t *testing.T) {
 				"--123--\r\n"
 			req := safehttptest.NewRequest(safehttp.MethodPost, "https://foo.com/pizza", strings.NewReader(b))
 			req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
-			req.Header.Set("Cookie", tokenCookie+"=abcdef")
+			req.Header.Set("Cookie", cookieIDKey+"=abcdef")
 
 			i := Interceptor{SecretAppKey: "testSecretAppKey"}
 			i.Before(rec.ResponseWriter, req, nil)
@@ -122,7 +122,7 @@ func TestMalformedForm(t *testing.T) {
 	rec := safehttptest.NewResponseRecorder()
 	req := safehttptest.NewRequest(safehttp.MethodPost, "https://foo.com/pizza", nil)
 	req.Header.Set("Content-Type", "wrong")
-	req.Header.Set("Cookie", tokenCookie+"=abcdef")
+	req.Header.Set("Cookie", cookieIDKey+"=abcdef")
 
 	i := Interceptor{SecretAppKey: "testSecretAppKey"}
 	i.Before(rec.ResponseWriter, req, nil)
@@ -152,7 +152,7 @@ func TestMissingTokenInBody(t *testing.T) {
 			req: func() *safehttp.IncomingRequest {
 				req := safehttptest.NewRequest(safehttp.MethodPost, "/", strings.NewReader("foo=bar"))
 				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-				req.Header.Set("Cookie", tokenCookie+"=abcdef")
+				req.Header.Set("Cookie", cookieIDKey+"=abcdef")
 				return req
 			}(),
 		},
@@ -161,7 +161,7 @@ func TestMissingTokenInBody(t *testing.T) {
 			req: func() *safehttp.IncomingRequest {
 				req := safehttptest.NewRequest(safehttp.MethodPatch, "/", strings.NewReader("foo=bar"))
 				req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-				req.Header.Set("Cookie", tokenCookie+"=abcdef")
+				req.Header.Set("Cookie", cookieIDKey+"=abcdef")
 				return req
 			}(),
 		},
@@ -175,7 +175,7 @@ func TestMissingTokenInBody(t *testing.T) {
 					"--123--\r\n"
 				req := safehttptest.NewRequest(safehttp.MethodPost, "/", strings.NewReader(b))
 				req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
-				req.Header.Set("Cookie", tokenCookie+"=abcdef")
+				req.Header.Set("Cookie", cookieIDKey+"=abcdef")
 				return req
 			}(),
 		},
@@ -189,7 +189,7 @@ func TestMissingTokenInBody(t *testing.T) {
 					"--123--\r\n"
 				req := safehttptest.NewRequest(safehttp.MethodPatch, "/", strings.NewReader(b))
 				req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
-				req.Header.Set("Cookie", tokenCookie+"=abcdef")
+				req.Header.Set("Cookie", cookieIDKey+"=abcdef")
 				return req
 			}(),
 		},
@@ -219,7 +219,7 @@ func TestMissingTokenInBody(t *testing.T) {
 func TestBeforeTokenInRequestContext(t *testing.T) {
 	rec := safehttptest.NewResponseRecorder()
 	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
-	req.Header.Set("Cookie", tokenCookie+"=abcdef")
+	req.Header.Set("Cookie", cookieIDKey+"=abcdef")
 
 	i := Interceptor{SecretAppKey: "testSecretAppKey"}
 	i.Before(rec.ResponseWriter, req, nil)
