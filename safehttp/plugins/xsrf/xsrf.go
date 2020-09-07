@@ -58,9 +58,8 @@ func Token(r *safehttp.IncomingRequest) (string, error) {
 
 func addCookieID(w *safehttp.ResponseWriter) (*safehttp.Cookie, error) {
 	buf := make([]byte, 20)
-	_, err := rand.Read(buf)
-	if err != nil {
-		panic(fmt.Errorf("crypto/rand.Read: %v", err))
+	if _, err := rand.Read(buf); err != nil {
+		return nil, fmt.Errorf("crypto/rand.Read: %v", err)
 	}
 
 	c := safehttp.NewCookie(cookieIDKey, base64.StdEncoding.EncodeToString(buf))
