@@ -109,22 +109,13 @@ func (it *Interceptor) SetAllowedHeaders(headers ...string) {
 func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 	origin := r.Header.Get("Origin")
 	if origin != "" && !it.AllowedOrigins[origin] {
-		return w.ClientError(safehttp.StatusForbidden)
+		return w.WriteError(safehttp.StatusForbidden)
 	}
 	h := w.Header()
-	allowOrigin, err := h.Claim("Access-Control-Allow-Origin")
-	if err != nil {
-		return w.ServerError(safehttp.StatusInternalServerError)
-	}
-	vary, err := h.Claim("Vary")
-	if err != nil {
-		return w.ServerError(safehttp.StatusInternalServerError)
-	}
+	allowOrigin := h.Claim("Access-Control-Allow-Origin")
+	vary := h.Claim("Vary")
 
-	allowCredentials, err := h.Claim("Access-Control-Allow-Credentials")
-	if err != nil {
-		return w.ServerError(safehttp.StatusInternalServerError)
-	}
+	allowCredentials := h.Claim("Access-Control-Allow-Credentials")
 
 	var status safehttp.StatusCode
 	if r.Method() == safehttp.MethodOptions {
@@ -134,11 +125,7 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 	}
 
 	if status != 0 && status != safehttp.StatusNoContent {
-		if 400 <= status && status < 500 {
-			return w.ClientError(status)
-		} else {
-			return w.ServerError(status)
-		}
+		return w.WriteError(status)
 	}
 
 	if origin != "" {
@@ -164,11 +151,6 @@ func (it *Interceptor) preflight(w *safehttp.ResponseWriter, r *safehttp.Incomin
 	if method == "" {
 		return safehttp.StatusForbidden
 	}
-	wh := w.Header()
-	allowMethods, err := wh.Claim("Access-Control-Allow-Methods")
-	if err != nil {
-		return safehttp.StatusInternalServerError
-	}
 
 	headers := rh.Get("Access-Control-Request-Headers")
 	if headers != "" {
@@ -179,15 +161,11 @@ func (it *Interceptor) preflight(w *safehttp.ResponseWriter, r *safehttp.Incomin
 			}
 		}
 	}
-	allowHeaders, err := wh.Claim("Access-Control-Allow-Headers")
-	if err != nil {
-		return safehttp.StatusInternalServerError
-	}
 
-	maxAge, err := wh.Claim("Access-Control-Max-Age")
-	if err != nil {
-		return safehttp.StatusInternalServerError
-	}
+	wh := w.Header()
+	allowMethods := wh.Claim("Access-Control-Allow-Methods")
+	allowHeaders := wh.Claim("Access-Control-Allow-Headers")
+	maxAge := wh.Claim("Access-Control-Max-Age")
 
 	allowMethods([]string{method})
 	if headers != "" {
@@ -212,12 +190,7 @@ func (it *Interceptor) request(w *safehttp.ResponseWriter, r *safehttp.IncomingR
 		return safehttp.StatusUnsupportedMediaType
 	}
 
-	exposeHeaders, err := w.Header().Claim("Access-Control-Expose-Headers")
-	if err != nil {
-		return safehttp.StatusInternalServerError
-	}
-
-	if it.ExposedHeaders != nil {
+	if exposeHeaders := w.Header().Claim("Access-Control-Expose-Headers"); it.ExposedHeaders != nil {
 		exposeHeaders([]string{strings.Join(it.ExposedHeaders, ", ")})
 	}
 	return 0
