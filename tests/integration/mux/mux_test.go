@@ -146,7 +146,7 @@ func TestMuxDefaultDispatcher(t *testing.T) {
 			wantHeaders: map[string][]string{
 				"Content-Type": {"application/json; charset=utf-8"},
 			},
-			wantBody: `{"field":"myField"}`,
+			wantBody: "{\"field\":\"myField\"}\n",
 		},
 		{
 			name: "Invalid JSON Response",
@@ -184,7 +184,7 @@ func TestMuxDefaultDispatcher(t *testing.T) {
 			}
 
 			if gotBody := b.String(); tt.wantBody != gotBody {
-				t.Errorf("response body: got %q, want %q", gotBody, tt.wantBody)
+				t.Errorf("response body: got %v, want %v", gotBody, tt.wantBody)
 			}
 		})
 	}

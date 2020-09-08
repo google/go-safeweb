@@ -602,5 +602,5 @@ func TestMuxNilDispatcher(t *testing.T) {
 			t.Errorf(`mux.NewServeMux(nil): expected panic`)
 		}
 	}()
-	_ = safehttp.NewServeMux(nil)
+	safehttp.NewServeMux(nil)
 }
