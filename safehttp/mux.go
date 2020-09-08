@@ -202,8 +202,8 @@ func (h handlerWithInterceptors) ServeHTTP(w http.ResponseWriter, r *http.Reques
 		}
 	}()
 
-	for _, ai := range h.interceps {
-		ai.it.Before(rw, ir, ai.cfg)
+	for _, interceptor := range h.interceps {
+		interceptor.it.Before(rw, ir, interceptor.cfg)
 		if rw.written {
 			return
 		}
