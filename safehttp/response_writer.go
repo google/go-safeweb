@@ -85,10 +85,10 @@ func (w *ResponseWriter) Write(resp Response) Result {
 	if w.written {
 		return Result{}
 	}
+	w.markWritten()
 	if err := w.d.Write(w.rw, resp); err != nil {
 		panic("error")
 	}
-	w.markWritten()
 	return Result{}
 }
 
@@ -101,15 +101,22 @@ func (w *ResponseWriter) WriteTemplate(t Template, data interface{}) Result {
 	if w.written {
 		return Result{}
 	}
+	w.markWritten()
 	if err := w.d.ExecuteTemplate(w.rw, t, data); err != nil {
 		panic("error")
 	}
-	w.markWritten()
 	return Result{}
 }
 
 // NoContent responds with a 204 No Content response.
 func (w *ResponseWriter) NoContent() Result {
+	if w.written {
+		panic("ResponseWriter was already written to")
+	}
+	w.commitPhase(NoContentResponse{})
+	if w.written {
+		return Result{}
+	}
 	w.markWritten()
 	w.rw.WriteHeader(int(StatusNoContent))
 	return Result{}
