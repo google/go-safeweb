@@ -29,3 +29,6 @@ type TemplateResponse struct {
 	Template *Template
 	Data     *interface{}
 }
+
+// NoContentResponse TODO
+type NoContentResponse struct{}
