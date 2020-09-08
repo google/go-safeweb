@@ -120,8 +120,11 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 	allowCredentials := h.Claim("Access-Control-Allow-Credentials")
 
 	var status safehttp.StatusCode
-	if r.Method() == safehttp.MethodOptions {
+	m := r.Method()
+	if m == safehttp.MethodOptions {
 		status = it.preflight(w, r)
+	} else if m == safehttp.MethodHead {
+		status = safehttp.StatusMethodNotAllowed
 	} else {
 		status = it.request(w, r)
 	}
@@ -159,7 +162,7 @@ func appendToVary(w *safehttp.ResponseWriter, val string) {
 func (it *Interceptor) preflight(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.StatusCode {
 	rh := r.Header
 	method := rh.Get("Access-Control-Request-Method")
-	if method == "" {
+	if method == "" || method == safehttp.MethodHead {
 		return safehttp.StatusForbidden
 	}
 
