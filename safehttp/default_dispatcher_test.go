@@ -58,7 +58,7 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 				}{Field: "myField"}
 				return d.WriteJSON(w, safehttp.JSONResponse{Data: data})
 			},
-			wantBody: `{"field":"myField"}`,
+			wantBody: "{\"field\":\"myField\"}\n",
 		},
 	}
 	for _, tt := range tests {
@@ -91,7 +91,6 @@ func TestDefaultDispatcherInvalidResponse(t *testing.T) {
 				return d.Write(w, "<h1>Hello World!</h1>")
 			},
 		},
-
 		{
 			name: "Unsafe Template Response",
 			write: func(w http.ResponseWriter) error {

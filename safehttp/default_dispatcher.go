@@ -16,7 +16,7 @@ package safehttp
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"github.com/google/safehtml"
 	"github.com/google/safehtml/template"
 	"net/http"
@@ -26,8 +26,8 @@ import (
 // Response Writer if it's of a safe type.
 type DefaultDispatcher struct{}
 
-// ContentType returns the Content-Type of a safe respons if it's of a safe-type
-// and a non-nil error otherwise.
+// ContentType returns the Content-Type of a safe response if it's of a
+// safe-type and an error otherwise.
 func (DefaultDispatcher) ContentType(resp Response) (string, error) {
 	switch resp.(type) {
 	case safehtml.HTML, *template.Template:
@@ -35,7 +35,7 @@ func (DefaultDispatcher) ContentType(resp Response) (string, error) {
 	case JSONResponse:
 		return "application/json; charset=utf-8", nil
 	default:
-		return "", errors.New("not a safe response")
+		return "", fmt.Errorf("%T is not a safe response type, a Content-Type cannot be provided", resp)
 	}
 }
 
@@ -45,7 +45,7 @@ func (DefaultDispatcher) ContentType(resp Response) (string, error) {
 func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 	x, ok := resp.(safehtml.HTML)
 	if !ok {
-		return errors.New("not a safe response type")
+		return fmt.Errorf("%T is not a safe response type and it cannot be written", resp)
 	}
 	_, err := rw.Write([]byte(x.String()))
 	return err
@@ -56,12 +56,9 @@ func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 // provided response is not valid JSON or writing the response fails, the method
 // will return an error.
 func (DefaultDispatcher) WriteJSON(rw http.ResponseWriter, resp JSONResponse) error {
-	obj, err := json.Marshal(resp.Data)
-	if err != nil {
-		return errors.New("invalid json")
-	}
-	_, err = rw.Write(obj)
-	return err
+	// TODO: XSSI protection needs to be added as this is not a safe response
+	// type yet
+	return json.NewEncoder(rw).Encode(resp.Data)
 }
 
 // ExecuteTemplate applies a parsed template to the provided data object if the
@@ -73,8 +70,7 @@ func (DefaultDispatcher) WriteJSON(rw http.ResponseWriter, resp JSONResponse) er
 func (DefaultDispatcher) ExecuteTemplate(rw http.ResponseWriter, t Template, data interface{}) error {
 	x, ok := t.(*template.Template)
 	if !ok {
-		return errors.New("not a safe response type")
+		return fmt.Errorf("%T is not a safe template and it cannot be parsed and written", t)
 	}
-	err := x.Execute(rw, data)
-	return err
+	return x.Execute(rw, data)
 }
