@@ -25,23 +25,22 @@ type ResponseWriter struct {
 
 	// Having this field unexported is essential for security. Otherwise one can
 	// easily overwrite the struct bypassing all our safety guarantees.
-	header       Header
-	muxInterceps map[string]Interceptor
-	written      bool
-
-	commitPhase *CommitPhase
+	header           Header
+	appliedInterceps []AppliedInterceptor
+	req              *IncomingRequest
+	written          bool
 }
 
 // NewResponseWriter creates a ResponseWriter from a safehttp.Dispatcher, an
 // http.ResponseWriter and a list of interceptors associated with a ServeMux.
-func NewResponseWriter(d Dispatcher, rw http.ResponseWriter, muxInterceps map[string]Interceptor, cp *CommitPhase) *ResponseWriter {
+func NewResponseWriter(d Dispatcher, rw http.ResponseWriter, req *IncomingRequest, interceps []AppliedInterceptor) *ResponseWriter {
 	header := newHeader(rw.Header())
 	return &ResponseWriter{
-		d:            d,
-		rw:           rw,
-		header:       header,
-		muxInterceps: muxInterceps,
-		commitPhase:  cp,
+		d:                d,
+		rw:               rw,
+		header:           header,
+		appliedInterceps: interceps,
+		req:              req,
 	}
 }
 
@@ -58,30 +57,54 @@ func NotWritten() Result {
 	return Result{}
 }
 
+// commitPhase calls the Commit phases of all the interceptors. This stage will
+// run before a response is written to the ResponseWriter. If a response is
+// written to the ResponseWriter in a Commit phase then the Commit phases of the
+// remaining interceptors won't execute.
+//
+// TODO: BIG WARNING, if ResponseWriter.Write and ResponseWriter.WriteTemplate
+// are called in Commit then this will recurse. CommitResponseWriter was an
+// attempt to prevent this by not giving access to Write and WriteTemplate in
+// the Commit phase.
+func (w *ResponseWriter) commitPhase(resp Response) {
+	for i := len(w.appliedInterceps) - 1; i >= 0; i-- {
+		ai := w.appliedInterceps[i]
+		ai.it.Commit(w, w.req, resp, ai.cfg)
+		if w.written {
+			return
+		}
+	}
+}
+
 // Write TODO
 func (w *ResponseWriter) Write(resp Response) Result {
-	w.commitPhase.commit(&CommitResponseWriter{rw: w}, resp)
+	if w.written {
+		panic("ResponseWriter was already written to")
+	}
+	w.commitPhase(resp)
 	if w.written {
 		return Result{}
 	}
-	w.markWritten()
 	if err := w.d.Write(w.rw, resp); err != nil {
 		panic("error")
 	}
+	w.markWritten()
 	return Result{}
 }
 
 // WriteTemplate TODO
 func (w *ResponseWriter) WriteTemplate(t Template, data interface{}) Result {
-	d := DataTemplate{Template: &t, Data: &data}
-	w.commitPhase.commit(&CommitResponseWriter{rw: w}, d)
+	if w.written {
+		panic("ResponseWriter was already written to")
+	}
+	w.commitPhase(TemplateResponse{Template: &t, Data: &data})
 	if w.written {
 		return Result{}
 	}
-	w.markWritten()
 	if err := w.d.ExecuteTemplate(w.rw, t, data); err != nil {
 		panic("error")
 	}
+	w.markWritten()
 	return Result{}
 }
 
@@ -96,10 +119,6 @@ func (w *ResponseWriter) NoContent() Result {
 // code. Any headers previously set will be removed.
 func (w *ResponseWriter) WriteError(code StatusCode) Result {
 	w.markWritten()
-	h := w.rw.Header()
-	for k := range h {
-		h.Del(k)
-	}
 	http.Error(w.rw, http.StatusText(int(code)), int(code))
 	return Result{}
 }
@@ -141,19 +160,4 @@ func (w *ResponseWriter) SetCookie(c *Cookie) error {
 type Dispatcher interface {
 	Write(rw http.ResponseWriter, resp Response) error
 	ExecuteTemplate(rw http.ResponseWriter, t Template, data interface{}) error
-}
-
-// CommitResponseWriter TODO
-type CommitResponseWriter struct {
-	rw *ResponseWriter
-}
-
-// Header TODO
-func (w *CommitResponseWriter) Header() Header {
-	return w.rw.Header()
-}
-
-// WriteError TODO
-func (w *CommitResponseWriter) WriteError(code StatusCode) Result {
-	return w.rw.WriteError(code)
 }

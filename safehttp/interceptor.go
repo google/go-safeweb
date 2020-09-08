@@ -25,8 +25,7 @@ type Interceptor interface {
 	Before(w *ResponseWriter, r *IncomingRequest, cfg interface{}) Result
 
 	// Commit runs before the response is written by the Dispatcher. If an error
-	// is written to the CommitResponseWriter, then the Commit phases from the
-	// remaining interceptors won't execute and any headers set in the
-	// ResponseWriter would be removed.
-	Commit(w *CommitResponseWriter, r *IncomingRequest, resp Response, cfg interface{}) Result
+	// is written to the ResponseWriter, then the Commit phases from the
+	// remaining interceptors won't execute.
+	Commit(w *ResponseWriter, r *IncomingRequest, resp Response, cfg interface{}) Result
 }

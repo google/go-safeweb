@@ -34,6 +34,6 @@ func (Plugin) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cf
 	return safehttp.NotWritten()
 }
 
-func (Plugin) Commit(w *safehttp.CommitResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
+func (Plugin) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
 	return safehttp.Result{}
 }
