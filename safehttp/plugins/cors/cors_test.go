@@ -182,6 +182,30 @@ func TestRequest(t *testing.T) {
 	}
 }
 
+func TestVaryHeaderAppending(t *testing.T) {
+	req := safehttptest.NewRequest(safehttp.MethodPut, "http://bar.com", nil)
+	req.Header.Set("Origin", "https://foo.com")
+	req.Header.Set("X-Cors", "1")
+	req.Header.Set("Content-Type", "application/json")
+
+	rr := safehttptest.NewResponseRecorder()
+	rr.Header().Set("Vary", "a")
+
+	it := cors.Default("https://foo.com")
+	it.Before(rr.ResponseWriter, req)
+
+	wantHeaders := map[string][]string{
+		"Access-Control-Allow-Origin": {"https://foo.com"},
+		"Vary":                        {"a, Origin"},
+	}
+	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
+		t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
+	}
+	if got := rr.Body(); got != "" {
+		t.Errorf(`rr.Body() got: %q want: ""`, got)
+	}
+}
+
 func TestInvalidRequest(t *testing.T) {
 	tests := []struct {
 		name string

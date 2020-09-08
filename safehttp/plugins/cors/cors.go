@@ -113,7 +113,9 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 	}
 	h := w.Header()
 	allowOrigin := h.Claim("Access-Control-Allow-Origin")
-	vary := h.Claim("Vary")
+	if h.IsClaimed("Vary") {
+		return w.WriteError(safehttp.StatusInternalServerError)
+	}
 
 	allowCredentials := h.Claim("Access-Control-Allow-Credentials")
 
@@ -130,7 +132,7 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 
 	if origin != "" {
 		allowOrigin([]string{origin})
-		vary([]string{"Origin"})
+		appendToVary(w, "Origin")
 	}
 	if r.Header.Get("Cookie") != "" && it.AllowCredentials {
 		// TODO: handle other credentials than cookies:
@@ -142,6 +144,15 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 		return w.NoContent()
 	}
 	return safehttp.Result{}
+}
+
+func appendToVary(w *safehttp.ResponseWriter, val string) {
+	h := w.Header()
+	if curr := h.Get("Vary"); curr != "" {
+		h.Set("Vary", curr+", "+val)
+	} else {
+		h.Set("Vary", val)
+	}
 }
 
 // preflight handles requests that have the method OPTIONS.
