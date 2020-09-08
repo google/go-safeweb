@@ -27,11 +27,7 @@ import (
 
 func TestResponseWriterSetCookie(t *testing.T) {
 	rr := newResponseRecorder(&strings.Builder{})
-<<<<<<< HEAD
-	rw := safehttp.NewResponseWriter(testDispatcher{}, rr)
-=======
 	rw := safehttp.NewResponseWriter(testDispatcher{}, rr, nil, nil)
->>>>>>> Added the Commit phase.
 
 	c := safehttp.NewCookie("foo", "bar")
 	err := rw.SetCookie(c)

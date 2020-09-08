@@ -164,6 +164,6 @@ func (p *Plugin) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest)
 	return safehttp.Result{}
 }
 
-func (p *Plugin) Commit(w *safehttp.CommitResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
+func (p *Plugin) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
 	return safehttp.Result{}
 }
