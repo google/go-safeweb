@@ -383,20 +383,14 @@ func (setHeaderConfig) Match(i safehttp.Interceptor) bool {
 type setHeaderConfigInterceptor struct{}
 
 func (p setHeaderConfigInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
-	value := "Hawaii"
-	if c, ok := cfg.(setHeaderConfig); ok {
-		value = c.pizzaValue
-	}
-	w.Header().Set("Pizza", value)
+	c := cfg.(setHeaderConfig)
+	w.Header().Set("Pizza", c.pizzaValue)
 	return safehttp.Result{}
 }
 
 func (p setHeaderConfigInterceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
-	value := "Fusili"
-	if c, ok := cfg.(setHeaderConfig); ok {
-		value = c.pastaValue
-	}
-	w.Header().Set("Pasta", value)
+	c := cfg.(setHeaderConfig)
+	w.Header().Set("Pasta", c.pastaValue)
 	return safehttp.NotWritten()
 }
 
@@ -427,12 +421,12 @@ func TestMuxInterceptorConfigs(t *testing.T) {
 		{
 			name:       "SetHeaderInterceptor with mismatching config",
 			config:     noInterceptorConfig{},
-			wantStatus: safehttp.StatusOK,
+			wantStatus: safehttp.StatusInternalServerError,
 			wantHeaders: map[string][]string{
-				"Pizza": {"Hawaii"},
-				"Pasta": {"Fusili"},
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
 			},
-			wantBody: "&lt;h1&gt;Hello World!&lt;/h1&gt;",
+			wantBody: "Internal Server Error\n",
 		},
 	}
 
