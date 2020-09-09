@@ -25,22 +25,21 @@ type ResponseWriter struct {
 
 	// Having this field unexported is essential for security. Otherwise one can
 	// easily overwrite the struct bypassing all our safety guarantees.
-	header           Header
-	appliedInterceps []AppliedInterceptor
-	req              *IncomingRequest
-	written          bool
+	header  Header
+	handler handlerWithInterceptors
+	req     *IncomingRequest
+	written bool
 }
 
 // NewResponseWriter creates a ResponseWriter from a safehttp.Dispatcher, an
 // http.ResponseWriter and a list of interceptors associated with a ServeMux.
-func NewResponseWriter(d Dispatcher, rw http.ResponseWriter, req *IncomingRequest, interceps []AppliedInterceptor) *ResponseWriter {
+func NewResponseWriter(d Dispatcher, rw http.ResponseWriter, req *IncomingRequest) *ResponseWriter {
 	header := newHeader(rw.Header())
 	return &ResponseWriter{
-		d:                d,
-		rw:               rw,
-		header:           header,
-		appliedInterceps: interceps,
-		req:              req,
+		d:      d,
+		rw:     rw,
+		header: header,
+		req:    req,
 	}
 }
 
@@ -57,31 +56,12 @@ func NotWritten() Result {
 	return Result{}
 }
 
-// commitPhase calls the Commit phases of all the interceptors. This stage will
-// run before a response is written to the ResponseWriter. If a response is
-// written to the ResponseWriter in a Commit phase then the Commit phases of the
-// remaining interceptors won't execute.
-//
-// TODO: BIG WARNING, if ResponseWriter.Write and ResponseWriter.WriteTemplate
-// are called in Commit then this will recurse. CommitResponseWriter was an
-// attempt to prevent this by not giving access to Write and WriteTemplate in
-// the Commit phase.
-func (w *ResponseWriter) commitPhase(resp Response) {
-	for i := len(w.appliedInterceps) - 1; i >= 0; i-- {
-		ai := w.appliedInterceps[i]
-		ai.it.Commit(w, w.req, resp, ai.cfg)
-		if w.written {
-			return
-		}
-	}
-}
-
 // Write TODO
 func (w *ResponseWriter) Write(resp Response) Result {
 	if w.written {
 		panic("ResponseWriter was already written to")
 	}
-	w.commitPhase(resp)
+	w.handler.commitPhase(w, resp)
 	if w.written {
 		return Result{}
 	}
@@ -97,7 +77,7 @@ func (w *ResponseWriter) WriteTemplate(t Template, data interface{}) Result {
 	if w.written {
 		panic("ResponseWriter was already written to")
 	}
-	w.commitPhase(TemplateResponse{Template: &t, Data: &data})
+	w.handler.commitPhase(w, TemplateResponse{Template: &t, Data: &data})
 	if w.written {
 		return Result{}
 	}
@@ -113,7 +93,7 @@ func (w *ResponseWriter) NoContent() Result {
 	if w.written {
 		panic("ResponseWriter was already written to")
 	}
-	w.commitPhase(NoContentResponse{})
+	w.handler.commitPhase(w, NoContentResponse{})
 	if w.written {
 		return Result{}
 	}
