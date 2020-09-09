@@ -24,11 +24,14 @@ type Template interface {
 	Execute(wr io.Writer, data interface{}) error
 }
 
-// TemplateResponse TODO
+// TemplateResponse bundles a Template with its data to be passed together to the
+// commit phase. This will be passed when the commit phase is initiated from
+// ResponseWriter.WriteTemplate.
 type TemplateResponse struct {
 	Template *Template
 	Data     *interface{}
 }
 
-// NoContentResponse TODO
+// NoContentResponse is sent to the commit phase when it's initiated from
+// ResponseWriter.NoContent.
 type NoContentResponse struct{}
