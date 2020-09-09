@@ -207,10 +207,39 @@ func (w *ResponseWriter) SetCookie(c *Cookie) error {
 	return w.header.addCookie(c)
 }
 
-// Dispatcher TODO
+// Dispatcher is responsible for writing a response received from the
+// ResponseWriter to the underlying http.ResponseWriter.
+//
+// The implementation of a custom Dispatcher should be thoroughly reviewed by
+// the security team to avoid introducing vulnerabilities. Moreover/
 type Dispatcher interface {
+	// Write writes a Response to the http.ResponseWriter.
+	//
+	// It should return an error if the writing operation fails or if the
+	// provided Response should not be written to the http.ResponseWriter
 	Write(rw http.ResponseWriter, resp Response) error
+
+	// WriteJSON serialises and writes a JSON object to the http.ResponseWriter.
+	//
+	// This should return an error if the provided response is not a valid
+	// JSONResponse  or if writing the object to the http.ResponseWriter fails.
 	WriteJSON(rw http.ResponseWriter, resp JSONResponse) error
+
+	// ExecuteTemplate applies a parsed template to the provided data object
+	// and writes the output to the http.ResponseWriter.
+	//
+	// This should return an error if the provided Template response is not a
+	// valid template or if an error occurs executing or writing the template.
 	ExecuteTemplate(rw http.ResponseWriter, t Template, data interface{}) error
+
+	// Content-Type returns the Content-Type of the provided response if it is
+	// of a type supported by the Dispatcher and should return an error
+	// otherwise.
+
+	// Sending a response to the http.ResponseWriter without properly setting
+	// the is bug-prone and could introduce vulnerabilities. Therefore, this
+	// method should be used to set the Content-Type header before calling any
+	// of the writing methods in the Dispatcher. Writing should not proceed
+	// ContentType returns an error.
 	ContentType(resp Response) (string, error)
 }

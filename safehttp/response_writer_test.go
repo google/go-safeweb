@@ -75,6 +75,14 @@ func TestResponseWriterWriteTwicePanic(t *testing.T) {
 			},
 		},
 		{
+			name: "Call Write then WriteJSON",
+			write: func(w *safehttp.ResponseWriter) {
+				obj := struct{ Field string }{Field: "myField"}
+				w.Write(obj)
+				w.WriteJSON(obj)
+			},
+		},
+		{
 			name: "Call WriteTemplate twice",
 			write: func(w *safehttp.ResponseWriter) {
 				w.WriteTemplate(template.Must(template.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")

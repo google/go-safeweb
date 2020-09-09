@@ -21,8 +21,8 @@ import "io"
 // supported by the Dispatcher.
 type Response interface{}
 
-// JSONResponse encapsulate a JSON response that will be passed as an argument
-// to ResponseWriter.WriteJSON>
+// JSONResponse should encapsulate a valid JSON object that will be serialised
+// and written to the http.ResponseWriter using a JSON encoder.
 type JSONResponse struct {
 	Data interface{}
 }
