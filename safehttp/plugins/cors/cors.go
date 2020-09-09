@@ -120,12 +120,12 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 	allowCredentials := h.Claim("Access-Control-Allow-Credentials")
 
 	var status safehttp.StatusCode
-	m := r.Method()
-	if m == safehttp.MethodOptions {
+	switch r.Method() {
+	case safehttp.MethodOptions:
 		status = it.preflight(w, r)
-	} else if m == safehttp.MethodHead {
+	case safehttp.MethodHead:
 		status = safehttp.StatusMethodNotAllowed
-	} else {
+	default:
 		status = it.request(w, r)
 	}
 
