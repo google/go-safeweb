@@ -96,8 +96,7 @@ func NewServeMux(d Dispatcher, domains ...string) *ServeMux {
 	}
 }
 
-// AppliedInterceptor TODO
-type AppliedInterceptor struct {
+type appliedInterceptor struct {
 	it  Interceptor
 	cfg Config
 }
@@ -110,7 +109,7 @@ type AppliedInterceptor struct {
 // Interceptor was not installed will produce no effect. If multiple Configs are
 // passed for the same Interceptor, only the first one will take effect.
 func (m *ServeMux) Handle(pattern string, method string, h Handler, cfgs ...Config) {
-	var interceps []AppliedInterceptor
+	var interceps []appliedInterceptor
 	for _, it := range m.interceps {
 		var cfg Config
 		for _, c := range cfgs {
@@ -119,7 +118,7 @@ func (m *ServeMux) Handle(pattern string, method string, h Handler, cfgs ...Conf
 				break
 			}
 		}
-		interceps = append(interceps, AppliedInterceptor{it: it, cfg: cfg})
+		interceps = append(interceps, appliedInterceptor{it: it, cfg: cfg})
 	}
 	hi := handlerWithInterceptors{
 		handler:   h,
@@ -184,7 +183,7 @@ func (m methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // interceptors.
 type handlerWithInterceptors struct {
 	handler   Handler
-	interceps []AppliedInterceptor
+	interceps []appliedInterceptor
 	disp      Dispatcher
 }
 
