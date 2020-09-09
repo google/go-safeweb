@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package safehttp_test
+package safehttp
 
 import (
 	"context"
@@ -597,10 +597,6 @@ func TestMuxHandlerReturnsNotWritten(t *testing.T) {
 }
 
 func TestMuxNilDispatcher(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf(`mux.NewServeMux(nil): expected panic`)
-		}
-	}()
-	safehttp.NewServeMux(nil)
+	mux := safehttp.NewServeMux(nil)
+	d, ok := mux.dis
 }

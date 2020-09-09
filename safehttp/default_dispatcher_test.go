@@ -58,7 +58,7 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 				}{Field: "myField"}
 				return d.WriteJSON(w, safehttp.JSONResponse{Data: data})
 			},
-			wantBody: "{\"field\":\"myField\"}\n",
+			wantBody: ")]}',\n{\"field\":\"myField\"}\n",
 		},
 	}
 	for _, tt := range tests {

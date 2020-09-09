@@ -56,9 +56,9 @@ func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 // If the provided response is not valid JSON or writing the response fails, the
 // method will return an error.
 func (DefaultDispatcher) WriteJSON(rw http.ResponseWriter, resp JSONResponse) error {
-	// TODO: XSSI protection needs to be added as this is not a safe response
-	// type yet
-	return json.NewEncoder(rw).Encode(resp.Data)
+	e := json.NewEncoder(rw)
+	e.Encode(")]}',")
+	return e.Encode(resp.Data)
 }
 
 // ExecuteTemplate applies a parsed template to the provided data object if the
