@@ -161,6 +161,10 @@ func appendToVary(w *safehttp.ResponseWriter, val string) {
 // preflight handles requests that have the method OPTIONS.
 func (it *Interceptor) preflight(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.StatusCode {
 	rh := r.Header
+	if rh.Get("Origin") == "" {
+		return safehttp.StatusForbidden
+	}
+
 	method := rh.Get("Access-Control-Request-Method")
 	if method == "" || method == safehttp.MethodHead {
 		return safehttp.StatusForbidden
