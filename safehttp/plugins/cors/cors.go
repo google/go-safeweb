@@ -49,8 +49,8 @@ type Interceptor struct {
 	AllowedOrigins map[string]bool
 	allowedHeaders map[string]bool
 	// ExposedHeaders determines which headers should be set in the
-	// Access-Control-Expose-Headers header. This controls which headers in the
-	// response should be accessible by JavaScript.
+	// Access-Control-Expose-Headers header. This controls which headers are
+	//  accessible by JavaScript in the response.
 	//
 	// If ExposedHeaders is nil, then the header is not set, meaning that nothing
 	// is exposed.
