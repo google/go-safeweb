@@ -194,7 +194,8 @@ type handlerWithInterceptors struct {
 // Error response is sent.
 func (h handlerWithInterceptors) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ir := NewIncomingRequest(r)
-	rw := NewResponseWriter(h.disp, w, ir, h.interceps)
+	rw := NewResponseWriter(h.disp, w, ir)
+	rw.handler = h
 
 	// The `net/http` package recovers handler panics, but we cannot rely on that behavior here.
 	// The reason is, we might need to run After/Commit stages of the interceptors before we
@@ -215,5 +216,24 @@ func (h handlerWithInterceptors) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	h.handler.ServeHTTP(rw, ir)
 	if !rw.written {
 		rw.NoContent()
+	}
+}
+
+// commitPhase calls the Commit phases of all the interceptors. This stage will
+// run before a response is written to the ResponseWriter. If a response is
+// written to the ResponseWriter in a Commit phase then the Commit phases of the
+// remaining interceptors won't execute.
+//
+// TODO: BIG WARNING, if ResponseWriter.Write and ResponseWriter.WriteTemplate
+// are called in Commit then this will recurse. CommitResponseWriter was an
+// attempt to prevent this by not giving access to Write and WriteTemplate in
+// the Commit phase.
+func (h handlerWithInterceptors) commitPhase(w *ResponseWriter, resp Response) {
+	for i := len(h.interceps) - 1; i >= 0; i-- {
+		ai := h.interceps[i]
+		ai.it.Commit(w, w.req, resp, ai.cfg)
+		if w.written {
+			return
+		}
 	}
 }
