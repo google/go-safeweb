@@ -84,7 +84,7 @@ type ServeMux struct {
 // will cause the method to panic.
 func NewServeMux(d Dispatcher, domains ...string) *ServeMux {
 	if d == nil {
-		panic("dispatcher cannot be nil")
+		d = DefaultDispatcher{}
 	}
 
 	// TODO(@mattiasgrenfeldt, @mihalimara22): make domains a variadic of string **literals**.
