@@ -32,7 +32,9 @@ type ResponseWriter struct {
 }
 
 // NewResponseWriter creates a ResponseWriter from a safehttp.Dispatcher, an
-// http.ResponseWriter and a list of interceptors associated with a ServeMux.
+// http.ResponseWriter and a reference to the current IncomingRequest being served.
+// The IncomingRequest will only be used by the commit phase, which only runs when
+// the ServeMux is used, and can be passed as nil in tests.
 func NewResponseWriter(d Dispatcher, rw http.ResponseWriter, req *IncomingRequest) *ResponseWriter {
 	header := newHeader(rw.Header())
 	return &ResponseWriter{
@@ -103,7 +105,7 @@ func (w *ResponseWriter) NoContent() Result {
 }
 
 // WriteError writes an error response (400-599) according to the provided status
-// code. Any headers previously set will be removed.
+// code.
 func (w *ResponseWriter) WriteError(code StatusCode) Result {
 	w.markWritten()
 	http.Error(w.rw, http.StatusText(int(code)), int(code))
