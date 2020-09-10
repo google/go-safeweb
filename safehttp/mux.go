@@ -36,9 +36,8 @@ const (
 //
 // When creating the multiplexer, the user needs to specify a list of allowed
 // domains. The server will only serve requests target to those domains and
-// otherwise will reply with HTTP 404 Not Found.
-// TODO(@mihalimara22, @mattiasgrenfeldt): add a link to docs/ explaining
-// why this is done.
+// otherwise will reply with HTTP 404 Not Found in order to protect agains DNS
+// rebinding and HTTP request smuggling.
 //
 // Patterns names are fixed, rooted paths, like "/favicon.ico", or rooted
 // subtrees like "/images/" (note the trailing slash). Longer patterns take
