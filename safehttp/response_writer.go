@@ -18,7 +18,12 @@ import (
 	"net/http"
 )
 
-// ResponseWriter TODO
+// ResponseWriter is used to construct an HTTP response. When a Response is
+// passed to the ResponseWriter, it will invoke the Dispatcher with the
+// Response. An attempt to write to the ResponseWriter twice will
+// cause a panic.
+//
+// A ResponseWriter may not be used after the Handler.ServeHTTP method has returned.
 type ResponseWriter struct {
 	d  Dispatcher
 	rw http.ResponseWriter
@@ -46,7 +51,10 @@ func NewResponseWriter(d Dispatcher, rw http.ResponseWriter, req *IncomingReques
 	}
 }
 
-// Result TODO
+// Result is created and returned when the ResponseWriter is written to. It should
+// be returned by Interceptor.Before and Handler.ServeHTTP. If nothing is written
+// to the ResponseWriter then an empty Result should be returned, created by
+// calling the NotWritten function.
 type Result struct{}
 
 // NotWritten returns a Result which indicates that nothing has been written yet. It
@@ -92,6 +100,8 @@ func (w *ResponseWriter) WriteTemplate(t Template, data interface{}) Result {
 }
 
 // NoContent responds with a 204 No Content response.
+//
+// If the ResponseWriter has already been written to, then this method will panic.
 func (w *ResponseWriter) NoContent() Result {
 	if w.written {
 		panic("ResponseWriter was already written to")
@@ -107,13 +117,17 @@ func (w *ResponseWriter) NoContent() Result {
 
 // WriteError writes an error response (400-599) according to the provided status
 // code.
+//
+// If the ResponseWriter has already been written to, then this method will panic.
 func (w *ResponseWriter) WriteError(code StatusCode) Result {
 	w.markWritten()
 	http.Error(w.rw, http.StatusText(int(code)), int(code))
 	return Result{}
 }
 
-// Redirect responds with a redirect to a given url, using code as the status code.
+// Redirect responds with a redirect to the given url, using code as the status code.
+//
+// If the ResponseWriter has already been written to, then this method will panic.
 func (w *ResponseWriter) Redirect(r *IncomingRequest, url string, code StatusCode) Result {
 	if code < 300 || code >= 400 {
 		panic("wrong method called")
@@ -140,7 +154,7 @@ func (w ResponseWriter) Header() Header {
 }
 
 // SetCookie adds a Set-Cookie header to the provided ResponseWriter's headers.
-// The provided cookie must have a valid Name. Otherwise an error will be
+// The provided cookie must have a valid Name, otherwise an error will be
 // returned.
 func (w *ResponseWriter) SetCookie(c *Cookie) error {
 	return w.header.addCookie(c)

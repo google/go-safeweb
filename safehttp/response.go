@@ -16,11 +16,19 @@ package safehttp
 
 import "io"
 
-// Response TODO
+// Response should encapsulate the data passed to the ResponseWriter to be
+// written by the Dispatcher. Any implementation of the interface should be
+// supported by the Dispatcher.
 type Response interface{}
 
-// Template TODO
+// Template should be an implementation of a template on which data can be applied.
 type Template interface {
+	// Execute should apply data to the template and then write the result to
+	// the io.Writer.
+	//
+	// Execute should return an error if applying the data object to the
+	// Template fails or an error occurs while writing the result to the
+	// io.Writer.
 	Execute(wr io.Writer, data interface{}) error
 }
 
