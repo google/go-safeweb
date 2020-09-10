@@ -240,11 +240,11 @@ type Dispatcher interface {
 	// Content-Type returns the Content-Type of the provided response if it is
 	// of a type supported by the Dispatcher and should return an error
 	// otherwise.
-
+	//
 	// Sending a response to the http.ResponseWriter without properly setting
-	// the is bug-prone and could introduce vulnerabilities. Therefore, this
+	// CT is error-prone and could introduce vulnerabilities. Therefore, this
 	// method should be used to set the Content-Type header before calling any
 	// of the writing methods in the Dispatcher. Writing should not proceed
-	// ContentType returns an error.
+	// if ContentType returns an error.
 	ContentType(resp Response) (string, error)
 }
