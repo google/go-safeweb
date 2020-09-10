@@ -51,10 +51,9 @@ func NewResponseWriter(d Dispatcher, rw http.ResponseWriter, req *IncomingReques
 	}
 }
 
-// Result is created and returned when the ResponseWriter is written to. It should
-// be returned by Interceptor.Before and Handler.ServeHTTP. If nothing is written
-// to the ResponseWriter then an empty Result should be returned, created by
-// calling the NotWritten function.
+// Result is the result of writing an HTTP response.
+//
+// Use ResponseWriter methods to obtain it.
 type Result struct{}
 
 // NotWritten returns a Result which indicates that nothing has been written yet. It

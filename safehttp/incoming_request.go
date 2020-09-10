@@ -24,16 +24,14 @@ import (
 	"sync"
 )
 
-// IncomingRequest represents a HTTP request received by the server.
+// IncomingRequest represents an HTTP request received by the server.
 type IncomingRequest struct {
-	// Header is the collection of headers set on the IncomingRequest.
+	// Header is the collection of HTTP headers.
 	//
 	// The Host header is removed from this struct and can be retrieved using Host()
 	Header Header
-	// TLS allows HTTP servers and other software to record information about the
-	// TLS connection on which the request was received. The HTTP server in the
-	// net/http package sets the field for TLS-enabled connections before invoking
-	// a handler, otherwise it leaves the field nil.
+	// TLS is set just like this TLS field of the net/http.Request. For more information
+	// see https://pkg.go.dev/net/http?tab=doc#Request.
 	TLS *tls.ConnectionState
 	// URL specifies the URL that is parsed from the Request-Line. For most requests,
 	// only URL.Path() will return a non-empty result. (See RFC 7230, Section 5.3)
@@ -44,7 +42,7 @@ type IncomingRequest struct {
 }
 
 // NewIncomingRequest creates an IncomingRequest
-// from an underlying http.Request.
+// from the underlying http.Request.
 func NewIncomingRequest(req *http.Request) *IncomingRequest {
 	return &IncomingRequest{
 		req:    req,

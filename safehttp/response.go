@@ -21,13 +21,13 @@ import "io"
 // supported by the Dispatcher.
 type Response interface{}
 
-// Template should be an implementation of a template on which data can be applied.
+// Template implements a template.
 type Template interface {
-	// Execute should apply data to the template and then write the result to
+	// Execute applies data to the template and then writes the result to
 	// the io.Writer.
 	//
-	// Execute should return an error if applying the data object to the
-	// Template fails or an error occurs while writing the result to the
+	// Execute returns an error if applying the data object to the
+	// Template fails or if an error occurs while writing the result to the
 	// io.Writer.
 	Execute(wr io.Writer, data interface{}) error
 }
