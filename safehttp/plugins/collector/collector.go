@@ -12,6 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package collector provides a function for creating violation report handlers.
+// The created safehttp.Handler will be able to parse generic violation reports
+// as specified by https://w3c.github.io/reporting/ and CSP violation reports as
+// specified by https://www.w3.org/TR/CSP3/#deprecated-serialize-violation.
 package collector
 
 import (
