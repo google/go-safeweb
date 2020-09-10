@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package staticheaders provides a safehttp.Interceptor which set the X-Content-Type-Options
+// and the X-XSS-Protection header.
 package staticheaders
 
 import (

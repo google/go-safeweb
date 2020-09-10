@@ -12,6 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package csp provides a safehttp.Interceptor which applies Content-Security Policies
+// to responses.
+//
+// Two default policies are provided:
+//  - A strict nonce based CSP
+//  - A framing policy which sets frame-ancestors to 'self'
 package csp
 
 import (
