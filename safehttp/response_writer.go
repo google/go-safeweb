@@ -35,6 +35,7 @@ type ResponseWriter struct {
 // http.ResponseWriter and a reference to the current IncomingRequest being served.
 // The IncomingRequest will only be used by the commit phase, which only runs when
 // the ServeMux is used, and can be passed as nil in tests.
+// TODO: remove the IncomingRequest parameter.
 func NewResponseWriter(d Dispatcher, rw http.ResponseWriter, req *IncomingRequest) *ResponseWriter {
 	header := newHeader(rw.Header())
 	return &ResponseWriter{
