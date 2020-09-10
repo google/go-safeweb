@@ -56,7 +56,7 @@ func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 // If the provided response is not valid JSON or writing the response fails, the
 // method will return an error.
 func (DefaultDispatcher) WriteJSON(rw http.ResponseWriter, resp JSONResponse) error {
-	io.WriteString(rw, ")]}',\n")
+	io.WriteString(rw, ")]}',\n") // Break parsing of JavaScript in order to prevent XSSI.
 	return json.NewEncoder(rw).Encode(resp.Data)
 }
 

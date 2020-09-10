@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package safehttp
+package safehttp_test
 
 import (
 	"context"
@@ -352,9 +352,12 @@ func TestMuxInterceptors(t *testing.T) {
 
 				return mux
 			}(),
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{"Foo": {"bar"}},
-			wantBody:    "&lt;h1&gt;Hello World!&lt;/h1&gt;",
+			wantStatus: safehttp.StatusOK,
+			wantHeaders: map[string][]string{
+				"Foo":          {"bar"},
+				"Content-Type": {"text/html; charset=utf-8"},
+			},
+			wantBody: "&lt;h1&gt;Hello World!&lt;/h1&gt;",
 		},
 	}
 
@@ -436,7 +439,9 @@ func TestMuxInterceptorConfigs(t *testing.T) {
 			wantStatus: safehttp.StatusOK,
 			wantHeaders: map[string][]string{
 				"Content-Type": {"text/html; charset=utf-8"},
-				"Foo":          {"Bar"}},
+				"Commit-Foo":   {"Bar"},
+				"Foo":          {"Bar"},
+			},
 			wantBody: "&lt;h1&gt;Hello World!&lt;/h1&gt;",
 		},
 		{
@@ -446,6 +451,7 @@ func TestMuxInterceptorConfigs(t *testing.T) {
 			wantHeaders: map[string][]string{
 				"Content-Type": {"text/html; charset=utf-8"},
 				"Pizza":        {"Hawaii"},
+				"Commit-Pizza": {"Hawaii"},
 			},
 			wantBody: "&lt;h1&gt;Hello World!&lt;/h1&gt;",
 		},
@@ -594,9 +600,4 @@ func TestMuxHandlerReturnsNotWritten(t *testing.T) {
 	if got := b.String(); got != "" {
 		t.Errorf(`response body got: %q want: ""`, got)
 	}
-}
-
-func TestMuxNilDispatcher(t *testing.T) {
-	mux := safehttp.NewServeMux(nil)
-	d, ok := mux.dis
 }
