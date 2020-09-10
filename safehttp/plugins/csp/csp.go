@@ -145,7 +145,7 @@ type FramingPolicy struct {
 
 // Serialize serializes this policy for use in a Content-Security-Policy header
 // or in a Content-Security-Policy-Report-Only header. A nonce will be provided
-// to serialize which can be used in 'nonce-{random-nonce}' values in directives.
+// to Serialize which can be used in 'nonce-{random-nonce}' values in directives.
 func (f FramingPolicy) Serialize(nonce string) string {
 	var b strings.Builder
 	b.WriteString("frame-ancestors 'self'")
