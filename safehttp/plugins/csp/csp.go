@@ -42,11 +42,11 @@ func generateNonce() string {
 }
 
 // Policy defines a CSP policy.
-type Policy struct {
-	// serialize serializes this policy for use in a Content-Security-Policy header
+type Policy interface {
+	// Serialize serializes this policy for use in a Content-Security-Policy header
 	// or in a Content-Security-Policy-Report-Only header. A nonce will be provided
 	// to serialize which can be used in 'nonce-{random-nonce}' values in directives.
-	serialize func(nonce string) string
+	Serialize(nonce string) string
 }
 
 type ctxKey struct{}
@@ -61,10 +61,10 @@ func Nonce(ctx context.Context) (string, error) {
 	return v.(string), nil
 }
 
-// StrictCSPBuilder can be used to build a strict, nonce-based CSP.
+// StrictPolicy can be used to build a strict, nonce-based CSP.
 //
 // See https://csp.withgoogle.com/docs/strict-csp.html for more info.
-type StrictCSPBuilder struct {
+type StrictPolicy struct {
 	// NoStrictDynamic controls whether script-src should contain the 'strict-dynamic'
 	// value.
 	//
@@ -92,77 +92,77 @@ type StrictCSPBuilder struct {
 	Hashes []string
 }
 
-// Build creates a Policy based on the specified options.
-func (s StrictCSPBuilder) Build() Policy {
-	return Policy{
-		serialize: func(nonce string) string {
-			var b strings.Builder
+// Serialize serializes this policy for use in a Content-Security-Policy header
+// or in a Content-Security-Policy-Report-Only header. A nonce will be provided
+// to serialize which can be used in 'nonce-{random-nonce}' values in directives.
+func (s StrictPolicy) Serialize(nonce string) string {
+	var b strings.Builder
 
-			// object-src 'none'; script-src 'unsafe-inline' 'nonce-{random}'
-			b.WriteString("object-src 'none'; script-src 'unsafe-inline' 'nonce-")
-			b.WriteString(nonce)
-			b.WriteByte('\'')
+	// object-src 'none'; script-src 'unsafe-inline' 'nonce-{random}'
+	b.WriteString("object-src 'none'; script-src 'unsafe-inline' 'nonce-")
+	b.WriteString(nonce)
+	b.WriteByte('\'')
 
-			if !s.NoStrictDynamic {
-				b.WriteString(" 'strict-dynamic' https: http:")
-			}
-
-			if s.UnsafeEval {
-				b.WriteString(" 'unsafe-eval'")
-			}
-
-			for _, h := range s.Hashes {
-				b.WriteString(" '")
-				b.WriteString(h)
-				b.WriteByte('\'')
-			}
-
-			b.WriteString("; base-uri ")
-			if s.BaseURI == "" {
-				b.WriteString("'none'")
-			} else {
-				b.WriteString(s.BaseURI)
-			}
-
-			if s.ReportURI != "" {
-				b.WriteString("; report-uri ")
-				b.WriteString(s.ReportURI)
-			}
-
-			return b.String()
-		},
+	if !s.NoStrictDynamic {
+		b.WriteString(" 'strict-dynamic' https: http:")
 	}
+
+	if s.UnsafeEval {
+		b.WriteString(" 'unsafe-eval'")
+	}
+
+	for _, h := range s.Hashes {
+		b.WriteString(" '")
+		b.WriteString(h)
+		b.WriteByte('\'')
+	}
+
+	b.WriteString("; base-uri ")
+	if s.BaseURI == "" {
+		b.WriteString("'none'")
+	} else {
+		b.WriteString(s.BaseURI)
+	}
+
+	if s.ReportURI != "" {
+		b.WriteString("; report-uri ")
+		b.WriteString(s.ReportURI)
+	}
+
+	return b.String()
+
 }
 
-// FramingPolicyBuilder can be used to create a new CSP policy with frame-ancestors
+// FramingPolicy can be used to create a new CSP policy with frame-ancestors
 // set to 'self'.
 //
 // TODO: allow relaxation on specific endpoints according to #77.
-type FramingPolicyBuilder struct {
+type FramingPolicy struct {
 	// ReportURI controls the report-uri directive. If ReportUri is empty, no report-uri
 	// directive will be set.
 	ReportURI string
 }
 
-// Build creates a Policy based on the specified options.
-func (f FramingPolicyBuilder) Build() Policy {
-	return Policy{
-		serialize: func(_ string) string {
-			var b strings.Builder
-			b.WriteString("frame-ancestors 'self'")
+// Serialize serializes this policy for use in a Content-Security-Policy header
+// or in a Content-Security-Policy-Report-Only header. A nonce will be provided
+// to serialize which can be used in 'nonce-{random-nonce}' values in directives.
+func (f FramingPolicy) Serialize(nonce string) string {
+	var b strings.Builder
+	b.WriteString("frame-ancestors 'self'")
 
-			if f.ReportURI != "" {
-				b.WriteString("; report-uri ")
-				b.WriteString(f.ReportURI)
-			}
-
-			return b.String()
-		},
+	if f.ReportURI != "" {
+		b.WriteString("; report-uri ")
+		b.WriteString(f.ReportURI)
 	}
+
+	return b.String()
 }
 
 // Interceptor intercepts requests and applies CSP policies.
 type Interceptor struct {
+	// TODO: move it to a safehttp.Config implementation to enable per-handler
+	// configuration.
+
 	// Enforce specifies which policies will be set as the Content-Security-Policy
 	// header.
 	Enforce []Policy
@@ -176,8 +176,8 @@ type Interceptor struct {
 func Default(reportURI string) Interceptor {
 	return Interceptor{
 		Enforce: []Policy{
-			StrictCSPBuilder{ReportURI: reportURI}.Build(),
-			FramingPolicyBuilder{ReportURI: reportURI}.Build(),
+			StrictPolicy{ReportURI: reportURI},
+			FramingPolicy{ReportURI: reportURI},
 		},
 	}
 }
@@ -190,11 +190,11 @@ func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 
 	var CSPs []string
 	for _, p := range it.Enforce {
-		CSPs = append(CSPs, p.serialize(nonce))
+		CSPs = append(CSPs, p.Serialize(nonce))
 	}
 	var reportCSPs []string
 	for _, p := range it.ReportOnly {
-		reportCSPs = append(reportCSPs, p.serialize(nonce))
+		reportCSPs = append(reportCSPs, p.Serialize(nonce))
 	}
 
 	h := w.Header()

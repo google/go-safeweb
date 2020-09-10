@@ -48,62 +48,62 @@ func TestSerialize(t *testing.T) {
 	}{
 		{
 			name:       "StrictCSP",
-			policy:     StrictCSPBuilder{}.Build(),
+			policy:     StrictPolicy{},
 			wantString: "object-src 'none'; script-src 'unsafe-inline' 'nonce-super-secret' 'strict-dynamic' https: http:; base-uri 'none'",
 		},
 		{
 			name:       "StrictCSP with no strict-dynamic",
-			policy:     StrictCSPBuilder{NoStrictDynamic: true}.Build(),
+			policy:     StrictPolicy{NoStrictDynamic: true},
 			wantString: "object-src 'none'; script-src 'unsafe-inline' 'nonce-super-secret'; base-uri 'none'",
 		},
 		{
 			name:       "StrictCSP with unsafe-eval",
-			policy:     StrictCSPBuilder{UnsafeEval: true}.Build(),
+			policy:     StrictPolicy{UnsafeEval: true},
 			wantString: "object-src 'none'; script-src 'unsafe-inline' 'nonce-super-secret' 'strict-dynamic' https: http: 'unsafe-eval'; base-uri 'none'",
 		},
 		{
 			name:       "StrictCSP with set base-uri",
-			policy:     StrictCSPBuilder{BaseURI: "https://example.com"}.Build(),
+			policy:     StrictPolicy{BaseURI: "https://example.com"},
 			wantString: "object-src 'none'; script-src 'unsafe-inline' 'nonce-super-secret' 'strict-dynamic' https: http:; base-uri https://example.com",
 		},
 		{
 			name:       "StrictCSP with report-uri",
-			policy:     StrictCSPBuilder{ReportURI: "https://example.com/collector"}.Build(),
+			policy:     StrictPolicy{ReportURI: "https://example.com/collector"},
 			wantString: "object-src 'none'; script-src 'unsafe-inline' 'nonce-super-secret' 'strict-dynamic' https: http:; base-uri 'none'; report-uri https://example.com/collector",
 		},
 		{
 			name: "StrictCSP with one hash",
-			policy: StrictCSPBuilder{Hashes: []string{
+			policy: StrictPolicy{Hashes: []string{
 				"sha256-CihokcEcBW4atb/CW/XWsvWwbTjqwQlE9nj9ii5ww5M=",
-			}}.Build(),
+			}},
 			wantString: "object-src 'none'; script-src 'unsafe-inline' 'nonce-super-secret' 'strict-dynamic' https: http: 'sha256-CihokcEcBW4atb/CW/XWsvWwbTjqwQlE9nj9ii5ww5M='; base-uri 'none'",
 		},
 		{
 			name: "StrictCSP with multiple hashes",
-			policy: StrictCSPBuilder{Hashes: []string{
+			policy: StrictPolicy{Hashes: []string{
 				"sha256-CihokcEcBW4atb/CW/XWsvWwbTjqwQlE9nj9ii5ww5M=",
 				"sha256-CihokcEcBW4atb/CW/XWsvWwbTjqwQlE9nj9ii5ww5M=",
-			}}.Build(),
+			}},
 			wantString: "object-src 'none'; script-src 'unsafe-inline' 'nonce-super-secret' 'strict-dynamic' https: http: 'sha256-CihokcEcBW4atb/CW/XWsvWwbTjqwQlE9nj9ii5ww5M=' 'sha256-CihokcEcBW4atb/CW/XWsvWwbTjqwQlE9nj9ii5ww5M='; base-uri 'none'",
 		},
 		{
 			name:       "FramingCSP",
-			policy:     FramingPolicyBuilder{}.Build(),
+			policy:     FramingPolicy{},
 			wantString: "frame-ancestors 'self'",
 		},
 		{
 			name:       "FramingCSP with report-uri",
-			policy:     FramingPolicyBuilder{ReportURI: "httsp://example.com/collector"}.Build(),
+			policy:     FramingPolicy{ReportURI: "httsp://example.com/collector"},
 			wantString: "frame-ancestors 'self'; report-uri httsp://example.com/collector",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := tt.policy.serialize("super-secret")
+			s := tt.policy.Serialize("super-secret")
 
 			if s != tt.wantString {
-				t.Errorf("tt.policy.serialize() got: %q want: %q", s, tt.wantString)
+				t.Errorf("tt.policy.Serialize() got: %q want: %q", s, tt.wantString)
 			}
 		})
 	}
@@ -144,7 +144,7 @@ func TestBefore(t *testing.T) {
 			name: "StrictCSP Report Only",
 			interceptor: Interceptor{
 				ReportOnly: []Policy{
-					StrictCSPBuilder{ReportURI: "https://example.com/collector"}.Build(),
+					StrictPolicy{ReportURI: "https://example.com/collector"},
 				},
 			},
 			wantReportOnlyPolicy: []string{
@@ -156,7 +156,7 @@ func TestBefore(t *testing.T) {
 			name: "FramingCSP Report Only",
 			interceptor: Interceptor{
 				ReportOnly: []Policy{
-					FramingPolicyBuilder{ReportURI: "https://example.com/collector"}.Build(),
+					FramingPolicy{ReportURI: "https://example.com/collector"},
 				},
 			},
 			wantReportOnlyPolicy: []string{"frame-ancestors 'self'; report-uri https://example.com/collector"},
