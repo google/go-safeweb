@@ -139,6 +139,7 @@ func (w *ResponseWriter) WriteTemplate(t Template, data interface{}) Result {
 	if w.written {
 		return Result{}
 	}
+	w.markWritten()
 	ct, err := w.d.ContentType(t)
 	if err != nil {
 		panic(err)

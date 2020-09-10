@@ -83,6 +83,7 @@ func TestDefaultDispatcherInvalidResponse(t *testing.T) {
 	tests := []struct {
 		name  string
 		write func(w http.ResponseWriter) error
+		want  string
 	}{
 		{
 			name: "Unsafe HTML Response",
@@ -90,6 +91,7 @@ func TestDefaultDispatcherInvalidResponse(t *testing.T) {
 				d := &safehttp.DefaultDispatcher{}
 				return d.Write(w, "<h1>Hello World!</h1>")
 			},
+			want: "",
 		},
 		{
 			name: "Unsafe Template Response",
@@ -97,6 +99,7 @@ func TestDefaultDispatcherInvalidResponse(t *testing.T) {
 				d := &safehttp.DefaultDispatcher{}
 				return d.ExecuteTemplate(w, template.Must(template.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
 			},
+			want: "",
 		},
 		{
 			name: "Invalid JSON Response",
@@ -104,6 +107,7 @@ func TestDefaultDispatcherInvalidResponse(t *testing.T) {
 				d := &safehttp.DefaultDispatcher{}
 				return d.WriteJSON(w, safehttp.JSONResponse{Data: math.Inf(1)})
 			},
+			want: ")]}',\n",
 		},
 	}
 	for _, tt := range tests {
@@ -115,7 +119,7 @@ func TestDefaultDispatcherInvalidResponse(t *testing.T) {
 				t.Error("tt.write(rw): got nil, want error")
 			}
 
-			if want, got := "", b.String(); want != got {
+			if want, got := tt.want, b.String(); want != got {
 				t.Errorf("response body: got %q, want %q", got, want)
 			}
 		})
