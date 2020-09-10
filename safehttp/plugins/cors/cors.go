@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package cors provides a safehttp.Interceptor that handles CORS requests.
 package cors
 
 import (
@@ -42,12 +43,13 @@ var disallowedContentTypes = map[string]bool{
 //
 // Each CORS request must contain the header "X-Cors: 1".
 //
+// The HEAD request method is disallowed.
+//
 // All of this is to prevent XSRF.
 type Interceptor struct {
 	// AllowedOrigins determines which origins should be allowed in the
 	// Access-Control-Allow-Origin header.
 	AllowedOrigins map[string]bool
-	allowedHeaders map[string]bool
 	// ExposedHeaders determines which headers should be set in the
 	// Access-Control-Expose-Headers header. This controls which headers are
 	//  accessible by JavaScript in the response.
@@ -63,7 +65,8 @@ type Interceptor struct {
 	//
 	// MaxAge=0 results in MaxAge: 5, the default used by Chromium according to
 	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Max-Age
-	MaxAge int
+	MaxAge         int
+	allowedHeaders map[string]bool
 }
 
 // Default creates a CORS Interceptor with default settings.
