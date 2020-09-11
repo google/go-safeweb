@@ -18,6 +18,7 @@ package staticheaders
 
 import (
 	"github.com/google/go-safeweb/safehttp"
+	"github.com/google/go-safeweb/safehttp/conformance"
 )
 
 // Plugin claims and sets static headers on responses.
@@ -38,4 +39,13 @@ func (Plugin) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cf
 
 func (Plugin) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
 	return safehttp.Result{}
+}
+
+// ConformanceCheck checks whether the Plugin is present.
+func ConformanceCheck() safehttp.ConformanceCheck {
+	return conformance.SingleInterceptorCheck(
+		func(_ string, _ string, ip safehttp.ConfiguredInterceptor) (bool, error) {
+			_, ok := ip.Interceptor.(Plugin)
+			return ok, nil
+		})
 }

@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/google/go-safeweb/safehttp"
+	"github.com/google/go-safeweb/safehttp/conformance"
 )
 
 // Interceptor implements automatic HSTS functionality.
@@ -97,4 +98,13 @@ func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 
 func (it Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
 	return safehttp.Result{}
+}
+
+// ConformanceCheck checks whether the Plugin is present.
+func ConformanceCheck() safehttp.ConformanceCheck {
+	return conformance.SingleInterceptorCheck(
+		func(_ string, _ string, ip safehttp.ConfiguredInterceptor) (bool, error) {
+			_, ok := ip.Interceptor.(Interceptor)
+			return ok, nil
+		})
 }
