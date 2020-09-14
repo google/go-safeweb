@@ -15,8 +15,6 @@
 package safehtml_test
 
 import (
-	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -27,47 +25,6 @@ import (
 	"github.com/google/safehtml"
 	"github.com/google/safehtml/template"
 )
-
-type testDispatcher struct{}
-
-func (testDispatcher) ContentType(resp safehttp.Response) (string, error) {
-	switch resp.(type) {
-	case safehtml.HTML, *template.Template:
-		return "text/html; charset=utf-8", nil
-	case safehttp.JSONResponse:
-		return "application/json; charset=utf-8", nil
-	default:
-		return "", errors.New("not a safe response")
-	}
-}
-
-func (testDispatcher) Write(rw http.ResponseWriter, resp safehttp.Response) error {
-	switch x := resp.(type) {
-	case safehtml.HTML:
-		_, err := rw.Write([]byte(x.String()))
-		return err
-	default:
-		panic("not a safe response type")
-	}
-}
-
-func (testDispatcher) WriteJSON(rw http.ResponseWriter, resp safehttp.JSONResponse) error {
-	obj, err := json.Marshal(resp.Data)
-	if err != nil {
-		panic("invalid json")
-	}
-	_, err = rw.Write(obj)
-	return err
-}
-
-func (testDispatcher) ExecuteTemplate(rw http.ResponseWriter, t safehttp.Template, data interface{}) error {
-	switch x := t.(type) {
-	case *template.Template:
-		return x.Execute(rw, data)
-	default:
-		panic("not a safe response type")
-	}
-}
 
 type responseRecorder struct {
 	header http.Header
@@ -92,7 +49,7 @@ func (r *responseRecorder) Write(data []byte) (int, error) {
 }
 
 func TestHandleRequestWrite(t *testing.T) {
-	mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
 	mux.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 		return rw.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
 	}))
@@ -112,7 +69,7 @@ func TestHandleRequestWrite(t *testing.T) {
 }
 
 func TestHandleRequestWriteTemplate(t *testing.T) {
-	mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
 	mux.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 		return rw.WriteTemplate(template.Must(template.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
 	}))
