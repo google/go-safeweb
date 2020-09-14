@@ -16,6 +16,7 @@ package safehttp_test
 
 import (
 	"context"
+	"github.com/google/go-safeweb/safehttp/safehttptest"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -67,7 +68,7 @@ func TestMuxOneHandlerOneRequest(t *testing.T) {
 
 	for _, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
-			mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+			mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
 
 			h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
@@ -75,16 +76,16 @@ func TestMuxOneHandlerOneRequest(t *testing.T) {
 			mux.Handle("/", safehttp.MethodGet, h)
 
 			b := &strings.Builder{}
-			rw := newResponseRecorder(b)
+			rw := safehttptest.NewTestResponseWriter(b)
 
 			mux.ServeHTTP(rw, tt.req)
 
-			if rw.status != tt.wantStatus {
-				t.Errorf("rw.status: got %v want %v", rw.status, tt.wantStatus)
+			if rw.Status() != tt.wantStatus {
+				t.Errorf("rw.Status(): got %v want %v", rw.Status(), tt.wantStatus)
 			}
 
-			if diff := cmp.Diff(tt.wantHeader, map[string][]string(rw.header)); diff != "" {
-				t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+			if diff := cmp.Diff(tt.wantHeader, map[string][]string(rw.Header())); diff != "" {
+				t.Errorf("rw.Header() mismatch (-want +got):\n%s", diff)
 			}
 
 			if got := b.String(); got != tt.wantBody {
@@ -129,21 +130,21 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 		},
 	}
 
-	d := testDispatcher{}
+	d := safehttp.DefaultDispatcher{}
 	mux := safehttp.NewServeMux(d, "foo.com")
 	mux.Handle("/bar", safehttp.MethodGet, tests[0].hf)
 	mux.Handle("/bar", safehttp.MethodPost, tests[1].hf)
 
 	for _, test := range tests {
 		b := &strings.Builder{}
-		rw := newResponseRecorder(b)
+		rw := safehttptest.NewTestResponseWriter(b)
 		mux.ServeHTTP(rw, test.req)
-		if want := test.wantStatus; rw.status != want {
-			t.Errorf("rw.status: got %v want %v", rw.status, want)
+		if want := test.wantStatus; rw.Status() != want {
+			t.Errorf("rw.Status(): got %v want %v", rw.Status(), want)
 		}
 
-		if diff := cmp.Diff(test.wantHeaders, map[string][]string(rw.header)); diff != "" {
-			t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+		if diff := cmp.Diff(test.wantHeaders, map[string][]string(rw.Header())); diff != "" {
+			t.Errorf("rw.Header() mismatch (-want +got):\n%s", diff)
 		}
 
 		if got, want := b.String(), test.wantBody; got != want {
@@ -153,7 +154,7 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 }
 
 func TestMuxHandleSameMethodTwice(t *testing.T) {
-	d := testDispatcher{}
+	d := safehttp.DefaultDispatcher{}
 	mux := safehttp.NewServeMux(d, "foo.com")
 
 	registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
@@ -259,7 +260,7 @@ func TestMuxInterceptors(t *testing.T) {
 		{
 			name: "Install ServeMux Interceptor before handler registration",
 			mux: func() *safehttp.ServeMux {
-				mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
 				mux.Install(setHeaderInterceptor{
 					name:  "Foo",
 					value: "bar",
@@ -281,7 +282,7 @@ func TestMuxInterceptors(t *testing.T) {
 		{
 			name: "Install Interrupting Interceptor",
 			mux: func() *safehttp.ServeMux {
-				mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
 				mux.Install(internalErrorInterceptor{})
 
 				registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
@@ -301,7 +302,7 @@ func TestMuxInterceptors(t *testing.T) {
 		{
 			name: "Handler Communication With ServeMux Interceptor",
 			mux: func() *safehttp.ServeMux {
-				mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
 				mux.Install(&claimHeaderInterceptor{headerToClaim: "Foo"})
 
 				registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
@@ -322,7 +323,7 @@ func TestMuxInterceptors(t *testing.T) {
 		{
 			name: "Panicking interceptor recovered by ServeMux",
 			mux: func() *safehttp.ServeMux {
-				mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
 				mux.Install(panickingInterceptor{})
 
 				registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
@@ -342,7 +343,7 @@ func TestMuxInterceptors(t *testing.T) {
 		{
 			name: "Commit phase sets header",
 			mux: func() *safehttp.ServeMux {
-				mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
 				mux.Install(committerInterceptor{})
 
 				registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
@@ -364,18 +365,18 @@ func TestMuxInterceptors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			b := &strings.Builder{}
-			rw := newResponseRecorder(b)
+			rw := safehttptest.NewTestResponseWriter(b)
 
 			req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/bar", nil)
 
 			tt.mux.ServeHTTP(rw, req)
 
-			if rw.status != tt.wantStatus {
-				t.Errorf("rw.status: got %v want %v", rw.status, tt.wantStatus)
+			if rw.Status() != tt.wantStatus {
+				t.Errorf("rw.Status(): got %v want %v", rw.Status(), tt.wantStatus)
 			}
 
-			if diff := cmp.Diff(tt.wantHeaders, map[string][]string(rw.header)); diff != "" {
-				t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+			if diff := cmp.Diff(tt.wantHeaders, map[string][]string(rw.Header())); diff != "" {
+				t.Errorf("rw.Header() mismatch (-want +got):\n%s", diff)
 			}
 
 			if got := b.String(); got != tt.wantBody {
@@ -459,7 +460,7 @@ func TestMuxInterceptorConfigs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+			mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
 			mux.Install(setHeaderConfigInterceptor{})
 
 			registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
@@ -468,18 +469,18 @@ func TestMuxInterceptorConfigs(t *testing.T) {
 			mux.Handle("/bar", safehttp.MethodGet, registeredHandler, tt.config)
 
 			b := &strings.Builder{}
-			rw := newResponseRecorder(b)
+			rw := safehttptest.NewTestResponseWriter(b)
 
 			req := httptest.NewRequest("GET", "http://foo.com/bar", nil)
 
 			mux.ServeHTTP(rw, req)
 
-			if rw.status != tt.wantStatus {
-				t.Errorf("rw.status: got %v want %v", rw.status, tt.wantStatus)
+			if rw.Status() != tt.wantStatus {
+				t.Errorf("rw.Status(): got %v want %v", rw.Status(), tt.wantStatus)
 			}
 
-			if diff := cmp.Diff(tt.wantHeaders, map[string][]string(rw.header)); diff != "" {
-				t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+			if diff := cmp.Diff(tt.wantHeaders, map[string][]string(rw.Header())); diff != "" {
+				t.Errorf("rw.Header() mismatch (-want +got):\n%s", diff)
 			}
 
 			if got := b.String(); got != tt.wantBody {
@@ -541,7 +542,7 @@ func (interceptorThree) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingR
 }
 
 func TestMuxDeterministicInterceptorOrder(t *testing.T) {
-	mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
 	mux.Install(interceptorOne{})
 	mux.Install(interceptorTwo{})
 	mux.Install(interceptorThree{})
@@ -552,14 +553,14 @@ func TestMuxDeterministicInterceptorOrder(t *testing.T) {
 	mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
 
 	b := &strings.Builder{}
-	rw := newResponseRecorder(b)
+	rw := safehttptest.NewTestResponseWriter(b)
 
 	req := httptest.NewRequest("GET", "http://foo.com/bar", nil)
 
 	mux.ServeHTTP(rw, req)
 
-	if want := safehttp.StatusOK; rw.status != want {
-		t.Errorf("rw.status: got %v want %v", rw.status, want)
+	if want := safehttp.StatusOK; rw.Status() != want {
+		t.Errorf("rw.Status(): got %v want %v", rw.Status(), want)
 	}
 	wantHeaders := map[string][]string{
 		"Dessert":      {"tiramisu"},
@@ -570,8 +571,8 @@ func TestMuxDeterministicInterceptorOrder(t *testing.T) {
 		"Commit3":      {"c"},
 		"Content-Type": {"text/html; charset=utf-8"},
 	}
-	if diff := cmp.Diff(wantHeaders, map[string][]string(rw.header)); diff != "" {
-		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+	if diff := cmp.Diff(wantHeaders, map[string][]string(rw.Header())); diff != "" {
+		t.Errorf("rw.Header() mismatch (-want +got):\n%s", diff)
 	}
 	if got, want := b.String(), "&lt;h1&gt;Hello World!&lt;/h1&gt;"; got != want {
 		t.Errorf(`response body: got %q want %q`, got, want)
@@ -579,7 +580,7 @@ func TestMuxDeterministicInterceptorOrder(t *testing.T) {
 }
 
 func TestMuxHandlerReturnsNotWritten(t *testing.T) {
-	mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
 	h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return safehttp.NotWritten()
 	})
@@ -587,15 +588,15 @@ func TestMuxHandlerReturnsNotWritten(t *testing.T) {
 	req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/bar", nil)
 
 	b := &strings.Builder{}
-	rw := newResponseRecorder(b)
+	rw := safehttptest.NewTestResponseWriter(b)
 
 	mux.ServeHTTP(rw, req)
 
-	if want := safehttp.StatusNoContent; rw.status != want {
-		t.Errorf("rw.status: got %v want %v", rw.status, want)
+	if want := safehttp.StatusNoContent; rw.Status() != want {
+		t.Errorf("rw.Status(): got %v want %v", rw.Status(), want)
 	}
-	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rw.header)); diff != "" {
-		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rw.Header())); diff != "" {
+		t.Errorf("rw.Header() mismatch (-want +got):\n%s", diff)
 	}
 	if got := b.String(); got != "" {
 		t.Errorf(`response body got: %q want: ""`, got)

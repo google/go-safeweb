@@ -27,14 +27,14 @@ import (
 // should be passed as part of the handler function in tests.
 type ResponseRecorder struct {
 	*safehttp.ResponseWriter
-	rw *responseWriter
+	rw *TestResponseWriter
 	b  *strings.Builder
 }
 
 // NewResponseRecorder creates a ResponseRecorder from the safehttp.DefaultDispatcher.
 func NewResponseRecorder() *ResponseRecorder {
 	var b strings.Builder
-	rw := newResponseWriter(&b)
+	rw := NewTestResponseWriter(&b)
 	return &ResponseRecorder{
 		rw:             rw,
 		b:              &b,
@@ -46,7 +46,7 @@ func NewResponseRecorder() *ResponseRecorder {
 // provided safehttp.Dispatcher.
 func NewResponseRecorderFromDispatcher(d safehttp.Dispatcher) *ResponseRecorder {
 	var b strings.Builder
-	rw := newResponseWriter(&b)
+	rw := NewTestResponseWriter(&b)
 	return &ResponseRecorder{
 		rw:             rw,
 		b:              &b,
@@ -69,30 +69,40 @@ func (r *ResponseRecorder) Body() string {
 	return r.b.String()
 }
 
-// responseWriter is an implementation of the http.ResponseWriter interface used
-// for constructing an HTTP response.
-type responseWriter struct {
+// TestResponseWriter is an implementation of the http.ResponseWriter interface
+// used for constructing an HTTP response for testing purposes.
+type TestResponseWriter struct {
 	header http.Header
 	writer io.Writer
 	status safehttp.StatusCode
 }
 
-func newResponseWriter(w io.Writer) *responseWriter {
-	return &responseWriter{
+// NewTestResponseWriter creates a new TestResponseWriter.
+func NewTestResponseWriter(w io.Writer) *TestResponseWriter {
+	return &TestResponseWriter{
 		header: http.Header{},
 		writer: w,
-		status: http.StatusOK,
+		status: safehttp.StatusOK,
 	}
 }
 
-func (r *responseWriter) Header() http.Header {
+// Status returns the response status.
+func (r *TestResponseWriter) Status() safehttp.StatusCode {
+	return r.status
+}
+
+// Header implements http.ResponseWriter. It returns the response headers that
+// could have been mutated within a handler.
+func (r *TestResponseWriter) Header() http.Header {
 	return r.header
 }
 
-func (r *responseWriter) WriteHeader(statusCode int) {
+// WriteHeader implements http.ResponseWriter.
+func (r *TestResponseWriter) WriteHeader(statusCode int) {
 	r.status = safehttp.StatusCode(statusCode)
 }
 
-func (r *responseWriter) Write(data []byte) (int, error) {
+// Write implements http.ResponseWriter.
+func (r *TestResponseWriter) Write(data []byte) (int, error) {
 	return r.writer.Write(data)
 }

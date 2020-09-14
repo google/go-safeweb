@@ -26,8 +26,8 @@ import (
 )
 
 func TestResponseWriterSetCookie(t *testing.T) {
-	rr := newResponseRecorder(&strings.Builder{})
-	rw := safehttp.NewResponseWriter(testDispatcher{}, rr, nil)
+	rr := safehttptest.NewTestResponseWriter(&strings.Builder{})
+	rw := safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, rr, nil)
 
 	c := safehttp.NewCookie("foo", "bar")
 	err := rw.SetCookie(c)
@@ -38,14 +38,14 @@ func TestResponseWriterSetCookie(t *testing.T) {
 	wantHeaders := map[string][]string{
 		"Set-Cookie": {"foo=bar; HttpOnly; Secure; SameSite=Lax"},
 	}
-	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.header)); diff != "" {
-		t.Errorf("rr.header mismatch (-want +got):\n%s", diff)
+	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
+		t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
 	}
 }
 
 func TestResponseWriterSetInvalidCookie(t *testing.T) {
-	rr := newResponseRecorder(&strings.Builder{})
-	rw := safehttp.NewResponseWriter(testDispatcher{}, rr, nil)
+	rr := safehttptest.NewTestResponseWriter(&strings.Builder{})
+	rw := safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, rr, nil)
 
 	c := safehttp.NewCookie("f=oo", "bar")
 	err := rw.SetCookie(c)
@@ -115,7 +115,7 @@ func TestResponseWriterWriteTwicePanic(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			w := safehttp.NewResponseWriter(testDispatcher{}, newResponseRecorder(&strings.Builder{}), nil)
+			w := safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, safehttptest.NewTestResponseWriter(&strings.Builder{}), nil)
 			defer func() {
 				if r := recover(); r == nil {
 					t.Errorf("tt.write(w) expected panic")

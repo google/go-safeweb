@@ -15,8 +15,7 @@
 package safehtml_test
 
 import (
-	"io"
-	"net/http"
+	"github.com/google/go-safeweb/safehttp/safehttptest"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -25,28 +24,6 @@ import (
 	"github.com/google/safehtml"
 	"github.com/google/safehtml/template"
 )
-
-type responseRecorder struct {
-	header http.Header
-	writer io.Writer
-	status safehttp.StatusCode
-}
-
-func newResponseRecorder(w io.Writer) *responseRecorder {
-	return &responseRecorder{header: http.Header{}, writer: w, status: http.StatusOK}
-}
-
-func (r *responseRecorder) Header() http.Header {
-	return r.header
-}
-
-func (r *responseRecorder) WriteHeader(statusCode int) {
-	r.status = safehttp.StatusCode(statusCode)
-}
-
-func (r *responseRecorder) Write(data []byte) (int, error) {
-	return r.writer.Write(data)
-}
 
 func TestHandleRequestWrite(t *testing.T) {
 	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
@@ -57,7 +34,7 @@ func TestHandleRequestWrite(t *testing.T) {
 	req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/", nil)
 
 	b := &strings.Builder{}
-	rw := newResponseRecorder(b)
+	rw := safehttptest.NewTestResponseWriter(b)
 
 	mux.ServeHTTP(rw, req)
 
@@ -77,7 +54,7 @@ func TestHandleRequestWriteTemplate(t *testing.T) {
 	req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/", nil)
 
 	b := &strings.Builder{}
-	rw := newResponseRecorder(b)
+	rw := safehttptest.NewTestResponseWriter(b)
 
 	mux.ServeHTTP(rw, req)
 

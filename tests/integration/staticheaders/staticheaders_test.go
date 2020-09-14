@@ -15,7 +15,7 @@
 package staticheaders_test
 
 import (
-	"io"
+	"github.com/google/go-safeweb/safehttp/safehttptest"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -27,28 +27,6 @@ import (
 	"github.com/google/safehtml"
 )
 
-type responseRecorder struct {
-	header http.Header
-	writer io.Writer
-	status safehttp.StatusCode
-}
-
-func newResponseRecorder(w io.Writer) *responseRecorder {
-	return &responseRecorder{header: http.Header{}, writer: w, status: http.StatusOK}
-}
-
-func (r *responseRecorder) Header() http.Header {
-	return r.header
-}
-
-func (r *responseRecorder) WriteHeader(statusCode int) {
-	r.status = safehttp.StatusCode(statusCode)
-}
-
-func (r *responseRecorder) Write(data []byte) (int, error) {
-	return r.writer.Write(data)
-}
-
 func TestServeMuxInstallStaticHeaders(t *testing.T) {
 	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
 
@@ -59,14 +37,14 @@ func TestServeMuxInstallStaticHeaders(t *testing.T) {
 	mux.Handle("/asdf", safehttp.MethodGet, handler)
 
 	b := strings.Builder{}
-	rr := newResponseRecorder(&b)
+	rr := safehttptest.NewTestResponseWriter(&b)
 
 	req := httptest.NewRequest(http.MethodGet, "https://foo.com/asdf", nil)
 
 	mux.ServeHTTP(rr, req)
 
-	if want := safehttp.StatusOK; rr.status != want {
-		t.Errorf("rr.status got: %v want: %v", rr.status, want)
+	if want := safehttp.StatusOK; rr.Status() != want {
+		t.Errorf("rr.Status() got: %v want: %v", rr.Status(), want)
 	}
 
 	wantHeaders := map[string][]string{
@@ -74,8 +52,8 @@ func TestServeMuxInstallStaticHeaders(t *testing.T) {
 		"X-Content-Type-Options": {"nosniff"},
 		"X-Xss-Protection":       {"0"},
 	}
-	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.header)); diff != "" {
-		t.Errorf("rr.header mismatch (-want +got):\n%s", diff)
+	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
+		t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
 	}
 
 	if got, want := b.String(), "&lt;h1&gt;Hello World!&lt;/h1&gt;"; got != want {

@@ -16,6 +16,7 @@ package safehttp_test
 
 import (
 	"github.com/google/go-safeweb/safehttp"
+	"github.com/google/go-safeweb/safehttp/safehttptest"
 	"github.com/google/safehtml"
 	safetemplate "github.com/google/safehtml/template"
 	"html/template"
@@ -64,7 +65,7 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			b := &strings.Builder{}
-			rw := newResponseRecorder(b)
+			rw := safehttptest.NewTestResponseWriter(b)
 
 			err := tt.write(rw)
 
@@ -113,7 +114,7 @@ func TestDefaultDispatcherInvalidResponse(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			b := &strings.Builder{}
-			rw := newResponseRecorder(b)
+			rw := safehttptest.NewTestResponseWriter(b)
 
 			if err := tt.write(rw); err == nil {
 				t.Error("tt.write(rw): got nil, want error")

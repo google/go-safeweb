@@ -17,38 +17,15 @@ package safemux_test
 import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
+	"github.com/google/go-safeweb/safehttp/safehttptest"
 	"github.com/google/safehtml"
 	safetemplate "github.com/google/safehtml/template"
 	"html/template"
-	"io"
 	"math"
-	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 )
-
-type responseRecorder struct {
-	headers http.Header
-	writer  io.Writer
-	status  safehttp.StatusCode
-}
-
-func newResponseRecorder(w io.Writer) *responseRecorder {
-	return &responseRecorder{headers: http.Header{}, writer: w}
-}
-
-func (r *responseRecorder) Header() http.Header {
-	return r.headers
-}
-
-func (r *responseRecorder) WriteHeader(statusCode int) {
-	r.status = safehttp.StatusCode(statusCode)
-}
-
-func (r *responseRecorder) Write(data []byte) (int, error) {
-	return r.writer.Write(data)
-}
 
 func TestMuxDefaultDispatcher(t *testing.T) {
 	tests := []struct {
@@ -113,15 +90,15 @@ func TestMuxDefaultDispatcher(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/pizza", nil)
 			b := &strings.Builder{}
-			rw := newResponseRecorder(b)
+			rw := safehttptest.NewTestResponseWriter(b)
 
 			tt.mux.ServeHTTP(rw, req)
 
-			if wantStatus := safehttp.StatusOK; rw.status != wantStatus {
-				t.Errorf("rw.status: got %v want %v", rw.status, wantStatus)
+			if wantStatus := safehttp.StatusOK; rw.Status() != wantStatus {
+				t.Errorf("rw.Status(): got %v want %v", rw.Status(), wantStatus)
 			}
 
-			if diff := cmp.Diff(tt.wantHeaders, map[string][]string(rw.headers)); diff != "" {
+			if diff := cmp.Diff(tt.wantHeaders, map[string][]string(rw.Header())); diff != "" {
 				t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
 			}
 
@@ -182,19 +159,19 @@ func TestMuxDefaultDispatcherUnsafeResponses(t *testing.T) {
 			t.Skip()
 			req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/pizza", nil)
 			b := &strings.Builder{}
-			rw := newResponseRecorder(b)
+			rw := safehttptest.NewTestResponseWriter(b)
 
 			tt.mux.ServeHTTP(rw, req)
 
-			if wantStatus := safehttp.StatusInternalServerError; rw.status != wantStatus {
-				t.Errorf("rw.status: got %v want %v", rw.status, wantStatus)
+			if wantStatus := safehttp.StatusInternalServerError; rw.Status() != wantStatus {
+				t.Errorf("rw.Status(): got %v want %v", rw.Status(), wantStatus)
 			}
 
 			wantHeaders := map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
 				"X-Content-Type-Options": {"nosniff"},
 			}
-			if diff := cmp.Diff(wantHeaders, map[string][]string(rw.headers)); diff != "" {
+			if diff := cmp.Diff(wantHeaders, map[string][]string(rw.Header())); diff != "" {
 				t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
 			}
 
