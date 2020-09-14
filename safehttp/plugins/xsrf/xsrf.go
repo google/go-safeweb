@@ -14,7 +14,7 @@
 
 // Package xsrf provides a safehttp.Interceptor that ensures Cross-Site Request
 // Forgery protection by verifying the incoming requests, rejecting those
-// requests that are suspected to  be part of an attack.
+// requests that are suspected to be part of an attack.
 package xsrf
 
 import (
