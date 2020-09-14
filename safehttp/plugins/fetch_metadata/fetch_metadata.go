@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package fetchmetadata provides a safehttp.Interceptor that applies Fetch
+// Metadata policies to incoming requests in order to protect applications
+// against cross-origin attacks.
 package fetchmetadata
 
 import (

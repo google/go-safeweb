@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package formparams provides tests to inspect the behaviour of form
-// parameters parsing in HTTP requests
+// parameters parsing in HTTP requests.
 package formparams
 
 import (

@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // Package queryparams provides tests to inspect the behaviour of query
-// parameters parsing in HTTP requests
+// parameters parsing in HTTP requests.
 package queryparams
 
 import (
