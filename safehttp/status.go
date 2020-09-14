@@ -18,6 +18,7 @@ package safehttp
 // See: https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
 type StatusCode int
 
+// The HTTP status codes registered with IANA.
 const (
 	StatusContinue           StatusCode = 100 // RFC 7231, 6.2.1
 	StatusSwitchingProtocols StatusCode = 101 // RFC 7231, 6.2.2

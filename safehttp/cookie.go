@@ -54,8 +54,13 @@ func NewCookie(name, value string) *Cookie {
 type SameSite int
 
 const (
+	// SameSiteLaxMode allows sending cookies with same-site requests and
+	// cross-site top-level navigations.
 	SameSiteLaxMode SameSite = iota + 1
+	// SameSiteStrictMode allows sending cookie only with same-site requests.
 	SameSiteStrictMode
+	// SameSiteNoneMode allows sending cookies with all requests, including the
+	// ones made cross-origin.
 	SameSiteNoneMode
 )
 
