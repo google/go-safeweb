@@ -18,6 +18,7 @@ import (
 	"net/http"
 )
 
+// The HTTP request methods defined by RFC.
 const (
 	MethodConnect = "CONNECT" // RFC 7231, 4.3.6
 	MethodDelete  = "DELETE"  // RFC 7231, 4.3.5
