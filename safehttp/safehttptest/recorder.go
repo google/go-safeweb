@@ -15,57 +15,12 @@
 package safehttptest
 
 import (
-	"encoding/json"
-	"errors"
-	"html/template"
 	"io"
 	"net/http"
 	"strings"
 
 	"github.com/google/go-safeweb/safehttp"
-	"github.com/google/safehtml"
 )
-
-type testDispatcher struct{}
-
-func (testDispatcher) ContentType(resp safehttp.Response) (string, error) {
-	switch resp.(type) {
-	case safehtml.HTML, *template.Template:
-		return "text/html; charset=utf-8", nil
-	case safehttp.JSONResponse:
-		return "application/json; charset=utf-8", nil
-	default:
-		return "", errors.New("not a safe response")
-	}
-}
-
-func (testDispatcher) Write(rw http.ResponseWriter, resp safehttp.Response) error {
-	switch x := resp.(type) {
-	case safehtml.HTML:
-		_, err := rw.Write([]byte(x.String()))
-		return err
-	default:
-		panic("not a safe response type")
-	}
-}
-
-func (testDispatcher) WriteJSON(rw http.ResponseWriter, resp safehttp.JSONResponse) error {
-	obj, err := json.Marshal(resp.Data)
-	if err != nil {
-		panic("invalid json")
-	}
-	_, err = rw.Write(obj)
-	return err
-}
-
-func (testDispatcher) ExecuteTemplate(rw http.ResponseWriter, t safehttp.Template, data interface{}) error {
-	switch x := t.(type) {
-	case *template.Template:
-		return x.Execute(rw, data)
-	default:
-		panic("not a safe response type")
-	}
-}
 
 // ResponseRecorder encapsulates a safehttp.ResponseWriter that records
 // mutations for later inspection in tests. The safehttp.ResponseWriter
@@ -76,14 +31,14 @@ type ResponseRecorder struct {
 	b  *strings.Builder
 }
 
-// NewResponseRecorder creates a ResponseRecorder from the default testDispatcher.
+// NewResponseRecorder creates a ResponseRecorder from the safehttp.DefaultDispatcher.
 func NewResponseRecorder() *ResponseRecorder {
 	var b strings.Builder
 	rw := newResponseWriter(&b)
 	return &ResponseRecorder{
 		rw:             rw,
 		b:              &b,
-		ResponseWriter: safehttp.NewResponseWriter(testDispatcher{}, rw, nil),
+		ResponseWriter: safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, rw, nil),
 	}
 }
 

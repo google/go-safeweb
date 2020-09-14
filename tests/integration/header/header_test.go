@@ -16,9 +16,6 @@ package header
 
 import (
 	"bufio"
-	"encoding/json"
-	"errors"
-	"github.com/google/safehtml/template"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -29,42 +26,6 @@ import (
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/safehtml"
 )
-
-type testDispatcher struct{}
-
-func (testDispatcher) ContentType(resp safehttp.Response) (string, error) {
-	switch resp.(type) {
-	case safehtml.HTML, *template.Template:
-		return "text/html; charset=utf-8", nil
-	case safehttp.JSONResponse:
-		return "application/json; charset=utf-8", nil
-	default:
-		return "", errors.New("not a safe response")
-	}
-}
-
-func (testDispatcher) Write(rw http.ResponseWriter, resp safehttp.Response) error {
-	switch x := resp.(type) {
-	case safehtml.HTML:
-		_, err := rw.Write([]byte(x.String()))
-		return err
-	default:
-		panic("not a safe response type")
-	}
-}
-
-func (testDispatcher) WriteJSON(rw http.ResponseWriter, resp safehttp.JSONResponse) error {
-	obj, err := json.Marshal(resp.Data)
-	if err != nil {
-		panic("invalid json")
-	}
-	_, err = rw.Write(obj)
-	return err
-}
-
-func (testDispatcher) ExecuteTemplate(rw http.ResponseWriter, t safehttp.Template, data interface{}) error {
-	return nil
-}
 
 type responseRecorder struct {
 	header http.Header
@@ -89,7 +50,7 @@ func (r *responseRecorder) Write(data []byte) (int, error) {
 }
 
 func TestAccessIncomingHeaders(t *testing.T) {
-	mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
 	mux.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 		if got, want := ir.Header.Get("A"), "B"; got != want {
 			t.Errorf(`ir.Header.Get("A") got: %v want: %v`, got, want)
@@ -112,7 +73,7 @@ func TestAccessIncomingHeaders(t *testing.T) {
 }
 
 func TestChangingResponseHeaders(t *testing.T) {
-	mux := safehttp.NewServeMux(testDispatcher{}, "foo.com")
+	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
 	mux.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 		rw.Header().Set("pIZZA", "Pasta")
 		return rw.Write(safehtml.HTMLEscaped("hello"))
