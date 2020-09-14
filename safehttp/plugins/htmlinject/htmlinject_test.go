@@ -15,10 +15,10 @@
 package htmlinject
 
 import (
-	"html/template"
 	"os"
 	"strings"
 	"testing"
+	"text/template"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -41,6 +41,7 @@ Last name:<br>
 </body>
 </html>
 `
+
 	got, err := Transform(strings.NewReader(in), CSPNoncesDefault, XSRFTokensDefault)
 	if err != nil {
 		// handle error

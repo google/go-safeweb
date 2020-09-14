@@ -26,6 +26,8 @@ import (
 	"github.com/google/go-safeweb/safehttp/safehttptest"
 )
 
+var nilContext context.Context
+
 func TestIncomingRequestCookie(t *testing.T) {
 	var tests = []struct {
 		name      string
@@ -194,7 +196,7 @@ func TestRequestSetNilContext(t *testing.T) {
 		}
 	}()
 
-	ir.SetContext(nil)
+	ir.SetContext(nilContext)
 }
 
 func TestIncomingRequestPostForm(t *testing.T) {
