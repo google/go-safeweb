@@ -41,7 +41,6 @@ Last name:<br>
 </body>
 </html>
 `
-
 	got, err := Transform(strings.NewReader(in), CSPNoncesDefault, XSRFTokensDefault)
 	if err != nil {
 		// handle error
