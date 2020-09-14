@@ -379,6 +379,10 @@ func TestIncomingRequestMultipartFileUpload(t *testing.T) {
 	defer f.RemoveFiles()
 
 	file, err := fhs[0].Open()
+	if err != nil {
+		t.Fatalf("fhs[0].Open(): got err %v, want nil", err)
+	}
+
 	content := make([]byte, 12)
 	file.Read(content)
 	if want, got := "file content", string(content); want != got {
@@ -418,6 +422,10 @@ func TestIncomingRequestMultipartFormAndFileUpload(t *testing.T) {
 	defer f.RemoveFiles()
 
 	file, err := fhs[0].Open()
+	if err != nil {
+		t.Fatalf("fhs[0].Open(): got err %v, want nil", err)
+	}
+
 	content := make([]byte, 12)
 	file.Read(content)
 	if want, got := "file content", string(content); want != got {
@@ -445,6 +453,10 @@ func TestIncomingRequestFileUploadMissingContent(t *testing.T) {
 	defer f.RemoveFiles()
 
 	file, err := fhs[0].Open()
+	if err != nil {
+		t.Fatalf("fhs[0].Open(): got err %v, want nil", err)
+	}
+
 	content := make([]byte, 0)
 	file.Read(content)
 	if want, got := "", string(content); want != got {
