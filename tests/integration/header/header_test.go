@@ -16,7 +16,7 @@ package header
 
 import (
 	"bufio"
-	"io"
+	"github.com/google/go-safeweb/safehttp/safehttptest"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -26,28 +26,6 @@ import (
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/safehtml"
 )
-
-type responseRecorder struct {
-	header http.Header
-	writer io.Writer
-	status safehttp.StatusCode
-}
-
-func newResponseRecorder(w io.Writer) *responseRecorder {
-	return &responseRecorder{header: http.Header{}, writer: w, status: http.StatusOK}
-}
-
-func (r *responseRecorder) Header() http.Header {
-	return r.header
-}
-
-func (r *responseRecorder) WriteHeader(statusCode int) {
-	r.status = safehttp.StatusCode(statusCode)
-}
-
-func (r *responseRecorder) Write(data []byte) (int, error) {
-	return r.writer.Write(data)
-}
 
 func TestAccessIncomingHeaders(t *testing.T) {
 	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
@@ -67,7 +45,7 @@ func TestAccessIncomingHeaders(t *testing.T) {
 	}
 
 	b := &strings.Builder{}
-	rw := newResponseRecorder(b)
+	rw := safehttptest.NewTestResponseWriter(b)
 
 	mux.ServeHTTP(rw, req)
 }
@@ -82,7 +60,7 @@ func TestChangingResponseHeaders(t *testing.T) {
 	req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/", nil)
 
 	b := &strings.Builder{}
-	rw := newResponseRecorder(b)
+	rw := safehttptest.NewTestResponseWriter(b)
 
 	mux.ServeHTTP(rw, req)
 
