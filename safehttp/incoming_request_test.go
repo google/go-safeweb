@@ -26,8 +26,6 @@ import (
 	"github.com/google/go-safeweb/safehttp/safehttptest"
 )
 
-var nilContext context.Context
-
 func TestIncomingRequestCookie(t *testing.T) {
 	var tests = []struct {
 		name      string
@@ -195,7 +193,7 @@ func TestRequestSetNilContext(t *testing.T) {
 			t.Errorf(`ir.SetContext(nil): expected panic`)
 		}
 	}()
-
+	var nilContext context.Context
 	ir.SetContext(nilContext)
 }
 
