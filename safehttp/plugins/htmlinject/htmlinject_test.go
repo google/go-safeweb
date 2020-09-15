@@ -15,10 +15,10 @@
 package htmlinject
 
 import (
+	"html/template"
 	"os"
 	"strings"
 	"testing"
-	"text/template"
 
 	"github.com/google/go-cmp/cmp"
 )
