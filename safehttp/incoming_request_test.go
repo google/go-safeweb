@@ -194,7 +194,8 @@ func TestRequestSetNilContext(t *testing.T) {
 		}
 	}()
 
-	// Avoids linters complaint about a nil context being passed as argument
+	// Avoids a linter complaint about a nil context being passed as argument.
+	// In this case, we explicitly want to test that a nil context results in an error.
 	var nilContext context.Context
 	ir.SetContext(nilContext)
 }
