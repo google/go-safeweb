@@ -193,6 +193,8 @@ func TestRequestSetNilContext(t *testing.T) {
 			t.Errorf(`ir.SetContext(nil): expected panic`)
 		}
 	}()
+
+	// Avoids linters complaint about a nil context being passed as argument
 	var nilContext context.Context
 	ir.SetContext(nilContext)
 }
