@@ -23,6 +23,8 @@ import (
 // Plugin claims and sets static headers on responses.
 type Plugin struct{}
 
+var _ safehttp.Interceptor = Plugin{}
+
 // Before claims and sets the following headers:
 //  - X-Content-Type-Options: nosniff
 //  - X-XSS-Protection: 0

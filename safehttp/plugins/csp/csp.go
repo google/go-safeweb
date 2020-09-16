@@ -177,6 +177,8 @@ type Interceptor struct {
 	ReportOnly []Policy
 }
 
+var _ safehttp.Interceptor = Interceptor{}
+
 // Default creates a new CSP interceptor with a strict nonce-based policy and a
 // framing policy, both in enforcement mode.
 func Default(reportURI string) Interceptor {
@@ -190,7 +192,7 @@ func Default(reportURI string) Interceptor {
 
 // Before claims and sets the Content-Security-Policy header and the
 // Content-Security-Policy-Report-Only header.
-func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ interface{}) safehttp.Result {
 	nonce := generateNonce()
 	r.SetContext(context.WithValue(r.Context(), ctxKey{}, nonce))
 

@@ -69,6 +69,8 @@ type Interceptor struct {
 	allowedHeaders map[string]bool
 }
 
+var _ safehttp.Interceptor = &Interceptor{}
+
 // Default creates a CORS Interceptor with default settings.
 // Those defaults are:
 //  - No Exposed Headers
@@ -109,7 +111,7 @@ func (it *Interceptor) SetAllowedHeaders(headers ...string) {
 //  - Access-Control-Expose-Headers
 //  - Access-Control-Max-Age
 //  - Vary
-func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ interface{}) safehttp.Result {
 	origin := r.Header.Get("Origin")
 	if origin != "" && !it.AllowedOrigins[origin] {
 		return w.WriteError(safehttp.StatusForbidden)
@@ -149,6 +151,10 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 	if status == safehttp.StatusNoContent {
 		return w.NoContent()
 	}
+	return safehttp.Result{}
+}
+
+func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
 	return safehttp.Result{}
 }
 
