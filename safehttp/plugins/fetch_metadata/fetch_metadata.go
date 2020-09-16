@@ -63,6 +63,8 @@ type Plugin struct {
 	corsProtected map[string]bool
 }
 
+var _ safehttp.Interceptor = &Plugin{}
+
 // NewPlugin creates a new Fetch Metadata plugin in enforce mode that will apply
 // the Resource Isolation Policy by default. The user can provide a set of
 // endpoints that are CORS-protected. Any request targeted to those endpoints
@@ -136,7 +138,7 @@ func (p *Plugin) SetEnforce() {
 // the  violation is reported. If a redirectURL was provided and the Navigation
 // Isolation Policy is enabled and fails, the IncomingRequest will be
 // redirected to redirectURL.
-func (p *Plugin) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+func (p *Plugin) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ interface{}) safehttp.Result {
 	// TODO(mihalimara22): Remove and disable using configurations when those
 	// have been implemented
 	if p.corsProtected[r.URL.Path()] {

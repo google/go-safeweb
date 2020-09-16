@@ -15,11 +15,12 @@
 package fetchmetadata_test
 
 import (
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/plugins/fetch_metadata"
 	"github.com/google/go-safeweb/safehttp/safehttptest"
-	"testing"
 )
 
 type testHeaders struct {
@@ -168,7 +169,7 @@ func TestAllowedResourceIsolationEnforceMode(t *testing.T) {
 			rec := safehttptest.NewResponseRecorder()
 
 			p := fetchmetadata.NewPlugin()
-			p.Before(rec.ResponseWriter, req)
+			p.Before(rec.ResponseWriter, req, nil)
 
 			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); got != want {
 				t.Errorf("status code got: %v want: %v", got, want)
@@ -194,7 +195,7 @@ func TestRejectedResourceIsolationEnforceMode(t *testing.T) {
 			rec := safehttptest.NewResponseRecorder()
 
 			p := fetchmetadata.NewPlugin()
-			p.Before(rec.ResponseWriter, req)
+			p.Before(rec.ResponseWriter, req, nil)
 
 			if want, got := safehttp.StatusForbidden, safehttp.StatusCode(rec.Status()); want != got {
 				t.Errorf("status code got: %v want: %v", got, want)
@@ -248,7 +249,7 @@ func TestRejectedResourceIsolationEnforceModeWithLogger(t *testing.T) {
 			p := fetchmetadata.NewPlugin()
 			logger := &methodLogger{}
 			p.Logger = logger
-			p.Before(rec.ResponseWriter, req)
+			p.Before(rec.ResponseWriter, req, nil)
 
 			if want, got := safehttp.StatusForbidden, safehttp.StatusCode(rec.Status()); want != got {
 				t.Errorf("status code got: %v want: %v", got, want)
@@ -304,7 +305,7 @@ func TestResourceIsolationReportMode(t *testing.T) {
 			logger := &methodLogger{}
 			p.Logger = logger
 			p.SetReportOnly()
-			p.Before(rec.ResponseWriter, req)
+			p.Before(rec.ResponseWriter, req, nil)
 
 			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); got != want {
 				t.Errorf("status code got: %v want: %v", got, want)
@@ -344,7 +345,7 @@ func TestNavIsolationEnforceMode(t *testing.T) {
 
 			p := fetchmetadata.NewPlugin()
 			p.NavIsolation = true
-			p.Before(rec.ResponseWriter, req)
+			p.Before(rec.ResponseWriter, req, nil)
 
 			if want, got := safehttp.StatusForbidden, safehttp.StatusCode(rec.Status()); want != got {
 				t.Errorf("status code got: %v want: %v", got, want)
@@ -401,7 +402,7 @@ func TestNavIsolationReportMode(t *testing.T) {
 			p.Logger = logger
 			p.NavIsolation = true
 			p.SetReportOnly()
-			p.Before(rec.ResponseWriter, req)
+			p.Before(rec.ResponseWriter, req, nil)
 
 			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); want != got {
 				t.Errorf("status code got: %v want: %v", got, want)
@@ -430,7 +431,7 @@ func TestCORSEndpoint(t *testing.T) {
 			rec := safehttptest.NewResponseRecorder()
 
 			p := fetchmetadata.NewPlugin("/carbonara")
-			p.Before(rec.ResponseWriter, req)
+			p.Before(rec.ResponseWriter, req, nil)
 
 			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); got != want {
 				t.Errorf("status code got: %v want: %v", got, want)
@@ -498,7 +499,7 @@ func TestCORSAfterRedirect(t *testing.T) {
 			p := fetchmetadata.NewPlugin("/carbonara")
 			p.NavIsolation = true
 			p.RedirectURL, _ = safehttp.ParseURL("https://spaghetti.com/carbonara")
-			p.Before(rec.ResponseWriter, req)
+			p.Before(rec.ResponseWriter, req, nil)
 
 			if want, got := safehttp.StatusMovedPermanently, safehttp.StatusCode(rec.Status()); got != want {
 				t.Errorf("status code got: %v want: %v", got, want)

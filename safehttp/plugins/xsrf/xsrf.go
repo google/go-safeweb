@@ -23,6 +23,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+
 	"github.com/google/go-safeweb/safehttp"
 	"golang.org/x/net/xsrftoken"
 )
@@ -46,6 +47,8 @@ type Interceptor struct {
 	// high entropy as it is used for generating the XSRF token.
 	SecretAppKey string
 }
+
+var _ safehttp.Interceptor = &Interceptor{}
 
 type tokenCtxKey struct{}
 

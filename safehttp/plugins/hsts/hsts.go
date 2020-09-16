@@ -54,6 +54,8 @@ type Interceptor struct {
 	BehindProxy bool
 }
 
+var _ safehttp.Interceptor = Interceptor{}
+
 // Default creates a new HSTS interceptor with safe defaults.
 // These safe defaults are:
 //  - max-age set to two years.
