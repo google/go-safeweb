@@ -230,7 +230,9 @@ type Dispatcher interface {
 	WriteJSON(rw http.ResponseWriter, resp JSONResponse) error
 
 	// ExecuteTemplate applies a parsed template to the provided data object
-	// and writes the output to the http.ResponseWriter.
+	// and writes the output to the http.ResponseWriter. If the funcMap is
+	// non-nil, the Dispatcher will try to update the names to function mappings
+	// of the template.
 	//
 	// This should return an error if the provided Template response is not a
 	// valid template or if an error occurs executing or writing the template.

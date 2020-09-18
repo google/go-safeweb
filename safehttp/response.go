@@ -38,9 +38,9 @@ type Template interface {
 	Execute(wr io.Writer, data interface{}) error
 }
 
-// TemplateResponse bundles a Template with its data to be passed together to the
-// commit phase. This will be passed when the commit phase is initiated from
-// ResponseWriter.WriteTemplate.
+// TemplateResponse bundles a Template with its data and names to function
+// mappings to be passed together to the commit phase. A TemplateResponse will
+// be created when the commit phase is initiated from ResponseWriter.WriteTemplate.
 type TemplateResponse struct {
 	Template *Template
 	Data     *interface{}
