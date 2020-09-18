@@ -44,6 +44,7 @@ type Template interface {
 type TemplateResponse struct {
 	Template *Template
 	Data     *interface{}
+	FuncMap  map[string]interface{}
 }
 
 // NoContentResponse is sent to the commit phase when it's initiated from
