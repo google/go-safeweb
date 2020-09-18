@@ -46,9 +46,37 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 			name: "Safe HTML Template Response",
 			write: func(w http.ResponseWriter) error {
 				d := &safehttp.DefaultDispatcher{}
-				return d.ExecuteTemplate(w, safetemplate.Must(safetemplate.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
+				return d.ExecuteTemplate(w, safetemplate.Must(safetemplate.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.", map[string]interface{}{})
 			},
 			wantBody: "<h1>This is an actual heading, though.</h1>",
+		},
+		{
+			name: "Safe HTML Template Response with Token",
+			write: func(w http.ResponseWriter) error {
+				d := &safehttp.DefaultDispatcher{}
+				noop := func() string { panic("this function should never be called") }
+				t := safetemplate.Must(safetemplate.New("name").Funcs(map[string]interface{}{"Token": noop}).Parse(`<form><input type="hidden" name="token" value="{{Token}}">{{.}}</form>`))
+				fm := map[string]interface{}{
+					"Token": func() string { return "Token-secret" },
+				}
+
+				return d.ExecuteTemplate(w, t, "Content", fm)
+			},
+			wantBody: `<form><input type="hidden" name="token" value="Token-secret">Content</form>`,
+		},
+		{
+			name: "Safe HTML Template Response with  Nonce",
+			write: func(w http.ResponseWriter) error {
+				d := &safehttp.DefaultDispatcher{}
+				noop := func() string { panic("this function should never be called") }
+				t := safetemplate.Must(safetemplate.New("name").Funcs(map[string]interface{}{"Nonce": noop}).Parse(`<script nonce="{{Nonce}}" type="application/javascript">alert("script")</script><h1>{{.}}</h1>`))
+				fm := map[string]interface{}{
+					"Nonce": func() string { return "Nonce-secret" },
+				}
+
+				return d.ExecuteTemplate(w, t, "Content", fm)
+			},
+			wantBody: `<script nonce="Nonce-secret" type="application/javascript">alert("script")</script><h1>Content</h1>`,
 		},
 		{
 			name: "Valid JSON Response",
@@ -98,7 +126,7 @@ func TestDefaultDispatcherInvalidResponse(t *testing.T) {
 			name: "Unsafe Template Response",
 			write: func(w http.ResponseWriter) error {
 				d := &safehttp.DefaultDispatcher{}
-				return d.ExecuteTemplate(w, template.Must(template.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
+				return d.ExecuteTemplate(w, template.Must(template.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.", map[string]interface{}{})
 			},
 			want: "",
 		},

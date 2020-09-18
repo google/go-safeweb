@@ -132,7 +132,8 @@ func (w *ResponseWriter) WriteTemplate(t Template, data interface{}) Result {
 	if w.written {
 		panic("ResponseWriter was already written to")
 	}
-	w.handler.commitPhase(w, TemplateResponse{Template: &t, Data: &data})
+	tr := TemplateResponse{Template: &t, Data: &data, FuncMap: map[string]interface{}{}}
+	w.handler.commitPhase(w, tr)
 	if w.written {
 		return Result{}
 	}
@@ -143,7 +144,7 @@ func (w *ResponseWriter) WriteTemplate(t Template, data interface{}) Result {
 	}
 	w.rw.Header().Set("Content-Type", ct)
 	w.rw.WriteHeader(int(StatusOK))
-	if err := w.d.ExecuteTemplate(w.rw, t, data); err != nil {
+	if err := w.d.ExecuteTemplate(w.rw, t, data, tr.FuncMap); err != nil {
 		panic(err)
 	}
 	return Result{}
@@ -233,7 +234,7 @@ type Dispatcher interface {
 	//
 	// This should return an error if the provided Template response is not a
 	// valid template or if an error occurs executing or writing the template.
-	ExecuteTemplate(rw http.ResponseWriter, t Template, data interface{}) error
+	ExecuteTemplate(rw http.ResponseWriter, t Template, data interface{}, funcMap map[string]interface{}) error
 
 	// Content-Type returns the Content-Type of the provided response if it is
 	// of a type supported by the Dispatcher and should return an error

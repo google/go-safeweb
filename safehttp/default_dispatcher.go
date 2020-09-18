@@ -67,10 +67,17 @@ func (DefaultDispatcher) WriteJSON(rw http.ResponseWriter, resp JSONResponse) er
 // If an error occurs executing the template or writing its output,
 // execution stops, but partial results may already have been written to
 // the Response Writer.
-func (DefaultDispatcher) ExecuteTemplate(rw http.ResponseWriter, t Template, data interface{}) error {
+func (DefaultDispatcher) ExecuteTemplate(rw http.ResponseWriter, t Template, data interface{}, funcMap map[string]interface{}) error {
 	x, ok := t.(*template.Template)
 	if !ok {
 		return fmt.Errorf("%T is not a safe template and it cannot be parsed and written", t)
 	}
-	return x.Execute(rw, data)
+	if len(funcMap) == 0 {
+		return x.Execute(rw, data)
+	}
+	cloned, err := x.Clone()
+	if err != nil {
+		return err
+	}
+	return cloned.Funcs(funcMap).Execute(rw, data)
 }
