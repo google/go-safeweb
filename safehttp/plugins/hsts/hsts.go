@@ -97,7 +97,7 @@ func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 	return safehttp.NotWritten()
 }
 
-// Commit is a no-op required to satisfy the safehttp.Interceptor interface.
+// Commit is a no-op, required to satisfy the safehttp.Interceptor interface.
 func (it Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
 	return safehttp.Result{}
 }
