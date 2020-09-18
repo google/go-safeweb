@@ -94,7 +94,7 @@ func addCookieID(w *safehttp.ResponseWriter) (*safehttp.Cookie, error) {
 // In case of state changing requests (all except GET, HEAD and OPTIONS), the
 // interceptor checks for the presence of the XSRF token in the request body
 // (expected to have been injected) and validates it.
-func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
+func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
 	needsValidation := !statePreservingMethods[r.Method()]
 	cookieID, err := r.Cookie(cookieIDKey)
 	if err != nil {
@@ -128,17 +128,39 @@ func (i *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 			return w.WriteError(safehttp.StatusUnauthorized)
 		}
 
-		if ok := xsrftoken.Valid(tok, i.SecretAppKey, cookieID.Value(), actionID); !ok {
+		if ok := xsrftoken.Valid(tok, it.SecretAppKey, cookieID.Value(), actionID); !ok {
 			return w.WriteError(safehttp.StatusForbidden)
 		}
 	}
 
-	tok := xsrftoken.Generate(i.SecretAppKey, cookieID.Value(), actionID)
+	tok := xsrftoken.Generate(it.SecretAppKey, cookieID.Value(), actionID)
 	r.SetContext(context.WithValue(r.Context(), tokenCtxKey{}, tok))
 	return safehttp.NotWritten()
 }
 
+<<<<<<< HEAD
 // Commit is a no-op, required to satisfy the safehttp.Interceptor interface.
 func (i *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
 	return safehttp.NotWritten()
+=======
+// Commit adds the XSRF token corresponding to the correct user to the
+// safehttp.TemplateResponse to be subsequently injected in HTML forms as a
+// hidden form field.
+func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
+	tempResp, ok := resp.(safehttp.TemplateResponse)
+	if !ok {
+		return safehttp.Result{}
+	}
+
+	tok, err := Token(r)
+	if err != nil {
+		// The token should have been added in the Before stage and if that is
+		// not the case, a server misconfiguration occured.
+		return w.WriteError(safehttp.StatusInternalServerError)
+	}
+
+	// TODO(maramihali@): Change the key when function names are exported by htmlinject
+	tempResp.FuncMap["XSRFToken"] = func() string { return tok }
+	return safehttp.Result{}
+>>>>>>> Implemented the Commit phase of the XSRF plugin
 }

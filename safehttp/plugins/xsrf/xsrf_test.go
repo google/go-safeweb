@@ -109,7 +109,7 @@ func TestTokenMultipart(t *testing.T) {
 				t.Errorf("rec.Status(): got %v, want %v", got, test.wantStatus)
 			}
 			if diff := cmp.Diff(test.wantHeader, map[string][]string(rec.Header())); diff != "" {
-				t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
 			}
 			if got := rec.Body(); got != test.wantBody {
 				t.Errorf("rec.Body(): got %q want %q", got, test.wantBody)
@@ -135,7 +135,7 @@ func TestMalformedForm(t *testing.T) {
 		"X-Content-Type-Options": {"nosniff"},
 	}
 	if diff := cmp.Diff(wantHeaders, map[string][]string(rec.Header())); diff != "" {
-		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+		t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
 	}
 	if want, got := "Bad Request\n", rec.Body(); got != want {
 		t.Errorf("rec.Body(): got %q want %q", got, want)
@@ -208,7 +208,7 @@ func TestMissingTokenInBody(t *testing.T) {
 			"X-Content-Type-Options": {"nosniff"},
 		}
 		if diff := cmp.Diff(wantHeaders, map[string][]string(rec.Header())); diff != "" {
-			t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+			t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
 		}
 		if want, got := "Unauthorized\n", rec.Body(); got != want {
 			t.Errorf("rec.Body(): got %q want %q", got, want)
@@ -309,9 +309,125 @@ func TestMissingCookiePostRequest(t *testing.T) {
 		"X-Content-Type-Options": {"nosniff"},
 	}
 	if diff := cmp.Diff(wantHeaders, map[string][]string(rec.Header())); diff != "" {
-		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+		t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
 	}
 	if want, got := "Forbidden\n", rec.Body(); got != want {
 		t.Errorf("rec.Body(): got %q want %q", got, want)
 	}
+}
+
+func TestCommitToken(t *testing.T) {
+	rec := safehttptest.NewResponseRecorder()
+	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
+	req.SetContext(context.WithValue(req.Context(), tokenCtxKey{}, "pizza"))
+
+	i := Interceptor{SecretAppKey: "testSecretAppKey"}
+	tr := safehttp.TemplateResponse{FuncMap: map[string]interface{}{}}
+	i.Commit(rec.ResponseWriter, req, tr, nil)
+
+	tok, ok := tr.FuncMap["XSRFToken"]
+	if !ok {
+		t.Error(`tr.FuncMap["XSRFToken"]: got nil, want tok`)
+	}
+
+	fn, ok := tok.(func() string)
+	if !ok {
+		t.Errorf(`tr.FuncMap["XSRFToken"]: got %T, want "func() string"`, fn)
+	}
+	if want, got := "pizza", fn(); want != got {
+		t.Errorf(`tr.FuncMap["XSRFToken"](): got %s, want %s`, got, want)
+	}
+
+	if want, got := safehttp.StatusOK, rec.Status(); want != got {
+		t.Errorf("rec.Status(): got %v, want %v", got, want)
+	}
+	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
+		t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
+	}
+
+	if want, got := "", rec.Body(); got != want {
+		t.Errorf("rec.Body(): got %q want %q", got, want)
+	}
+}
+
+func TestCommitMissingToken(t *testing.T) {
+	rec := safehttptest.NewResponseRecorder()
+	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
+	req.SetContext(context.Background())
+
+	i := Interceptor{SecretAppKey: "testSecretAppKey"}
+	tr := safehttp.TemplateResponse{FuncMap: map[string]interface{}{}}
+	i.Commit(rec.ResponseWriter, req, tr, nil)
+
+	wantFuncMap := map[string]interface{}{}
+	if diff := cmp.Diff(wantFuncMap, tr.FuncMap); diff != "" {
+		t.Errorf("tr.FuncMap: mismatch (-want +got):\n%s", diff)
+	}
+
+	if want, got := safehttp.StatusInternalServerError, rec.Status(); got != want {
+		t.Errorf("rec.Status(): got %v, want %v", got, want)
+	}
+	wantHeaders := map[string][]string{
+		"Content-Type":           {"text/plain; charset=utf-8"},
+		"X-Content-Type-Options": {"nosniff"},
+	}
+
+	if diff := cmp.Diff(wantHeaders, map[string][]string(rec.Header())); diff != "" {
+		t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
+	}
+
+	if want, got := "Internal Server Error\n", rec.Body(); got != want {
+		t.Errorf("rec.Body(): got %q want %q", got, want)
+	}
+}
+
+func TestCommitNotTemplateResponse(t *testing.T) {
+	rec := safehttptest.NewResponseRecorder()
+	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
+
+	i := Interceptor{SecretAppKey: "testSecretAppKey"}
+	i.Commit(rec.ResponseWriter, req, safehttp.NoContentResponse{}, nil)
+
+	if want, got := safehttp.StatusOK, rec.Status(); want != got {
+		t.Errorf("rec.Status(): got %v, want %v", got, want)
+	}
+
+	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
+		t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
+	}
+
+	if want, got := "", rec.Body(); got != want {
+		t.Errorf("rec.Body(): got %q want %q", got, want)
+	}
+}
+
+func TestBeforeCommit(t *testing.T) {
+	rec := safehttptest.NewResponseRecorder()
+	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
+
+	i := Interceptor{SecretAppKey: "testSecretAppKey"}
+	tr := safehttp.TemplateResponse{FuncMap: map[string]interface{}{}}
+	i.Before(rec.ResponseWriter, req, nil)
+	i.Commit(rec.ResponseWriter, req, tr, nil)
+
+	tok, ok := tr.FuncMap["XSRFToken"]
+	if !ok {
+		t.Error(`tr.FuncMap["XSRFToken"]: got nil, want token`)
+	}
+
+	fn, ok := tok.(func() string)
+	if !ok {
+		t.Errorf(`tr.FuncMap["XSRFToken"]: got %T, want "func() string"`, fn)
+	}
+	if got := fn(); got == "" {
+		t.Errorf(`tr.FuncMap["XSRFToken"](): got %s, want token`, got)
+	}
+
+	if want, got := safehttp.StatusOK, rec.Status(); want != got {
+		t.Errorf("rec.Status(): got %v, want %v", got, want)
+	}
+	if want, got := "", rec.Body(); got != want {
+		t.Errorf("rec.Body(): got %q want %q", got, want)
+	}
+
 }
