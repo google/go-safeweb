@@ -76,13 +76,13 @@ func TestTokenPost(t *testing.T) {
 			i.Before(rec.ResponseWriter, req, nil)
 
 			if got := rec.Status(); got != test.wantStatus {
-				t.Errorf("response status: got %v, want %v", got, test.wantStatus)
+				t.Errorf("rec.Status(): got %v, want %v", got, test.wantStatus)
 			}
 			if diff := cmp.Diff(test.wantHeader, map[string][]string(rec.Header())); diff != "" {
 				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
 			}
 			if got := rec.Body(); got != test.wantBody {
-				t.Errorf("response body: got %q want %q", got, test.wantBody)
+				t.Errorf("rec.Body(): got %q want %q", got, test.wantBody)
 			}
 		})
 	}
@@ -106,13 +106,13 @@ func TestTokenMultipart(t *testing.T) {
 			i.Before(rec.ResponseWriter, req, nil)
 
 			if got := rec.Status(); got != test.wantStatus {
-				t.Errorf("response status: got %v, want %v", got, test.wantStatus)
+				t.Errorf("rec.Status(): got %v, want %v", got, test.wantStatus)
 			}
 			if diff := cmp.Diff(test.wantHeader, map[string][]string(rec.Header())); diff != "" {
 				t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
 			}
 			if got := rec.Body(); got != test.wantBody {
-				t.Errorf("response body: got %q want %q", got, test.wantBody)
+				t.Errorf("rec.Body(): got %q want %q", got, test.wantBody)
 			}
 		})
 	}
@@ -128,7 +128,7 @@ func TestMalformedForm(t *testing.T) {
 	i.Before(rec.ResponseWriter, req, nil)
 
 	if want, got := safehttp.StatusBadRequest, rec.Status(); got != want {
-		t.Errorf("response status: got %v, want %v", got, want)
+		t.Errorf("rec.Status(): got %v, want %v", got, want)
 	}
 	wantHeaders := map[string][]string{
 		"Content-Type":           {"text/plain; charset=utf-8"},
@@ -138,7 +138,7 @@ func TestMalformedForm(t *testing.T) {
 		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
 	}
 	if want, got := "Bad Request\n", rec.Body(); got != want {
-		t.Errorf("response body: got %q want %q", got, want)
+		t.Errorf("rec.Body(): got %q want %q", got, want)
 	}
 }
 
@@ -201,7 +201,7 @@ func TestMissingTokenInBody(t *testing.T) {
 		i.Before(rec.ResponseWriter, test.req, nil)
 
 		if want, got := safehttp.StatusUnauthorized, rec.Status(); got != want {
-			t.Errorf("response status: got %v, want %v", got, want)
+			t.Errorf("rec.Status(): got %v, want %v", got, want)
 		}
 		wantHeaders := map[string][]string{
 			"Content-Type":           {"text/plain; charset=utf-8"},
@@ -211,7 +211,7 @@ func TestMissingTokenInBody(t *testing.T) {
 			t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
 		}
 		if want, got := "Unauthorized\n", rec.Body(); got != want {
-			t.Errorf("response body: got %q want %q", got, want)
+			t.Errorf("rec.Body(): got %q want %q", got, want)
 		}
 	}
 }
@@ -233,13 +233,13 @@ func TestBeforeTokenInRequestContext(t *testing.T) {
 	}
 
 	if want, got := safehttp.StatusOK, rec.Status(); want != got {
-		t.Errorf("response status: got %v, want %v", got, want)
+		t.Errorf("rec.Status(): got %v, want %v", got, want)
 	}
 	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
 		t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
 	}
 	if want, got := "", rec.Body(); got != want {
-		t.Errorf("response body: got %q want %q", got, want)
+		t.Errorf("rec.Body(): got %q want %q", got, want)
 	}
 
 }
@@ -278,7 +278,7 @@ func TestMissingCookieInGetRequest(t *testing.T) {
 	i.Before(rec.ResponseWriter, req, nil)
 
 	if want, got := safehttp.StatusOK, rec.Status(); want != got {
-		t.Errorf("response status: got %v, want %v", got, want)
+		t.Errorf("rec.Status(): got %v, want %v", got, want)
 	}
 	tokCookieDefaults := "HttpOnly; Secure; SameSite=Strict"
 	got := map[string][]string(rec.Header())["Set-Cookie"][0]
@@ -289,7 +289,7 @@ func TestMissingCookieInGetRequest(t *testing.T) {
 		t.Errorf("Set-Cookie header: got %s, want defaults %s", got, tokCookieDefaults)
 	}
 	if want, got := "", rec.Body(); got != want {
-		t.Errorf("response body: got %q want %q", got, want)
+		t.Errorf("rec.Body(): got %q want %q", got, want)
 	}
 }
 
@@ -302,7 +302,7 @@ func TestMissingCookiePostRequest(t *testing.T) {
 	i.Before(rec.ResponseWriter, req, nil)
 
 	if want, got := safehttp.StatusForbidden, rec.Status(); got != want {
-		t.Errorf("response status: got %v, want %v", got, want)
+		t.Errorf("rec.Status(): got %v, want %v", got, want)
 	}
 	wantHeaders := map[string][]string{
 		"Content-Type":           {"text/plain; charset=utf-8"},
@@ -312,6 +312,6 @@ func TestMissingCookiePostRequest(t *testing.T) {
 		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
 	}
 	if want, got := "Forbidden\n", rec.Body(); got != want {
-		t.Errorf("response body: got %q want %q", got, want)
+		t.Errorf("rec.Body(): got %q want %q", got, want)
 	}
 }

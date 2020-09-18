@@ -66,6 +66,6 @@ func TestChangingResponseHeaders(t *testing.T) {
 
 	want := []string{"Pasta"}
 	if diff := cmp.Diff(want, rw.Header()["Pizza"]); diff != "" {
-		t.Errorf(`resp.Header["Pizza"] mismatch (-want +got):\n%s`, diff)
+		t.Errorf(`rw.Header()["Pizza"] mismatch (-want +got):\n%s`, diff)
 	}
 }

@@ -172,13 +172,13 @@ func TestAllowedResourceIsolationEnforceMode(t *testing.T) {
 			p.Before(rec.ResponseWriter, req, nil)
 
 			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); got != want {
-				t.Errorf("status code got: %v want: %v", got, want)
+				t.Errorf("rec.Status() got: %v want: %v", got, want)
 			}
 			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
 				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
 			}
 			if want, got := "", rec.Body(); got != want {
-				t.Errorf("response body got: %q want: %q", got, want)
+				t.Errorf("rec.Body() got: %q want: %q", got, want)
 			}
 		})
 	}
@@ -198,7 +198,7 @@ func TestRejectedResourceIsolationEnforceMode(t *testing.T) {
 			p.Before(rec.ResponseWriter, req, nil)
 
 			if want, got := safehttp.StatusForbidden, safehttp.StatusCode(rec.Status()); want != got {
-				t.Errorf("status code got: %v want: %v", got, want)
+				t.Errorf("rec.Status() got: %v want: %v", got, want)
 			}
 			wantHeaders := map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
@@ -208,7 +208,7 @@ func TestRejectedResourceIsolationEnforceMode(t *testing.T) {
 				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
 			}
 			if want, got := "Forbidden\n", rec.Body(); got != want {
-				t.Errorf("response body got: %q want: %q", got, want)
+				t.Errorf("rec.Body() got: %q want: %q", got, want)
 			}
 		})
 	}
@@ -252,7 +252,7 @@ func TestRejectedResourceIsolationEnforceModeWithLogger(t *testing.T) {
 			p.Before(rec.ResponseWriter, req, nil)
 
 			if want, got := safehttp.StatusForbidden, safehttp.StatusCode(rec.Status()); want != got {
-				t.Errorf("status code got: %v want: %v", got, want)
+				t.Errorf("rec.Status() got: %v want: %v", got, want)
 			}
 			wantHeaders := map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
@@ -262,7 +262,7 @@ func TestRejectedResourceIsolationEnforceModeWithLogger(t *testing.T) {
 				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
 			}
 			if want, got := "Forbidden\n", rec.Body(); got != want {
-				t.Errorf("response body got: %q want: %q", got, want)
+				t.Errorf("rec.Body() got: %q want: %q", got, want)
 			}
 			if test.report != logger.report {
 				t.Errorf("logger.report: got %s, want %s", logger.report, test.report)
@@ -308,13 +308,13 @@ func TestResourceIsolationReportMode(t *testing.T) {
 			p.Before(rec.ResponseWriter, req, nil)
 
 			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); got != want {
-				t.Errorf("status code got: %v want: %v", got, want)
+				t.Errorf("rec.Status() got: %v want: %v", got, want)
 			}
 			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
 				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
 			}
 			if want, got := "", rec.Body(); got != want {
-				t.Errorf("response body got: %q want: %q", got, want)
+				t.Errorf("rec.Body() got: %q want: %q", got, want)
 			}
 			if logger.report != test.report {
 				t.Errorf("logger.report: got %s, want %s", logger.report, test.report)
@@ -348,7 +348,7 @@ func TestNavIsolationEnforceMode(t *testing.T) {
 			p.Before(rec.ResponseWriter, req, nil)
 
 			if want, got := safehttp.StatusForbidden, safehttp.StatusCode(rec.Status()); want != got {
-				t.Errorf("status code got: %v want: %v", got, want)
+				t.Errorf("rec.Status() got: %v want: %v", got, want)
 			}
 			wantHeaders := map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
@@ -358,7 +358,7 @@ func TestNavIsolationEnforceMode(t *testing.T) {
 				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
 			}
 			if want, got := "Forbidden\n", rec.Body(); got != want {
-				t.Errorf("response body got: %q want: %q", got, want)
+				t.Errorf("rec.Body() got: %q want: %q", got, want)
 			}
 		})
 	}
@@ -405,13 +405,13 @@ func TestNavIsolationReportMode(t *testing.T) {
 			p.Before(rec.ResponseWriter, req, nil)
 
 			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); want != got {
-				t.Errorf("status code got: %v want: %v", got, want)
+				t.Errorf("rec.Status() got: %v want: %v", got, want)
 			}
 			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
 				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
 			}
 			if want, got := "", rec.Body(); got != want {
-				t.Errorf("response body got: %q want: %q", got, want)
+				t.Errorf("rec.Body() got: %q want: %q", got, want)
 			}
 			if logger.report != test.report {
 				t.Errorf("logger.report: got %s, want %s", logger.report, test.report)
@@ -434,13 +434,13 @@ func TestCORSEndpoint(t *testing.T) {
 			p.Before(rec.ResponseWriter, req, nil)
 
 			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); got != want {
-				t.Errorf("status code got: %v want: %v", got, want)
+				t.Errorf("rec.Status() got: %v want: %v", got, want)
 			}
 			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
 				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
 			}
 			if want, got := "", rec.Body(); got != want {
-				t.Errorf("response body got: %q want: %q", got, want)
+				t.Errorf("rec.Body() got: %q want: %q", got, want)
 			}
 		})
 	}
@@ -502,13 +502,13 @@ func TestCORSAfterRedirect(t *testing.T) {
 			p.Before(rec.ResponseWriter, req, nil)
 
 			if want, got := safehttp.StatusMovedPermanently, safehttp.StatusCode(rec.Status()); got != want {
-				t.Errorf("status code got: %v want: %v", got, want)
+				t.Errorf("rec.Status() got: %v want: %v", got, want)
 			}
 			if diff := cmp.Diff(test.wantHeaders, map[string][]string(rec.Header())); diff != "" {
 				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
 			}
 			if gotBody := rec.Body(); test.wantBody != gotBody {
-				t.Errorf("response body got: %q want: %q", gotBody, test.wantBody)
+				t.Errorf("rec.Body() got: %q want: %q", gotBody, test.wantBody)
 			}
 		})
 	}
