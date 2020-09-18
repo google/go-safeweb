@@ -24,7 +24,7 @@ import (
 	"testing"
 )
 
-func TestServeMuxInstallCsp(t *testing.T) {
+func TestServeMuxInstallCSP(t *testing.T) {
 	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
 	mux.Install(&csp.Interceptor{})
 

@@ -24,7 +24,7 @@ import (
 	"testing"
 )
 
-func TestServeMuxInstallXsrf(t *testing.T) {
+func TestServeMuxInstallXSRF(t *testing.T) {
 	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
 	mux.Install(&xsrf.Interceptor{SecretAppKey: "testSecretAppKey"})
 
