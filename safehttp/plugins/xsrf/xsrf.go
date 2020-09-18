@@ -138,11 +138,6 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 	return safehttp.NotWritten()
 }
 
-<<<<<<< HEAD
-// Commit is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (i *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
-	return safehttp.NotWritten()
-=======
 // Commit adds the XSRF token corresponding to the correct user to the
 // safehttp.TemplateResponse to be subsequently injected in HTML forms as a
 // hidden form field.
@@ -162,5 +157,4 @@ func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 	// TODO(maramihali@): Change the key when function names are exported by htmlinject
 	tempResp.FuncMap["XSRFToken"] = func() string { return tok }
 	return safehttp.Result{}
->>>>>>> Implemented the Commit phase of the XSRF plugin
 }
