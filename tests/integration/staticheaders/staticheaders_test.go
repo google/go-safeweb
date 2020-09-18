@@ -37,14 +37,14 @@ func TestServeMuxInstallStaticHeaders(t *testing.T) {
 	mux.Handle("/asdf", safehttp.MethodGet, handler)
 
 	b := strings.Builder{}
-	rr := safehttptest.NewTestResponseWriter(&b)
+	rw := safehttptest.NewTestResponseWriter(&b)
 
 	req := httptest.NewRequest(http.MethodGet, "https://foo.com/asdf", nil)
 
-	mux.ServeHTTP(rr, req)
+	mux.ServeHTTP(rw, req)
 
-	if want := safehttp.StatusOK; rr.Status() != want {
-		t.Errorf("rr.Status() got: %v want: %v", rr.Status(), want)
+	if want := safehttp.StatusOK; rw.Status() != want {
+		t.Errorf("rw.Status() got: %v want: %v", rw.Status(), want)
 	}
 
 	wantHeaders := map[string][]string{
@@ -52,8 +52,8 @@ func TestServeMuxInstallStaticHeaders(t *testing.T) {
 		"X-Content-Type-Options": {"nosniff"},
 		"X-Xss-Protection":       {"0"},
 	}
-	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
-		t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
+	if diff := cmp.Diff(wantHeaders, map[string][]string(rw.Header())); diff != "" {
+		t.Errorf("rw.Header() mismatch (-want +got):\n%s", diff)
 	}
 
 	if got, want := b.String(), "&lt;h1&gt;Hello World!&lt;/h1&gt;"; got != want {

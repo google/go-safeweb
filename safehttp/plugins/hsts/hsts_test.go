@@ -127,8 +127,8 @@ func TestHSTS(t *testing.T) {
 
 			tt.interceptor.Before(rr.ResponseWriter, tt.req, nil)
 
-			if rr.Status() != tt.wantStatus {
-				t.Errorf("status code got: %v want: %v", rr.Status(), tt.wantStatus)
+			if gotStatus := rr.Status(); gotStatus != tt.wantStatus {
+				t.Errorf("rr.Status() got: %v want: %v", gotStatus, tt.wantStatus)
 			}
 
 			if diff := cmp.Diff(tt.wantHeaders, map[string][]string(rr.Header())); diff != "" {
@@ -136,7 +136,7 @@ func TestHSTS(t *testing.T) {
 			}
 
 			if got := rr.Body(); got != tt.wantBody {
-				t.Errorf("response body got: %q want: %q", got, tt.wantBody)
+				t.Errorf("rr.Body() got: %q want: %q", got, tt.wantBody)
 			}
 		})
 	}

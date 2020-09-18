@@ -172,7 +172,7 @@ func TestMuxDefaultDispatcherUnsafeResponses(t *testing.T) {
 				"X-Content-Type-Options": {"nosniff"},
 			}
 			if diff := cmp.Diff(wantHeaders, map[string][]string(rw.Header())); diff != "" {
-				t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+				t.Errorf("rw.Header(): mismatch (-want +got):\n%s", diff)
 			}
 
 			if wantBody, gotBody := "Internal Server Error\n", b.String(); wantBody != gotBody {
