@@ -60,9 +60,12 @@ func (DefaultDispatcher) WriteJSON(rw http.ResponseWriter, resp JSONResponse) er
 	return json.NewEncoder(rw).Encode(resp.Data)
 }
 
-// ExecuteTemplate applies a parsed template to the provided data object if the
+// ExecuteTemplate applies a parsed template to the provided data object, if the
 // template is a safe HTML template, writing the output to the  http.
-// ResponseWriter.
+// ResponseWriter. If the funcMap is non-nil, its elements can override the
+// existing names to functions mappings in the template. An attempt to define a
+// new name to function mapping that is not already in the template will result
+// in a panic.
 //
 // If an error occurs executing the template or writing its output,
 // execution stops, but partial results may already have been written to
