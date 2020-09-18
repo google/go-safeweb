@@ -215,7 +215,23 @@ func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 	return safehttp.NotWritten()
 }
 
-// Commit is a no-op, required to satisfy the safehttp.Interceptor interface.
+// Commit adds the nonce to the safehttp.TemplateResponse which is going to be
+// injected as the value of the nonce attribute in <script> and <link> tags. The
+// nonce is going to be unique for each safehttp.IncomingRequest.
 func (it Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
-	return safehttp.NotWritten()
+	tempResp, ok := resp.(safehttp.TemplateResponse)
+	if !ok {
+		return safehttp.Result{}
+	}
+
+	nonce, err := Nonce(r.Context())
+	if err != nil {
+		// The nonce should have been added in the Before stage and, if that is
+		// not the case, a server misconfiguration occured.
+		return w.WriteError(safehttp.StatusInternalServerError)
+	}
+
+	// TODO(maramihali@): Change the key when function names are exported by htmlinject
+	tempResp.FuncMap["CSPNonce"] = func() string { return nonce }
+	return safehttp.Result{}
 }

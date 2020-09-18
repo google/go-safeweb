@@ -200,6 +200,9 @@ func (errorReader) Read(b []byte) (int, error) {
 func TestPanicWhileGeneratingNonce(t *testing.T) {
 	randReader = errorReader{}
 	defer func() {
+		randReader = endlessAReader{}
+	}()
+	defer func() {
 		if r := recover(); r == nil {
 			t.Error("generateNonce() expected panic")
 		}
@@ -229,4 +232,120 @@ func TestNonceEmptyContext(t *testing.T) {
 	if want := ""; n != want {
 		t.Errorf("Nonce(ctx) got nonce: %v want: %v", n, want)
 	}
+}
+
+func TestCommitNonce(t *testing.T) {
+	rec := safehttptest.NewResponseRecorder()
+	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
+	req.SetContext(context.WithValue(req.Context(), ctxKey{}, "pizza"))
+
+	it := Interceptor{}
+	tr := safehttp.TemplateResponse{FuncMap: map[string]interface{}{}}
+	it.Commit(rec.ResponseWriter, req, tr, nil)
+
+	nonce, ok := tr.FuncMap["CSPNonce"]
+	if !ok {
+		t.Error(`tr.FuncMap["CSPNonce"]: got nil, want nonce`)
+	}
+
+	fn, ok := nonce.(func() string)
+	if !ok {
+		t.Errorf(`tr.FuncMap["CSPNonce"]: got %T, want "func() string"`, fn)
+	}
+	if want, got := "pizza", fn(); want != got {
+		t.Errorf(`tr.FuncMap["CSPNonce"](): got %s, want %s`, got, want)
+	}
+
+	if want, got := safehttp.StatusOK, rec.Status(); want != got {
+		t.Errorf("rec.Status(): got %v, want %v", got, want)
+	}
+
+	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
+		t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
+	}
+
+	if want, got := "", rec.Body(); got != want {
+		t.Errorf("rec.Body(): got %q want %q", got, want)
+	}
+}
+
+func TestCommitMissingNonce(t *testing.T) {
+	rec := safehttptest.NewResponseRecorder()
+	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
+	req.SetContext(context.Background())
+
+	it := Interceptor{}
+	tr := safehttp.TemplateResponse{FuncMap: map[string]interface{}{}}
+	it.Commit(rec.ResponseWriter, req, tr, nil)
+
+	wantFuncMap := map[string]interface{}{}
+	if diff := cmp.Diff(wantFuncMap, tr.FuncMap); diff != "" {
+		t.Errorf("tr.FuncMap: mismatch (-want +got):\n%s", diff)
+	}
+
+	if want, got := safehttp.StatusInternalServerError, rec.Status(); got != want {
+		t.Errorf("rec.Status(): got %v, want %v", got, want)
+	}
+	wantHeaders := map[string][]string{
+		"Content-Type":           {"text/plain; charset=utf-8"},
+		"X-Content-Type-Options": {"nosniff"},
+	}
+	if diff := cmp.Diff(wantHeaders, map[string][]string(rec.Header())); diff != "" {
+		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+	}
+	if want, got := "Internal Server Error\n", rec.Body(); got != want {
+		t.Errorf("rec.Body(): got %q want %q", got, want)
+	}
+}
+
+func TestCommitNotTemplateResponse(t *testing.T) {
+	rec := safehttptest.NewResponseRecorder()
+	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
+
+	it := Interceptor{}
+	it.Commit(rec.ResponseWriter, req, safehttp.NoContentResponse{}, nil)
+
+	if want, got := safehttp.StatusOK, rec.Status(); want != got {
+		t.Errorf("rec.Status(): got %v, want %v", got, want)
+	}
+
+	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
+		t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
+	}
+
+	if want, got := "", rec.Body(); got != want {
+		t.Errorf("rec.Body(): got %q want %q", got, want)
+	}
+
+}
+
+func TestBeforeCommit(t *testing.T) {
+	rec := safehttptest.NewResponseRecorder()
+	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
+
+	i := Default("")
+	tr := safehttp.TemplateResponse{FuncMap: map[string]interface{}{}}
+	i.Before(rec.ResponseWriter, req, nil)
+	i.Commit(rec.ResponseWriter, req, tr, nil)
+
+	nonce, ok := tr.FuncMap["CSPNonce"]
+	if !ok {
+		t.Error(`tr.FuncMap["CSPNonce"]: got nil, want nonce`)
+	}
+
+	fn, ok := nonce.(func() string)
+	if !ok {
+		t.Errorf(`tr.FuncMap["CSPNonce"]: got %T, want "func() string"`, fn)
+	}
+	if got := fn(); got == "" {
+		t.Errorf(`tr.FuncMap["CSPNonce"](): got %s, want nonce`, got)
+	}
+
+	if want, got := safehttp.StatusOK, rec.Status(); want != got {
+		t.Errorf("rec.Status(): got %v, want %v", got, want)
+	}
+	if want, got := "", rec.Body(); got != want {
+		t.Errorf("rec.Body(): got %q want %q", got, want)
+	}
+
 }
