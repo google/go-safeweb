@@ -26,8 +26,8 @@ import (
 )
 
 func TestResponseWriterSetCookie(t *testing.T) {
-	rr := safehttptest.NewTestResponseWriter(&strings.Builder{})
-	rw := safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, rr, nil)
+	testRw := safehttptest.NewTestResponseWriter(&strings.Builder{})
+	rw := safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, testRw, nil)
 
 	c := safehttp.NewCookie("foo", "bar")
 	err := rw.SetCookie(c)
@@ -38,14 +38,14 @@ func TestResponseWriterSetCookie(t *testing.T) {
 	wantHeaders := map[string][]string{
 		"Set-Cookie": {"foo=bar; HttpOnly; Secure; SameSite=Lax"},
 	}
-	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
+	if diff := cmp.Diff(wantHeaders, map[string][]string(testRw.Header())); diff != "" {
 		t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
 	}
 }
 
 func TestResponseWriterSetInvalidCookie(t *testing.T) {
-	rr := safehttptest.NewTestResponseWriter(&strings.Builder{})
-	rw := safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, rr, nil)
+	testRw := safehttptest.NewTestResponseWriter(&strings.Builder{})
+	rw := safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, testRw, nil)
 
 	c := safehttp.NewCookie("f=oo", "bar")
 	err := rw.SetCookie(c)
