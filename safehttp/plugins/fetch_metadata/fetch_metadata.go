@@ -145,7 +145,7 @@ func (p *Plugin) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest,
 		// The request is targeted to an endpoint on which Fetch Metadata
 		// policies are disabled because it is CORS-protected so we don't apply
 		// the policies.
-		return safehttp.Result{}
+		return safehttp.NotWritten()
 	}
 
 	rejected := false
@@ -161,15 +161,15 @@ func (p *Plugin) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest,
 			p.Logger.Log(r)
 		}
 		if p.reportOnly {
-			return safehttp.Result{}
+			return safehttp.NotWritten()
 		}
 		return w.WriteError(safehttp.StatusForbidden)
 	}
 
-	return safehttp.Result{}
+	return safehttp.NotWritten()
 }
 
 // Commit is a no-op, required to satisfy the safehttp.Interceptor interface.
 func (p *Plugin) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
-	return safehttp.Result{}
+	return safehttp.NotWritten()
 }

@@ -406,7 +406,7 @@ func (p setHeaderConfigInterceptor) Before(w *safehttp.ResponseWriter, _ *safeht
 		value = c.value
 	}
 	w.Header().Set(name, value)
-	return safehttp.Result{}
+	return safehttp.NotWritten()
 }
 
 func (p setHeaderConfigInterceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
