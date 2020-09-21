@@ -144,7 +144,7 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
 	tempResp, ok := resp.(safehttp.TemplateResponse)
 	if !ok {
-		return safehttp.Result{}
+		return safehttp.NotWritten()
 	}
 
 	tok, err := Token(r)
@@ -156,5 +156,5 @@ func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 
 	// TODO(maramihali@): Change the key when function names are exported by htmlinject
 	tempResp.FuncMap["XSRFToken"] = func() string { return tok }
-	return safehttp.Result{}
+	return safehttp.NotWritten()
 }
