@@ -151,12 +151,12 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 	if status == safehttp.StatusNoContent {
 		return w.NoContent()
 	}
-	return safehttp.Result{}
+	return safehttp.NotWritten()
 }
 
 // Commit is a no-op, required to satisfy the safehttp.Interceptor interface.
 func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
-	return safehttp.Result{}
+	return safehttp.NotWritten()
 }
 
 func appendToVary(w *safehttp.ResponseWriter, val string) {
