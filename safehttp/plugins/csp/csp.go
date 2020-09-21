@@ -221,7 +221,7 @@ func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 func (it Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
 	tempResp, ok := resp.(safehttp.TemplateResponse)
 	if !ok {
-		return safehttp.Result{}
+		return safehttp.NotWritten()
 	}
 
 	nonce, err := Nonce(r.Context())
@@ -233,5 +233,5 @@ func (it Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 
 	// TODO(maramihali@): Change the key when function names are exported by htmlinject
 	tempResp.FuncMap["CSPNonce"] = func() string { return nonce }
-	return safehttp.Result{}
+	return safehttp.NotWritten()
 }
