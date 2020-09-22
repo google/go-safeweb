@@ -60,27 +60,29 @@ func (DefaultDispatcher) WriteJSON(rw http.ResponseWriter, resp JSONResponse) er
 	return json.NewEncoder(rw).Encode(resp.Data)
 }
 
-// ExecuteTemplate applies a parsed template to the provided data object, if the
-// template is a safe HTML template, writing the output to the  http.
+// ExecuteTemplate applies the parsed template to the provided data object, if
+// the template is a safe HTML template, writing the output to the  http.
 // ResponseWriter. If the funcMap is non-nil, its elements can override the
 // existing names to functions mappings in the template. An attempt to define a
 // new name to function mapping that is not already in the template will result
-// in a panic.
+// in a panic. The template, data object and funcMap are contained in the
+// TemplateResponse.
 //
 // If an error occurs executing the template or writing its output,
 // execution stops, but partial results may already have been written to
 // the Response Writer.
-func (DefaultDispatcher) ExecuteTemplate(rw http.ResponseWriter, t Template, data interface{}, funcMap map[string]interface{}) error {
+func (DefaultDispatcher) ExecuteTemplate(rw http.ResponseWriter, resp TemplateResponse) error {
+	t := *resp.Template
 	x, ok := t.(*template.Template)
 	if !ok {
-		return fmt.Errorf("%T is not a safe template and it cannot be parsed and written", t)
+		return fmt.Errorf("%T is not a safe template and it cannot be parsed and written", resp.Template)
 	}
-	if len(funcMap) == 0 {
-		return x.Execute(rw, data)
+	if len(resp.FuncMap) == 0 {
+		return x.Execute(rw, resp.Data)
 	}
 	cloned, err := x.Clone()
 	if err != nil {
 		return err
 	}
-	return cloned.Funcs(funcMap).Execute(rw, data)
+	return cloned.Funcs(resp.FuncMap).Execute(rw, resp.Data)
 }

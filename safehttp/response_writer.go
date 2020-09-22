@@ -144,7 +144,7 @@ func (w *ResponseWriter) WriteTemplate(t Template, data interface{}) Result {
 	}
 	w.rw.Header().Set("Content-Type", ct)
 	w.rw.WriteHeader(int(StatusOK))
-	if err := w.d.ExecuteTemplate(w.rw, t, data, tr.FuncMap); err != nil {
+	if err := w.d.ExecuteTemplate(w.rw, tr); err != nil {
 		panic(err)
 	}
 	return Result{}
@@ -225,18 +225,19 @@ type Dispatcher interface {
 
 	// WriteJSON serialises and writes a JSON object to the http.ResponseWriter.
 	//
-	// This should return an error if the provided response is not a valid
+	// This should return an error if the provided response is not a safe
 	// JSONResponse  or if writing the object to the http.ResponseWriter fails.
 	WriteJSON(rw http.ResponseWriter, resp JSONResponse) error
 
-	// ExecuteTemplate applies a parsed template to the provided data object
-	// and writes the output to the http.ResponseWriter. If the funcMap is
-	// non-nil, the Dispatcher will try to update the names to function mappings
-	// of the template.
+	// ExecuteTemplate applies the response parsed template to its data object
+	// and writes the output to the http.ResponseWriter. If the response funcMap
+	// is non-nil, the Dispatcher will try to update the names to functions
+	// mappings of the template.
 	//
-	// This should return an error if the provided Template response is not a
-	// valid template or if an error occurs executing or writing the template.
-	ExecuteTemplate(rw http.ResponseWriter, t Template, data interface{}, funcMap map[string]interface{}) error
+	// This should return an error if the template contained by the
+	// TemplateResponse is not a safe template or if an error occurs executing
+	// or writing the template.
+	ExecuteTemplate(rw http.ResponseWriter, resp TemplateResponse) error
 
 	// Content-Type returns the Content-Type of the provided response if it is
 	// of a type supported by the Dispatcher and should return an error

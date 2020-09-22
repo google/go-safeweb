@@ -46,7 +46,15 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 			name: "Safe HTML Template Response",
 			write: func(w http.ResponseWriter) error {
 				d := &safehttp.DefaultDispatcher{}
-				return d.ExecuteTemplate(w, safetemplate.Must(safetemplate.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.", map[string]interface{}{})
+				t := safehttp.Template(safetemplate.Must(safetemplate.New("name").Parse("<h1>{{ . }}</h1>")))
+				var data interface{}
+				data = "This is an actual heading, though."
+				resp := safehttp.TemplateResponse{
+					Template: &t,
+					Data:     &data,
+					FuncMap:  map[string]interface{}{},
+				}
+				return d.ExecuteTemplate(w, resp)
 			},
 			wantBody: "<h1>This is an actual heading, though.</h1>",
 		},
@@ -55,12 +63,19 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 			write: func(w http.ResponseWriter) error {
 				d := &safehttp.DefaultDispatcher{}
 				noop := func() string { panic("this function should never be called") }
-				t := safetemplate.Must(safetemplate.New("name").Funcs(map[string]interface{}{"Token": noop}).Parse(`<form><input type="hidden" name="token" value="{{Token}}">{{.}}</form>`))
+				t := safehttp.Template(safetemplate.Must(safetemplate.New("name").Funcs(map[string]interface{}{"Token": noop}).Parse(`<form><input type="hidden" name="token" value="{{Token}}">{{.}}</form>`)))
+				var data interface{}
+				data = "Content"
 				fm := map[string]interface{}{
 					"Token": func() string { return "Token-secret" },
 				}
+				resp := safehttp.TemplateResponse{
+					Template: &t,
+					Data:     &data,
+					FuncMap:  fm,
+				}
 
-				return d.ExecuteTemplate(w, t, "Content", fm)
+				return d.ExecuteTemplate(w, resp)
 			},
 			wantBody: `<form><input type="hidden" name="token" value="Token-secret">Content</form>`,
 		},
@@ -69,12 +84,19 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 			write: func(w http.ResponseWriter) error {
 				d := &safehttp.DefaultDispatcher{}
 				noop := func() string { panic("this function should never be called") }
-				t := safetemplate.Must(safetemplate.New("name").Funcs(map[string]interface{}{"Nonce": noop}).Parse(`<script nonce="{{Nonce}}" type="application/javascript">alert("script")</script><h1>{{.}}</h1>`))
+				t := safehttp.Template(safetemplate.Must(safetemplate.New("name").Funcs(map[string]interface{}{"Nonce": noop}).Parse(`<script nonce="{{Nonce}}" type="application/javascript">alert("script")</script><h1>{{.}}</h1>`)))
+				var data interface{}
+				data = "Content"
 				fm := map[string]interface{}{
 					"Nonce": func() string { return "Nonce-secret" },
 				}
+				resp := safehttp.TemplateResponse{
+					Template: &t,
+					Data:     &data,
+					FuncMap:  fm,
+				}
 
-				return d.ExecuteTemplate(w, t, "Content", fm)
+				return d.ExecuteTemplate(w, resp)
 			},
 			wantBody: `<script nonce="Nonce-secret" type="application/javascript">alert("script")</script><h1>Content</h1>`,
 		},
@@ -126,7 +148,15 @@ func TestDefaultDispatcherInvalidResponse(t *testing.T) {
 			name: "Unsafe Template Response",
 			write: func(w http.ResponseWriter) error {
 				d := &safehttp.DefaultDispatcher{}
-				return d.ExecuteTemplate(w, template.Must(template.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.", map[string]interface{}{})
+				t := safehttp.Template(template.Must(template.New("name").Parse("<h1>{{ . }}</h1>")))
+				var data interface{}
+				data = "This is an actual heading, though."
+				resp := safehttp.TemplateResponse{
+					Template: &t,
+					Data:     &data,
+					FuncMap:  map[string]interface{}{},
+				}
+				return d.ExecuteTemplate(w, resp)
 			},
 			want: "",
 		},
