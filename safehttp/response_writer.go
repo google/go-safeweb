@@ -85,8 +85,8 @@ func (w *ResponseWriter) Write(resp Response) Result {
 	if err != nil {
 		panic(err)
 	}
-	w.rw.WriteHeader(int(StatusOK))
 	w.rw.Header().Set("Content-Type", ct)
+	w.rw.WriteHeader(int(StatusOK))
 	if err := w.d.Write(w.rw, resp); err != nil {
 		panic(err)
 	}
@@ -113,8 +113,8 @@ func (w *ResponseWriter) WriteJSON(data interface{}) Result {
 	if err != nil {
 		panic(err)
 	}
-	w.rw.WriteHeader(int(StatusOK))
 	w.rw.Header().Set("Content-Type", ct)
+	w.rw.WriteHeader(int(StatusOK))
 	if err := w.d.WriteJSON(w.rw, resp); err != nil {
 		panic(err)
 	}
@@ -141,8 +141,8 @@ func (w *ResponseWriter) WriteTemplate(t Template, data interface{}) Result {
 	if err != nil {
 		panic(err)
 	}
-	w.rw.WriteHeader(int(StatusOK))
 	w.rw.Header().Set("Content-Type", ct)
+	w.rw.WriteHeader(int(StatusOK))
 	if err := w.d.ExecuteTemplate(w.rw, t, data); err != nil {
 		panic(err)
 	}
