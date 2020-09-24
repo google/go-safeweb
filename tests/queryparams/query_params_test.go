@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package queryparams provides tests to inspect the behaviour of query
+// Package queryparams_test provides tests to inspect the behaviour of query
 // parameters parsing in HTTP requests.
-package queryparams
+package queryparams_test
 
 import (
 	"bytes"

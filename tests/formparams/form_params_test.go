@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package formparams provides tests to inspect the behaviour of form
+// Package formparams_test provides tests to inspect the behaviour of form
 // parameters parsing in HTTP requests.
-package formparams
+package formparams_test
 
 import (
 	"bytes"
