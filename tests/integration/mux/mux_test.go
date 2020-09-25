@@ -202,10 +202,10 @@ func TestMuxWithCSPAndXSRFPlugin(t *testing.T) {
 			New("name").Funcs(fns).
 			Parse(`
 			<script nonce="{{CSPNonce}}" type="application/javascript">
-			alert("script")
+				alert("script")
 			</script>
 			<form>
-			<input type="hidden" name="token" value="{{XSRFToken}}">{{.}}
+				<input type="hidden" name="token" value="{{XSRFToken}}">{{.}}
 			</form>
 			`))
 
