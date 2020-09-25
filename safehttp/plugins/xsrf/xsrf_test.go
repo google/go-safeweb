@@ -332,7 +332,7 @@ func TestCommitToken(t *testing.T) {
 
 	fn, ok := tok.(func() string)
 	if !ok {
-		t.Errorf(`tr.FuncMap["XSRFToken"]: got %T, want "func() string"`, fn)
+		t.Fatalf(`tr.FuncMap["XSRFToken"]: got %T, want "func() string"`, fn)
 	}
 	if want, got := "pizza", fn(); want != got {
 		t.Errorf(`tr.FuncMap["XSRFToken"](): got %q, want %q`, got, want)
