@@ -138,11 +138,11 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 	return safehttp.NotWritten()
 }
 
-// Commit adds the XSRF token corresponding to the correct user to the
-// safehttp.TemplateResponse to be subsequently injected in HTML forms as a
-// hidden form field.
+// Commit adds the XSRF token corresponding to the safehttp.TemplateResponse
+// with key "XSRFToken". The token corresponds to the user information found in
+// the request.
 func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
-	tempResp, ok := resp.(safehttp.TemplateResponse)
+	tmplResp, ok := resp.(safehttp.TemplateResponse)
 	if !ok {
 		return safehttp.NotWritten()
 	}
@@ -155,6 +155,6 @@ func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 	}
 
 	// TODO(maramihali@): Change the key when function names are exported by htmlinject
-	tempResp.FuncMap["XSRFToken"] = func() string { return tok }
+	tmplResp.FuncMap["XSRFToken"] = func() string { return tok }
 	return safehttp.NotWritten()
 }

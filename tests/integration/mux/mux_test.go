@@ -58,7 +58,9 @@ func TestMuxDefaultDispatcher(t *testing.T) {
 				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
 
 				h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-					return w.WriteTemplate(safetemplate.Must(safetemplate.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
+					return w.WriteTemplate(safetemplate.
+						Must(safetemplate.New("name").
+							Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
 				})
 				mux.Handle("/pizza", safehttp.MethodGet, h)
 				return mux
@@ -134,7 +136,9 @@ func TestMuxDefaultDispatcherUnsafeResponses(t *testing.T) {
 				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
 
 				h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-					return w.WriteTemplate(template.Must(template.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
+					return w.WriteTemplate(template.
+						Must(template.New("name").
+							Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
 				})
 				mux.Handle("/pizza", safehttp.MethodGet, h)
 				return mux
@@ -194,7 +198,16 @@ func TestMuxWithCSPAndXSRFPlugin(t *testing.T) {
 			"XSRFToken": func() string { return "WrongToken" },
 			"CSPNonce":  func() string { return "WrongNonce" },
 		}
-		t := safetemplate.Must(safetemplate.New("name").Funcs(fns).Parse(`<script nonce="{{CSPNonce}}" type="application/javascript">alert("script")</script><form><input type="hidden" name="token" value="{{XSRFToken}}">{{.}}</form>`))
+		t := safetemplate.Must(safetemplate.
+			New("name").Funcs(fns).
+			Parse(`
+			<script nonce="{{CSPNonce}}" type="application/javascript">
+			alert("script")
+			</script>
+			<form>
+			<input type="hidden" name="token" value="{{XSRFToken}}">{{.}}
+			</form>
+			`))
 
 		return w.WriteTemplate(t, "Content")
 	})

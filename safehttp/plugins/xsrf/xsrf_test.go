@@ -327,7 +327,7 @@ func TestCommitToken(t *testing.T) {
 
 	tok, ok := tr.FuncMap["XSRFToken"]
 	if !ok {
-		t.Error(`tr.FuncMap["XSRFToken"]: got nil, want tok`)
+		t.Fatal(`tr.FuncMap["XSRFToken"] not found`)
 	}
 
 	fn, ok := tok.(func() string)
@@ -335,7 +335,7 @@ func TestCommitToken(t *testing.T) {
 		t.Errorf(`tr.FuncMap["XSRFToken"]: got %T, want "func() string"`, fn)
 	}
 	if want, got := "pizza", fn(); want != got {
-		t.Errorf(`tr.FuncMap["XSRFToken"](): got %s, want %s`, got, want)
+		t.Errorf(`tr.FuncMap["XSRFToken"](): got %q, want %q`, got, want)
 	}
 
 	if want, got := safehttp.StatusOK, rec.Status(); want != got {
@@ -412,7 +412,7 @@ func TestBeforeCommit(t *testing.T) {
 
 	tok, ok := tr.FuncMap["XSRFToken"]
 	if !ok {
-		t.Error(`tr.FuncMap["XSRFToken"]: got nil, want token`)
+		t.Fatal(`tr.FuncMap["XSRFToken"] not found`)
 	}
 
 	fn, ok := tok.(func() string)
@@ -420,7 +420,7 @@ func TestBeforeCommit(t *testing.T) {
 		t.Errorf(`tr.FuncMap["XSRFToken"]: got %T, want "func() string"`, fn)
 	}
 	if got := fn(); got == "" {
-		t.Errorf(`tr.FuncMap["XSRFToken"](): got %s, want token`, got)
+		t.Errorf(`tr.FuncMap["XSRFToken"](): got %q, want token`, got)
 	}
 
 	if want, got := safehttp.StatusOK, rec.Status(); want != got {
