@@ -132,8 +132,8 @@ func (w *ResponseWriter) WriteTemplate(t Template, data interface{}) Result {
 	if w.written {
 		panic("ResponseWriter was already written to")
 	}
-	tr := TemplateResponse{Template: &t, Data: &data, FuncMap: map[string]interface{}{}}
-	w.handler.commitPhase(w, tr)
+	resp := TemplateResponse{Template: &t, Data: &data, FuncMap: map[string]interface{}{}}
+	w.handler.commitPhase(w, resp)
 	if w.written {
 		return Result{}
 	}
@@ -144,7 +144,7 @@ func (w *ResponseWriter) WriteTemplate(t Template, data interface{}) Result {
 	}
 	w.rw.Header().Set("Content-Type", ct)
 	w.rw.WriteHeader(int(StatusOK))
-	if err := w.d.ExecuteTemplate(w.rw, tr); err != nil {
+	if err := w.d.ExecuteTemplate(w.rw, resp); err != nil {
 		panic(err)
 	}
 	return Result{}

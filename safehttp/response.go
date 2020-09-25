@@ -39,8 +39,7 @@ type Template interface {
 }
 
 // TemplateResponse bundles a Template with its data and names to function
-// mappings to be passed together to the commit phase. A TemplateResponse will
-// be created when the commit phase is initiated from ResponseWriter.WriteTemplate.
+// mappings to be passed together to the commit phase.
 type TemplateResponse struct {
 	Template *Template
 	Data     *interface{}

@@ -219,7 +219,7 @@ func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 // injected as the value of the nonce attribute in <script> and <link> tags. The
 // nonce is going to be unique for each safehttp.IncomingRequest.
 func (it Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
-	tempResp, ok := resp.(safehttp.TemplateResponse)
+	tmplResp, ok := resp.(safehttp.TemplateResponse)
 	if !ok {
 		return safehttp.NotWritten()
 	}
@@ -232,6 +232,6 @@ func (it Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 	}
 
 	// TODO(maramihali@): Change the key when function names are exported by htmlinject
-	tempResp.FuncMap["CSPNonce"] = func() string { return nonce }
+	tmplResp.FuncMap["CSPNonce"] = func() string { return nonce }
 	return safehttp.NotWritten()
 }

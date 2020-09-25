@@ -200,6 +200,7 @@ func (errorReader) Read(b []byte) (int, error) {
 func TestPanicWhileGeneratingNonce(t *testing.T) {
 	randReader = errorReader{}
 	defer func() {
+		// TODO: avoid replacing the randReader per individual test cases
 		randReader = endlessAReader{}
 	}()
 	defer func() {
@@ -245,18 +246,18 @@ func TestCommitNonce(t *testing.T) {
 
 	nonce, ok := tr.FuncMap["CSPNonce"]
 	if !ok {
-		t.Error(`tr.FuncMap["CSPNonce"]: got nil, want nonce`)
+		t.Fatal(`tr.FuncMap["CSPNonce"] not found`)
 	}
 
 	fn, ok := nonce.(func() string)
 	if !ok {
-		t.Errorf(`tr.FuncMap["CSPNonce"]: got %T, want "func() string"`, fn)
+		t.Fatalf(`tr.FuncMap["CSPNonce"]: got %T, want "func() string"`, fn)
 	}
-	if want, got := "pizza", fn(); want != got {
-		t.Errorf(`tr.FuncMap["CSPNonce"](): got %s, want %s`, got, want)
+	if got, want := fn(), "pizza"; want != got {
+		t.Errorf(`tr.FuncMap["CSPNonce"](): got %q, want %q`, got, want)
 	}
 
-	if want, got := safehttp.StatusOK, rec.Status(); want != got {
+	if got, want := rec.Status(), safehttp.StatusOK; want != got {
 		t.Errorf("rec.Status(): got %v, want %v", got, want)
 	}
 
@@ -264,7 +265,7 @@ func TestCommitNonce(t *testing.T) {
 		t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
 	}
 
-	if want, got := "", rec.Body(); got != want {
+	if got, want := "", rec.Body(); got != want {
 		t.Errorf("rec.Body(): got %q want %q", got, want)
 	}
 }
@@ -283,7 +284,7 @@ func TestCommitMissingNonce(t *testing.T) {
 		t.Errorf("tr.FuncMap: mismatch (-want +got):\n%s", diff)
 	}
 
-	if want, got := safehttp.StatusInternalServerError, rec.Status(); got != want {
+	if got, want := rec.Status(), safehttp.StatusInternalServerError; got != want {
 		t.Errorf("rec.Status(): got %v, want %v", got, want)
 	}
 	wantHeaders := map[string][]string{
@@ -293,7 +294,7 @@ func TestCommitMissingNonce(t *testing.T) {
 	if diff := cmp.Diff(wantHeaders, map[string][]string(rec.Header())); diff != "" {
 		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
 	}
-	if want, got := "Internal Server Error\n", rec.Body(); got != want {
+	if got, want := rec.Body(), "Internal Server Error\n"; got != want {
 		t.Errorf("rec.Body(): got %q want %q", got, want)
 	}
 }
@@ -305,7 +306,7 @@ func TestCommitNotTemplateResponse(t *testing.T) {
 	it := Interceptor{}
 	it.Commit(rec.ResponseWriter, req, safehttp.NoContentResponse{}, nil)
 
-	if want, got := safehttp.StatusOK, rec.Status(); want != got {
+	if got, want := rec.Status(), safehttp.StatusOK; want != got {
 		t.Errorf("rec.Status(): got %v, want %v", got, want)
 	}
 
@@ -313,7 +314,7 @@ func TestCommitNotTemplateResponse(t *testing.T) {
 		t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
 	}
 
-	if want, got := "", rec.Body(); got != want {
+	if got, want := rec.Body(), ""; got != want {
 		t.Errorf("rec.Body(): got %q want %q", got, want)
 	}
 
@@ -323,28 +324,28 @@ func TestBeforeCommit(t *testing.T) {
 	rec := safehttptest.NewResponseRecorder()
 	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
 
-	i := Default("")
+	it := Default("")
 	tr := safehttp.TemplateResponse{FuncMap: map[string]interface{}{}}
-	i.Before(rec.ResponseWriter, req, nil)
-	i.Commit(rec.ResponseWriter, req, tr, nil)
+	it.Before(rec.ResponseWriter, req, nil)
+	it.Commit(rec.ResponseWriter, req, tr, nil)
 
 	nonce, ok := tr.FuncMap["CSPNonce"]
 	if !ok {
-		t.Error(`tr.FuncMap["CSPNonce"]: got nil, want nonce`)
+		t.Fatal(`tr.FuncMap["CSPNonce"] not found`)
 	}
 
 	fn, ok := nonce.(func() string)
 	if !ok {
-		t.Errorf(`tr.FuncMap["CSPNonce"]: got %T, want "func() string"`, fn)
+		t.Fatalf(`tr.FuncMap["CSPNonce"]: got %T, want "func() string"`, fn)
 	}
 	if got := fn(); got == "" {
-		t.Errorf(`tr.FuncMap["CSPNonce"](): got %s, want nonce`, got)
+		t.Errorf(`tr.FuncMap["CSPNonce"](): got %q, want nonce`, got)
 	}
 
-	if want, got := safehttp.StatusOK, rec.Status(); want != got {
+	if got, want := rec.Status(), safehttp.StatusOK; want != got {
 		t.Errorf("rec.Status(): got %v, want %v", got, want)
 	}
-	if want, got := "", rec.Body(); got != want {
+	if got, want := rec.Body(), ""; got != want {
 		t.Errorf("rec.Body(): got %q want %q", got, want)
 	}
 

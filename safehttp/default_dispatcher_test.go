@@ -46,13 +46,14 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 			name: "Safe HTML Template Response",
 			write: func(w http.ResponseWriter) error {
 				d := &safehttp.DefaultDispatcher{}
-				t := safehttp.Template(safetemplate.Must(safetemplate.New("name").Parse("<h1>{{ . }}</h1>")))
+				t := safehttp.Template(safetemplate.
+					Must(safetemplate.New("name").
+						Parse("<h1>{{ . }}</h1>")))
 				var data interface{}
 				data = "This is an actual heading, though."
 				resp := safehttp.TemplateResponse{
 					Template: &t,
 					Data:     &data,
-					FuncMap:  map[string]interface{}{},
 				}
 				return d.ExecuteTemplate(w, resp)
 			},
@@ -62,8 +63,11 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 			name: "Safe HTML Template Response with Token",
 			write: func(w http.ResponseWriter) error {
 				d := &safehttp.DefaultDispatcher{}
-				noop := func() string { panic("this function should never be called") }
-				t := safehttp.Template(safetemplate.Must(safetemplate.New("name").Funcs(map[string]interface{}{"Token": noop}).Parse(`<form><input type="hidden" name="token" value="{{Token}}">{{.}}</form>`)))
+				defaultFunc := func() string { panic("this function should never be called") }
+				t := safehttp.Template(safetemplate.
+					Must(safetemplate.New("name").
+						Funcs(map[string]interface{}{"Token": defaultFunc}).
+						Parse(`<form><input type="hidden" name="token" value="{{Token}}">{{.}}</form>`)))
 				var data interface{}
 				data = "Content"
 				fm := map[string]interface{}{
@@ -83,8 +87,11 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 			name: "Safe HTML Template Response with  Nonce",
 			write: func(w http.ResponseWriter) error {
 				d := &safehttp.DefaultDispatcher{}
-				noop := func() string { panic("this function should never be called") }
-				t := safehttp.Template(safetemplate.Must(safetemplate.New("name").Funcs(map[string]interface{}{"Nonce": noop}).Parse(`<script nonce="{{Nonce}}" type="application/javascript">alert("script")</script><h1>{{.}}</h1>`)))
+				defaultFunc := func() string { panic("this function should never be called") }
+				t := safehttp.Template(safetemplate.
+					Must(safetemplate.New("name").
+						Funcs(map[string]interface{}{"Nonce": defaultFunc}).
+						Parse(`<script nonce="{{Nonce}}" type="application/javascript">alert("script")</script><h1>{{.}}</h1>`)))
 				var data interface{}
 				data = "Content"
 				fm := map[string]interface{}{
@@ -148,13 +155,14 @@ func TestDefaultDispatcherInvalidResponse(t *testing.T) {
 			name: "Unsafe Template Response",
 			write: func(w http.ResponseWriter) error {
 				d := &safehttp.DefaultDispatcher{}
-				t := safehttp.Template(template.Must(template.New("name").Parse("<h1>{{ . }}</h1>")))
+				t := safehttp.Template(template.
+					Must(template.New("name").
+						Parse("<h1>{{ . }}</h1>")))
 				var data interface{}
 				data = "This is an actual heading, though."
 				resp := safehttp.TemplateResponse{
 					Template: &t,
 					Data:     &data,
-					FuncMap:  map[string]interface{}{},
 				}
 				return d.ExecuteTemplate(w, resp)
 			},
