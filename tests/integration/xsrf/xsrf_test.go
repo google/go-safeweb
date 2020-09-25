@@ -26,12 +26,16 @@ import (
 
 func TestServeMuxInstallXSRF(t *testing.T) {
 	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
-	mux.Install(&xsrf.Interceptor{SecretAppKey: "testSecretAppKey"})
+	it := xsrf.Interceptor{SecretAppKey: "testSecretAppKey"}
+	mux.Install(&it)
 
+	var token string
+	var err error
 	handler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		fns := map[string]interface{}{
 			"XSRFToken": func() string { return "WrongToken" },
 		}
+		token, err = xsrf.Token(r)
 		t := safetemplate.Must(safetemplate.New("name").Funcs(fns).Parse(`<form><input type="hidden" name="token" value="{{XSRFToken}}">{{.}}</form>`))
 
 		return w.WriteTemplate(t, "Content")
@@ -45,12 +49,18 @@ func TestServeMuxInstallXSRF(t *testing.T) {
 
 	mux.ServeHTTP(rr, req)
 
-	if want := safehttp.StatusOK; rr.Status() != want {
-		t.Errorf("rr.Status() got: %v want: %v", rr.Status(), want)
+	if err != nil {
+		t.Fatalf("xsrf.Token: got error %v", err)
 	}
 
-	if strings.Contains(b.String(), "WrongToken") {
-		t.Errorf("response body: invalid xsrf token injected")
+	if got, want := rr.Status(), safehttp.StatusOK; got != want {
+		t.Errorf("rr.Status() got: %v want: %v", got, want)
+	}
+
+	wantBody := `<form><input type="hidden" name="token" value="` +
+		token + `">Content</form>`
+	if gotBody := b.String(); gotBody != wantBody {
+		t.Errorf("response body: got %q, want token %q", gotBody, wantBody)
 	}
 
 }
