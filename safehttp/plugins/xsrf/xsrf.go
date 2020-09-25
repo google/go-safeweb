@@ -154,7 +154,10 @@ func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 		return w.WriteError(safehttp.StatusInternalServerError)
 	}
 
-	// TODO(maramihali@): Change the key when function names are exported by htmlinject
+	// TODO(maramihali@): Change the key when function names are exported by
+	// htmlinject
+	// TODO: what should happen if the XSRFToken key is not present in the
+	// tr.FuncMap?
 	tmplResp.FuncMap["XSRFToken"] = func() string { return tok }
 	return safehttp.NotWritten()
 }

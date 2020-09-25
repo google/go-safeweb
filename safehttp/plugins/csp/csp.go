@@ -231,7 +231,10 @@ func (it Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 		return w.WriteError(safehttp.StatusInternalServerError)
 	}
 
-	// TODO(maramihali@): Change the key when function names are exported by htmlinject
+	// TODO(maramihali@): Change the key when function names are exported by
+	// htmlinject
+	// TODO: What should happen if the CSPNonce is not present in the
+	// tr.FuncMap?
 	tmplResp.FuncMap["CSPNonce"] = func() string { return nonce }
 	return safehttp.NotWritten()
 }
