@@ -17,8 +17,6 @@ package mux_test
 import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
-	"github.com/google/go-safeweb/safehttp/plugins/csp"
-	"github.com/google/go-safeweb/safehttp/plugins/xsrf"
 	"github.com/google/go-safeweb/safehttp/safehttptest"
 	"github.com/google/safehtml"
 	safetemplate "github.com/google/safehtml/template"
@@ -185,46 +183,5 @@ func TestMuxDefaultDispatcherUnsafeResponses(t *testing.T) {
 				t.Errorf("response body: got %v, want %v", gotBody, wantBody)
 			}
 		})
-	}
-}
-
-func TestMuxWithCSPAndXSRFPlugin(t *testing.T) {
-	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
-	mux.Install(&xsrf.Interceptor{SecretAppKey: "testSecretAppKey"})
-	mux.Install(&csp.Interceptor{})
-
-	handler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-		fns := map[string]interface{}{
-			"XSRFToken": func() string { return "WrongToken" },
-			"CSPNonce":  func() string { return "WrongNonce" },
-		}
-		t := safetemplate.Must(safetemplate.
-			New("name").Funcs(fns).
-			Parse(`
-			<script nonce="{{CSPNonce}}" type="application/javascript">
-				alert("script")
-			</script>
-			<form>
-				<input type="hidden" name="token" value="{{XSRFToken}}">{{.}}
-			</form>
-			`))
-
-		return w.WriteTemplate(t, "Content")
-	})
-	mux.Handle("/bar", safehttp.MethodGet, handler)
-
-	b := strings.Builder{}
-	rr := safehttptest.NewTestResponseWriter(&b)
-
-	req := httptest.NewRequest(safehttp.MethodGet, "https://foo.com/bar", nil)
-
-	mux.ServeHTTP(rr, req)
-
-	if want := safehttp.StatusOK; rr.Status() != want {
-		t.Errorf("rr.Status() got: %v want: %v", rr.Status(), want)
-	}
-
-	if body := b.String(); strings.Contains(body, "WrongToken") || strings.Contains(body, "WrongNonce") {
-		t.Errorf("response body: incorrect html injection")
 	}
 }
