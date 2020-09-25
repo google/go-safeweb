@@ -319,34 +319,3 @@ func TestCommitNotTemplateResponse(t *testing.T) {
 	}
 
 }
-
-func TestBeforeCommit(t *testing.T) {
-	rec := safehttptest.NewResponseRecorder()
-	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
-
-	it := Default("")
-	tr := safehttp.TemplateResponse{FuncMap: map[string]interface{}{}}
-	it.Before(rec.ResponseWriter, req, nil)
-	it.Commit(rec.ResponseWriter, req, tr, nil)
-
-	nonce, ok := tr.FuncMap["CSPNonce"]
-	if !ok {
-		t.Fatal(`tr.FuncMap["CSPNonce"] not found`)
-	}
-
-	fn, ok := nonce.(func() string)
-	if !ok {
-		t.Fatalf(`tr.FuncMap["CSPNonce"]: got %T, want "func() string"`, fn)
-	}
-	if got := fn(); got == "" {
-		t.Errorf(`tr.FuncMap["CSPNonce"](): got %q, want nonce`, got)
-	}
-
-	if got, want := rec.Status(), safehttp.StatusOK; want != got {
-		t.Errorf("rec.Status(): got %v, want %v", got, want)
-	}
-	if got, want := rec.Body(), ""; got != want {
-		t.Errorf("rec.Body(): got %q want %q", got, want)
-	}
-
-}

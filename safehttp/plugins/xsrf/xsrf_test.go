@@ -400,34 +400,3 @@ func TestCommitNotTemplateResponse(t *testing.T) {
 		t.Errorf("rec.Body(): got %q want %q", got, want)
 	}
 }
-
-func TestBeforeCommit(t *testing.T) {
-	rec := safehttptest.NewResponseRecorder()
-	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
-
-	i := Interceptor{SecretAppKey: "testSecretAppKey"}
-	tr := safehttp.TemplateResponse{FuncMap: map[string]interface{}{}}
-	i.Before(rec.ResponseWriter, req, nil)
-	i.Commit(rec.ResponseWriter, req, tr, nil)
-
-	tok, ok := tr.FuncMap["XSRFToken"]
-	if !ok {
-		t.Fatal(`tr.FuncMap["XSRFToken"] not found`)
-	}
-
-	fn, ok := tok.(func() string)
-	if !ok {
-		t.Errorf(`tr.FuncMap["XSRFToken"]: got %T, want "func() string"`, fn)
-	}
-	if got := fn(); got == "" {
-		t.Errorf(`tr.FuncMap["XSRFToken"](): got %q, want token`, got)
-	}
-
-	if want, got := safehttp.StatusOK, rec.Status(); want != got {
-		t.Errorf("rec.Status(): got %v, want %v", got, want)
-	}
-	if want, got := "", rec.Body(); got != want {
-		t.Errorf("rec.Body(): got %q want %q", got, want)
-	}
-
-}
