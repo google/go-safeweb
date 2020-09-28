@@ -27,6 +27,11 @@ import (
 type ResponseWriter struct {
 	d  Dispatcher
 	rw http.ResponseWriter
+	// Code can be used to set a 1xx or 2xx response status code. This will only
+	// take effect if modified before a response has been written. Trying to set
+	// a 3xx, 4xx or 5xx response status code will result in a panic as these
+	// should only be set by calling the appropriate methods.
+	Code StatusCode
 
 	// Having this field unexported is essential for security. Otherwise one can
 	// easily overwrite the struct bypassing all our safety guarantees.
@@ -66,6 +71,17 @@ func NotWritten() Result {
 	return Result{}
 }
 
+func (w *ResponseWriter) setStatusCode() {
+	if w.Code == 0 {
+		w.rw.WriteHeader(int(StatusOK))
+		return
+	}
+	if w.Code < 100 || w.Code >= 300 {
+		panic("invalid status code set")
+	}
+	w.rw.WriteHeader(int(w.Code))
+}
+
 // Write dispatches the response to the Dispatcher, setting the Content-Type and
 // response status if the provided response is a safe response. The
 // Dispatcher will then write the response to the underlying Response Writer.
@@ -86,7 +102,7 @@ func (w *ResponseWriter) Write(resp Response) Result {
 		panic(err)
 	}
 	w.rw.Header().Set("Content-Type", ct)
-	w.rw.WriteHeader(int(StatusOK))
+	w.setStatusCode()
 	if err := w.d.Write(w.rw, resp); err != nil {
 		panic(err)
 	}
@@ -114,7 +130,7 @@ func (w *ResponseWriter) WriteJSON(data interface{}) Result {
 		panic(err)
 	}
 	w.rw.Header().Set("Content-Type", ct)
-	w.rw.WriteHeader(int(StatusOK))
+	w.setStatusCode()
 	if err := w.d.WriteJSON(w.rw, resp); err != nil {
 		panic(err)
 	}
@@ -143,7 +159,7 @@ func (w *ResponseWriter) WriteTemplate(t Template, data interface{}) Result {
 		panic(err)
 	}
 	w.rw.Header().Set("Content-Type", ct)
-	w.rw.WriteHeader(int(StatusOK))
+	w.setStatusCode()
 	if err := w.d.ExecuteTemplate(w.rw, resp); err != nil {
 		panic(err)
 	}
@@ -162,7 +178,8 @@ func (w *ResponseWriter) NoContent() Result {
 		return Result{}
 	}
 	w.markWritten()
-	w.rw.WriteHeader(int(StatusNoContent))
+	w.Code = StatusNoContent
+	w.setStatusCode()
 	return Result{}
 }
 

@@ -125,3 +125,103 @@ func TestResponseWriterWriteTwicePanic(t *testing.T) {
 		})
 	}
 }
+
+func TestResponseWriterStatusCode(t *testing.T) {
+	tests := []struct {
+		name  string
+		want  safehttp.StatusCode
+		write func(w *safehttp.ResponseWriter)
+	}{
+		{
+			name: "Status code not explicitly set",
+			want: safehttp.StatusOK,
+			write: func(w *safehttp.ResponseWriter) {
+				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
+			},
+		},
+		{
+			name: "Custom status code before calling write",
+			want: safehttp.StatusCreated,
+			write: func(w *safehttp.ResponseWriter) {
+				w.Code = safehttp.StatusCreated
+				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
+			},
+		},
+		{
+			name: "Custom status code after calling write",
+			want: safehttp.StatusOK,
+			write: func(w *safehttp.ResponseWriter) {
+				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
+				w.Code = safehttp.StatusCreated
+			},
+		},
+
+		{
+			name: "No content status code",
+			want: safehttp.StatusNoContent,
+			write: func(w *safehttp.ResponseWriter) {
+				w.NoContent()
+			},
+		},
+		{
+			name: "Error status code",
+			want: safehttp.StatusInternalServerError,
+			write: func(w *safehttp.ResponseWriter) {
+				w.WriteError(safehttp.StatusInternalServerError)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testRw := safehttptest.NewTestResponseWriter(&strings.Builder{})
+			w := safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, testRw, nil)
+
+			tt.write(w)
+
+			if got := testRw.Status(); tt.want != got {
+				t.Errorf("testRw.Status(): got %v want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestResponseWriterStatusCodePanic(t *testing.T) {
+	tests := []struct {
+		name  string
+		write func(w *safehttp.ResponseWriter)
+	}{
+		{
+			name: "Manual redirect status code set",
+			write: func(w *safehttp.ResponseWriter) {
+				w.Code = safehttp.StatusPermanentRedirect
+				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
+			},
+		},
+		{
+			name: "Manual error status code set",
+			write: func(w *safehttp.ResponseWriter) {
+				w.Code = safehttp.StatusBadRequest
+				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
+			},
+		},
+		{
+			name: "Invalid status code set",
+			write: func(w *safehttp.ResponseWriter) {
+				w.Code = safehttp.StatusCode(50)
+				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, safehttptest.NewTestResponseWriter(&strings.Builder{}), nil)
+			defer func() {
+				if r := recover(); r == nil {
+					t.Errorf("tt.write(w) expected panic")
+				}
+			}()
+			tt.write(w)
+		})
+	}
+}
