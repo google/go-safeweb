@@ -35,6 +35,10 @@ func TestServeMuxInstallXSRF(t *testing.T) {
 		fns := map[string]interface{}{
 			"XSRFToken": func() string { return "WrongToken" },
 		}
+		// These are not used in the handler, just recorded to test whether the
+		// handler can retrieve the XSRF token (e.g. for when the XSRF plugin is
+		// installed, but auto-injection isn't yet supported and has to be done
+		// manually by the handler).
 		token, err = xsrf.Token(r)
 		t := safetemplate.Must(safetemplate.New("name").Funcs(fns).Parse(`<form><input type="hidden" name="token" value="{{XSRFToken}}">{{.}}</form>`))
 
@@ -51,6 +55,10 @@ func TestServeMuxInstallXSRF(t *testing.T) {
 
 	if err != nil {
 		t.Fatalf("xsrf.Token: got error %v", err)
+	}
+
+	if token == "" {
+		t.Fatalf("csp.Nonce: got %q, want non-empty", token)
 	}
 
 	if got, want := rr.Status(), safehttp.StatusOK; got != want {

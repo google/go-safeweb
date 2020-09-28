@@ -36,6 +36,10 @@ func TestServeMuxInstallCSP(t *testing.T) {
 		fns := map[string]interface{}{
 			"CSPNonce": func() string { return "WrongNonce" },
 		}
+		// These are not used in the handler, just recorded to test whether the
+		// handler can retrieve the CSP nonce (e.g. for when the CSP plugin is
+		// installed, but auto-injection isn't yet supported and has to be done
+		// manually by the handler).
 		nonce, err = csp.Nonce(r.Context())
 		t := safetemplate.Must(safetemplate.New("name").Funcs(fns).Parse(`<script nonce="{{CSPNonce}}" type="application/javascript">alert("script")</script><h1>{{.}}</h1>`))
 
@@ -52,6 +56,10 @@ func TestServeMuxInstallCSP(t *testing.T) {
 
 	if err != nil {
 		t.Fatalf("csp.Nonce: got error %v", err)
+	}
+
+	if nonce == "" {
+		t.Fatalf("csp.Nonce: got %q, want non-empty", nonce)
 	}
 
 	if want, got := rr.Status(), safehttp.StatusOK; got != want {
