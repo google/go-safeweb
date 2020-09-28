@@ -65,8 +65,7 @@ func (DefaultDispatcher) WriteJSON(rw http.ResponseWriter, resp JSONResponse) er
 // ResponseWriter. If the funcMap is non-nil, its elements override the
 // existing names to functions mappings in the template. An attempt to define a
 // new name to function mapping that is not already in the template will result
-// in a panic. The template, data object and funcMap are contained in the
-// TemplateResponse.
+// in a panic.
 //
 // If an error occurs executing the template or writing its output,
 // execution stops, but partial results may already have been written to
