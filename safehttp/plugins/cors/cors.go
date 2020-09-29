@@ -111,7 +111,7 @@ func (it *Interceptor) SetAllowedHeaders(headers ...string) {
 //  - Access-Control-Expose-Headers
 //  - Access-Control-Max-Age
 //  - Vary
-func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ interface{}) safehttp.Result {
+func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
 	origin := r.Header.Get("Origin")
 	if origin != "" && !it.AllowedOrigins[origin] {
 		return w.WriteError(safehttp.StatusForbidden)
@@ -155,7 +155,7 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 }
 
 // Commit is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
+func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
 

@@ -94,7 +94,7 @@ func addCookieID(w *safehttp.ResponseWriter) (*safehttp.Cookie, error) {
 // In case of state changing requests (all except GET, HEAD and OPTIONS), the
 // interceptor checks for the presence of the XSRF token in the request body
 // (expected to have been injected) and validates it.
-func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
+func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
 	needsValidation := !statePreservingMethods[r.Method()]
 	cookieID, err := r.Cookie(cookieIDKey)
 	if err != nil {
@@ -141,7 +141,7 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 // Commit adds the XSRF token corresponding to the safehttp.TemplateResponse
 // with key "XSRFToken". The token corresponds to the user information found in
 // the request.
-func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
+func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	tmplResp, ok := resp.(safehttp.TemplateResponse)
 	if !ok {
 		return safehttp.NotWritten()

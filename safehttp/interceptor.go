@@ -14,18 +14,27 @@
 
 package safehttp
 
-// Interceptor can be installed on a ServeMux in order to apply its
-// functionality on an IncomingRequest before it is sent to its corresponding
-// handler.
+// Interceptor alter the processing of incoming requests.
+//
+// See the documentation for ServeMux.ServeHTTP to understand how interceptors
+// are run, what happens in case of errors during request processing (i.e. which
+// interceptor methods are guaranteed to be run) etc.
 type Interceptor interface {
 	// Before runs before the IncomingRequest is sent to the handler. If a
 	// response is written to the ResponseWriter, then the remaining
 	// interceptors and the handler won't execute. If Before panics, it will be
 	// recovered and the ServeMux will respond with 500 Internal Server Error.
-	Before(w *ResponseWriter, r *IncomingRequest, cfg interface{}) Result
+	Before(w *ResponseWriter, r *IncomingRequest, cfg InterceptorConfig) Result
 
 	// Commit runs before the response is written by the Dispatcher. If an error
 	// is written to the ResponseWriter, then the Commit phases from the
 	// remaining interceptors won't execute.
-	Commit(w *ResponseWriter, r *IncomingRequest, resp Response, cfg interface{}) Result
+	Commit(w *ResponseWriter, r *IncomingRequest, resp Response, cfg InterceptorConfig) Result
+}
+
+// InterceptorConfig is a configuration of an interceptor.
+type InterceptorConfig interface {
+	// Match checks whether this InterceptorConfig is meant to be applied to the
+	// given Interceptor.
+	Match(Interceptor) bool
 }

@@ -103,20 +103,21 @@ func NewServeMux(d Dispatcher, domains ...string) *ServeMux {
 
 type appliedInterceptor struct {
 	it  Interceptor
-	cfg Config
+	cfg InterceptorConfig
 }
 
 // Handle registers a handler for the given pattern and method. If another
 // handler is already registered for the same pattern and method, Handle panics.
 //
-// Configs can be optionally passed in order to modify the behavior of the
-// interceptors on a registered handler. Passing a Config whose corresponding
-// Interceptor was not installed will produce no effect. If multiple Configs are
-// passed for the same Interceptor, only the first one will take effect.
-func (m *ServeMux) Handle(pattern string, method string, h Handler, cfgs ...Config) {
+// InterceptorConfigs can be passed in order to modify the behavior of the
+// interceptors on a registered handler. Passing an InterceptorConfig whose
+// corresponding Interceptor was not installed will produce no effect. If
+// multiple configurations are passed for the same Interceptor, only the first
+// one will take effect.
+func (m *ServeMux) Handle(pattern string, method string, h Handler, cfgs ...InterceptorConfig) {
 	var interceps []appliedInterceptor
 	for _, it := range m.interceps {
-		var cfg Config
+		var cfg InterceptorConfig
 		for _, c := range cfgs {
 			if c.Match(it) {
 				cfg = c
@@ -150,12 +151,32 @@ func (m *ServeMux) Handle(pattern string, method string, h Handler, cfgs ...Conf
 }
 
 // Install installs an Interceptor.
+//
+// Interceptors order is undetermined and should not be relied on.
 func (m *ServeMux) Install(i Interceptor) {
 	m.interceps = append(m.interceps, i)
 }
 
 // ServeHTTP dispatches the request to the handler whose method matches the
 // incoming request and whose pattern most closely matches the request URL.
+//
+//  For each incoming request:
+//  - [Before Phase] Interceptor.Before methods are called for every installed
+//    interceptor, until an interceptor writes to a ResponseWriter (including
+//    errors) or panics,
+//  - the handler is called after a [Before Phase] if no writes or panics occured,
+//  - the handler triggers the [Commit Phase] by writing to the ResponseWriter,
+//  - [Commit Phase] Interceptor.Commit methods run for every interceptor whose
+//    Before method was called,
+//  - [Dispatcher Phase] after the [Commit Phase], the Dispatcher's appropriate
+//    write method is called; the Dispatcher is responsible for determining whether
+//    the response is indeed safe and writing it,
+//  - if the handler attempts to write more than once, it is treated as an
+//    unrecoverable error; the request processing ends abrubptly with a panic and
+//    nothing else happens (note: this will change as soon as [After Phase] is
+//    introduced)
+//
+// Interceptors should NOT rely on the order they're run.
 func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	m.mux.ServeHTTP(w, r)
 }

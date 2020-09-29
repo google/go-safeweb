@@ -28,7 +28,7 @@ var _ safehttp.Interceptor = Plugin{}
 // Before claims and sets the following headers:
 //  - X-Content-Type-Options: nosniff
 //  - X-XSS-Protection: 0
-func (Plugin) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg interface{}) safehttp.Result {
+func (Plugin) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
 	h := w.Header()
 	setXCTO := h.Claim("X-Content-Type-Options")
 	setXXP := h.Claim("X-XSS-Protection")
@@ -39,6 +39,6 @@ func (Plugin) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cf
 }
 
 // Commit is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (Plugin) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
+func (Plugin) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }

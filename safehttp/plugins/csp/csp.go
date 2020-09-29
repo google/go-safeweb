@@ -166,8 +166,8 @@ func (f FramingPolicy) Serialize(nonce string) string {
 
 // Interceptor intercepts requests and applies CSP policies.
 type Interceptor struct {
-	// TODO: move it to a safehttp.Config implementation to enable per-handler
-	// configuration.
+	// TODO: move it to a safehttp.InterceptorConfig implementation to enable
+	// per-handler configuration.
 
 	// Enforce specifies which policies will be set as the Content-Security-Policy
 	// header.
@@ -192,7 +192,7 @@ func Default(reportURI string) Interceptor {
 
 // Before claims and sets the Content-Security-Policy header and the
 // Content-Security-Policy-Report-Only header.
-func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ interface{}) safehttp.Result {
+func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
 	nonce := generateNonce()
 	r.SetContext(context.WithValue(r.Context(), ctxKey{}, nonce))
 
@@ -218,7 +218,7 @@ func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 // Commit adds the nonce to the safehttp.TemplateResponse which is going to be
 // injected as the value of the nonce attribute in <script> and <link> tags. The
 // nonce is going to be unique for each safehttp.IncomingRequest.
-func (it Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg interface{}) safehttp.Result {
+func (it Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	tmplResp, ok := resp.(safehttp.TemplateResponse)
 	if !ok {
 		return safehttp.NotWritten()
