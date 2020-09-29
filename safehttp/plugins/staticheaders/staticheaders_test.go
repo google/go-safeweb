@@ -27,7 +27,7 @@ func TestPlugin(t *testing.T) {
 	req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
 	rr := safehttptest.NewResponseRecorder()
 
-	p := staticheaders.Plugin{}
+	p := staticheaders.Interceptor{}
 	p.Before(rr.ResponseWriter, req, nil)
 
 	if got, want := rr.Status(), safehttp.StatusOK; got != want {

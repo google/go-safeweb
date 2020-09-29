@@ -30,7 +30,7 @@ import (
 func TestServeMuxInstallStaticHeaders(t *testing.T) {
 	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
 
-	mux.Install(staticheaders.Plugin{})
+	mux.Install(staticheaders.Interceptor{})
 	handler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 	})
