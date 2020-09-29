@@ -15,17 +15,18 @@
 package xsrf_test
 
 import (
-	"github.com/google/go-safeweb/safehttp"
-	"github.com/google/go-safeweb/safehttp/plugins/xsrf"
-	"github.com/google/go-safeweb/safehttp/safehttptest"
-	safetemplate "github.com/google/safehtml/template"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/google/go-safeweb/safehttp"
+	"github.com/google/go-safeweb/safehttp/plugins/xsrf"
+	"github.com/google/go-safeweb/safehttp/safehttptest"
+	"github.com/google/safehtml/template"
 )
 
 func TestServeMuxInstallXSRF(t *testing.T) {
-	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
+	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
 	it := xsrf.Interceptor{SecretAppKey: "testSecretAppKey"}
 	mux.Install(&it)
 
@@ -40,7 +41,7 @@ func TestServeMuxInstallXSRF(t *testing.T) {
 		// installed, but auto-injection isn't yet supported and has to be done
 		// manually by the handler).
 		token, err = xsrf.Token(r)
-		t := safetemplate.Must(safetemplate.New("name").Funcs(fns).Parse(`<form><input type="hidden" name="token" value="{{XSRFToken}}">{{.}}</form>`))
+		t := template.Must(template.New("name").Funcs(fns).Parse(`<form><input type="hidden" name="token" value="{{XSRFToken}}">{{.}}</form>`))
 
 		return w.WriteTemplate(t, "Content")
 	})

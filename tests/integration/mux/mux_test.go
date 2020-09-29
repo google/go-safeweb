@@ -15,16 +15,17 @@
 package mux_test
 
 import (
-	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-safeweb/safehttp"
-	"github.com/google/go-safeweb/safehttp/safehttptest"
-	"github.com/google/safehtml"
-	safetemplate "github.com/google/safehtml/template"
 	"html/template"
 	"math"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-safeweb/safehttp"
+	"github.com/google/go-safeweb/safehttp/safehttptest"
+	"github.com/google/safehtml"
+	safetemplate "github.com/google/safehtml/template"
 )
 
 func TestMuxDefaultDispatcher(t *testing.T) {
@@ -37,7 +38,7 @@ func TestMuxDefaultDispatcher(t *testing.T) {
 		{
 			name: "Safe HTML Response",
 			mux: func() *safehttp.ServeMux {
-				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
+				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
 
 				h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
@@ -53,7 +54,7 @@ func TestMuxDefaultDispatcher(t *testing.T) {
 		{
 			name: "Safe HTML Template Response",
 			mux: func() *safehttp.ServeMux {
-				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
+				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
 
 				h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					return w.WriteTemplate(safetemplate.
@@ -71,7 +72,7 @@ func TestMuxDefaultDispatcher(t *testing.T) {
 		{
 			name: "Valid JSON Response",
 			mux: func() *safehttp.ServeMux {
-				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
+				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
 
 				h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					data := struct {
@@ -119,7 +120,7 @@ func TestMuxDefaultDispatcherUnsafeResponses(t *testing.T) {
 		{
 			name: "Unsafe HTML Response",
 			mux: func() *safehttp.ServeMux {
-				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
+				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
 
 				h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					return w.Write("<h1>Hello World!</h1>")
@@ -131,7 +132,7 @@ func TestMuxDefaultDispatcherUnsafeResponses(t *testing.T) {
 		{
 			name: "Unsafe Template Response",
 			mux: func() *safehttp.ServeMux {
-				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
+				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
 
 				h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					return w.WriteTemplate(template.
@@ -145,7 +146,7 @@ func TestMuxDefaultDispatcherUnsafeResponses(t *testing.T) {
 		{
 			name: "Invalid JSON Response",
 			mux: func() *safehttp.ServeMux {
-				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
+				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
 
 				h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					return w.WriteJSON(math.Inf(1))

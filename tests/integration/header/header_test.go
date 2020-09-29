@@ -16,11 +16,12 @@ package header
 
 import (
 	"bufio"
-	"github.com/google/go-safeweb/safehttp/safehttptest"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/google/go-safeweb/safehttp/safehttptest"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
@@ -28,7 +29,7 @@ import (
 )
 
 func TestAccessIncomingHeaders(t *testing.T) {
-	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
+	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
 	mux.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 		if got, want := ir.Header.Get("A"), "B"; got != want {
 			t.Errorf(`ir.Header.Get("A") got: %v want: %v`, got, want)
@@ -51,7 +52,7 @@ func TestAccessIncomingHeaders(t *testing.T) {
 }
 
 func TestChangingResponseHeaders(t *testing.T) {
-	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
+	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
 	mux.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 		rw.Header().Set("pIZZA", "Pasta")
 		return rw.Write(safehtml.HTMLEscaped("hello"))

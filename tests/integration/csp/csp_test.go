@@ -15,18 +15,19 @@
 package csp_test
 
 import (
+	"net/http/httptest"
+	"strings"
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/plugins/csp"
 	"github.com/google/go-safeweb/safehttp/safehttptest"
-	safetemplate "github.com/google/safehtml/template"
-	"net/http/httptest"
-	"strings"
-	"testing"
+	"github.com/google/safehtml/template"
 )
 
 func TestServeMuxInstallCSP(t *testing.T) {
-	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
+	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
 	it := csp.Default("")
 	mux.Install(&it)
 
@@ -41,7 +42,7 @@ func TestServeMuxInstallCSP(t *testing.T) {
 		// installed, but auto-injection isn't yet supported and has to be done
 		// manually by the handler).
 		nonce, err = csp.Nonce(r.Context())
-		t := safetemplate.Must(safetemplate.New("name").Funcs(fns).Parse(`<script nonce="{{CSPNonce}}" type="application/javascript">alert("script")</script><h1>{{.}}</h1>`))
+		t := template.Must(template.New("name").Funcs(fns).Parse(`<script nonce="{{CSPNonce}}" type="application/javascript">alert("script")</script><h1>{{.}}</h1>`))
 
 		return w.WriteTemplate(t, "Content")
 	})

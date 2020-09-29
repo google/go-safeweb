@@ -15,11 +15,12 @@
 package hsts_test
 
 import (
-	"github.com/google/go-safeweb/safehttp/safehttptest"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/google/go-safeweb/safehttp/safehttptest"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
@@ -28,7 +29,7 @@ import (
 )
 
 func TestHSTSServeMuxInstall(t *testing.T) {
-	mux := safehttp.NewServeMux(&safehttp.DefaultDispatcher{}, "foo.com")
+	mux := safehttp.NewServeMux(&safehttp.DefaultDispatcher{})
 
 	mux.Install(hsts.Default())
 	handler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
