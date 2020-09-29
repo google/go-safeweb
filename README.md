@@ -81,7 +81,8 @@ address, following issues (not an exhaustive list):
 - [**CSP (content security policy)**](https://csp.withgoogle.com/docs/index.html) -
   e.g. by automatically adding script nonces to HTML responses, adding relevant
   security headers
-- **Transport Security** - e.g. by [enforcing HSTS support](plugins/hsts.md)
+- **Transport Security** - e.g. by
+  [enforcing HSTS support](safehttp/plugins/hsts)
 - **IFraming** - e.g. by setting relevant HTTP headers to restrict framing or
   providing server-side support for origin selection
 - **Auth (access control)** - e.g. by providing infrastructure for plugging in
@@ -90,7 +91,8 @@ address, following issues (not an exhaustive list):
   documented parsing behavior
 - **Error responses** - e.g. by providing infrastructure for uniform error
   handling (e.g. to prevent accidental leaks or XSS from error responses)
-- **Enforcement of other security specific HTTP headers**
+- **Enforcement of other security specific HTTP headers** -
+  [here](safehttp/plugins/staticheaders)
 
 ## Appendix
 

@@ -12,8 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package hsts provides a safehttp.Interceptor which sets the Strict-Transport-Security
-// header.
+// Package hsts provides HTTP Strict Transport Security.
+//
+// HTTP Strict Transport Security informs browsers that a website
+// should only be accessed using HTTPS and not HTTP. This plugin enforces HSTS by
+// redirecting all HTTP traffic to HTTPS and by setting the
+// Strict-Transport-Security header on all HTTPS responses.
+//
+// More info:
+//  - MDN: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
+//  - Wikipedia: https://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security
+//  - RFC 6797: https://tools.ietf.org/html/rfc6797
+//
+// Usage
+//
+// To construct the plugin with safe default settings, use Default. Otherwise,
+// create the Interceptor yourself.
+// Install it using safehttp.ServerMux.Install.
 package hsts
 
 import (
@@ -58,8 +73,8 @@ var _ safehttp.Interceptor = Interceptor{}
 
 // Default creates a new HSTS interceptor with safe defaults.
 // These safe defaults are:
-//  - max-age set to two years.
-//  - includeSubDomains is enabled.
+//  - max-age set to 2 years,
+//  - includeSubDomains is enabled,
 //  - preload is disabled.
 func Default() Interceptor {
 	return Interceptor{MaxAge: 63072000 * time.Second} // two years in seconds
