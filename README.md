@@ -46,7 +46,7 @@ contained inside a package or an option that’s easy to restrict.
 
 Enforcing new security measures is feasible through AST manipulation. Existing
 users can be migrated using static analysis and/or runtime monitoring. Read more
-[here](#evolving-security-requirements).
+[here](#evolving-security-requirements-example).
 
 #### G4: High Compatibility with Go’s Standard Library and Existing Open-Source Frameworks
 
