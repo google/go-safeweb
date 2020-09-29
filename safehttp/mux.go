@@ -35,11 +35,6 @@ const (
 // request against a list of registered patterns and calls the handler for
 // the pattern that most closely matches the URL.
 //
-// When creating the multiplexer, the user needs to specify a list of allowed
-// domains. The server will only serve requests target to those domains and
-// otherwise will reply with HTTP 404 Not Found in order to protect agains DNS
-// rebinding and HTTP request smuggling.
-//
 // Patterns names are fixed, rooted paths, like "/favicon.ico", or rooted
 // subtrees like "/images/" (note the trailing slash). Longer patterns take
 // precedence over shorter ones, so that if there are handlers registered for
@@ -59,8 +54,7 @@ const (
 // "/images" to "/images/", unless "/images" has been registered separately.
 //
 // Patterns may optionally begin with a host name, restricting matches to URLs
-// on that host only. This host name must be in the list of allowed domains passed
-// when creating the ServeMux. Host-specific patterns take precedence over general
+// on that host only.  Host-specific patterns take precedence over general
 // patterns, so that a handler might register for the two patterns "/codesearch"
 // and "codesearch.google.com/" without also taking over requests for
 // "http://www.google.com/".
@@ -72,30 +66,22 @@ const (
 // Multiple handlers can be registered for a single pattern, as long as they
 // handle different HTTP methods.
 type ServeMux struct {
-	mux     *http.ServeMux
-	domains map[string]bool
-	disp    Dispatcher
+	mux  *http.ServeMux
+	disp Dispatcher
 
 	// Maps patterns to handlers supporting multiple HTTP methods.
 	handlers  map[string]methodHandler
 	interceps []Interceptor
 }
 
-// NewServeMux allocates and returns a new ServeMux. Passing a nil Dispatcher
-// will cause the method to panic.
-func NewServeMux(d Dispatcher, domains ...string) *ServeMux {
+// NewServeMux allocates and returns a new ServeMux. If the provided dispatcher
+// is nil, the DefaultDispatcher is used.
+func NewServeMux(d Dispatcher) *ServeMux {
 	if d == nil {
 		d = DefaultDispatcher{}
 	}
-
-	// TODO(@mattiasgrenfeldt, @mihalimara22): make domains a variadic of string **literals**.
-	dm := map[string]bool{}
-	for _, host := range domains {
-		dm[host] = true
-	}
 	return &ServeMux{
 		mux:      http.NewServeMux(),
-		domains:  dm,
 		disp:     d,
 		handlers: map[string]methodHandler{},
 	}
@@ -136,7 +122,6 @@ func (m *ServeMux) Handle(pattern string, method string, h Handler, cfgs ...Inte
 	if !ok {
 		mh := methodHandler{
 			handlers: map[string]handlerWithInterceptors{method: hi},
-			domains:  m.domains,
 		}
 
 		m.handlers[pattern] = mh
@@ -185,17 +170,11 @@ func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 type methodHandler struct {
 	// Maps an HTTP method to its handlerWithInterceptors
 	handlers map[string]handlerWithInterceptors
-	domains  map[string]bool
 }
 
 // ServeHTTP dispatches the request to the handlerWithInterceptors associated
 // with the IncomingRequest method.
 func (m methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if !m.domains[r.Host] {
-		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-		return
-	}
-
 	h, ok := m.handlers[r.Method]
 	if !ok {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)

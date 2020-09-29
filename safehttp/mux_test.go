@@ -46,16 +46,6 @@ func TestMuxOneHandlerOneRequest(t *testing.T) {
 			wantBody: "&lt;h1&gt;Hello World!&lt;/h1&gt;",
 		},
 		{
-			name:       "Invalid Host",
-			req:        httptest.NewRequest(safehttp.MethodGet, "http://bar.com/", nil),
-			wantStatus: safehttp.StatusNotFound,
-			wantHeader: map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			},
-			wantBody: "Not Found\n",
-		},
-		{
 			name:       "Invalid Method",
 			req:        httptest.NewRequest(safehttp.MethodPost, "http://foo.com/", nil),
 			wantStatus: safehttp.StatusMethodNotAllowed,
@@ -69,7 +59,7 @@ func TestMuxOneHandlerOneRequest(t *testing.T) {
 
 	for _, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
-			mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
+			mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
 
 			h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
@@ -132,7 +122,7 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 	}
 
 	d := safehttp.DefaultDispatcher{}
-	mux := safehttp.NewServeMux(d, "foo.com")
+	mux := safehttp.NewServeMux(d)
 	mux.Handle("/bar", safehttp.MethodGet, tests[0].hf)
 	mux.Handle("/bar", safehttp.MethodPost, tests[1].hf)
 
@@ -156,7 +146,7 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 
 func TestMuxHandleSameMethodTwice(t *testing.T) {
 	d := safehttp.DefaultDispatcher{}
-	mux := safehttp.NewServeMux(d, "foo.com")
+	mux := safehttp.NewServeMux(d)
 
 	registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
@@ -261,7 +251,7 @@ func TestMuxInterceptors(t *testing.T) {
 		{
 			name: "Install ServeMux Interceptor before handler registration",
 			mux: func() *safehttp.ServeMux {
-				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
+				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
 				mux.Install(setHeaderInterceptor{
 					name:  "Foo",
 					value: "bar",
@@ -283,7 +273,7 @@ func TestMuxInterceptors(t *testing.T) {
 		{
 			name: "Install Interrupting Interceptor",
 			mux: func() *safehttp.ServeMux {
-				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
+				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
 				mux.Install(internalErrorInterceptor{})
 
 				registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
@@ -303,7 +293,7 @@ func TestMuxInterceptors(t *testing.T) {
 		{
 			name: "Handler Communication With ServeMux Interceptor",
 			mux: func() *safehttp.ServeMux {
-				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
+				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
 				mux.Install(&claimHeaderInterceptor{headerToClaim: "Foo"})
 
 				registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
@@ -324,7 +314,7 @@ func TestMuxInterceptors(t *testing.T) {
 		{
 			name: "Panicking interceptor recovered by ServeMux",
 			mux: func() *safehttp.ServeMux {
-				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
+				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
 				mux.Install(panickingInterceptor{})
 
 				registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
@@ -344,7 +334,7 @@ func TestMuxInterceptors(t *testing.T) {
 		{
 			name: "Commit phase sets header",
 			mux: func() *safehttp.ServeMux {
-				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
+				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
 				mux.Install(committerInterceptor{})
 
 				registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
@@ -461,7 +451,7 @@ func TestMuxInterceptorConfigs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
+			mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
 			mux.Install(setHeaderConfigInterceptor{})
 
 			registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
@@ -543,7 +533,7 @@ func (interceptorThree) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingR
 }
 
 func TestMuxDeterministicInterceptorOrder(t *testing.T) {
-	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
+	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
 	mux.Install(interceptorOne{})
 	mux.Install(interceptorTwo{})
 	mux.Install(interceptorThree{})
@@ -581,7 +571,7 @@ func TestMuxDeterministicInterceptorOrder(t *testing.T) {
 }
 
 func TestMuxHandlerReturnsNotWritten(t *testing.T) {
-	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{}, "foo.com")
+	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
 	h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return safehttp.NotWritten()
 	})
