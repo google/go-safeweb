@@ -164,8 +164,8 @@ type handlerRegistration struct {
 	cfgs    []InterceptorConfig
 }
 
-// Handle registers a handler for the given pattern and method. If another
-// handler is already registered for the same pattern and method, Handle panics.
+// Handle registers a handler for the given pattern and method. If a handler is
+// registered twice for the same pattern and method, Build will panic.
 //
 // InterceptorConfigs can be passed in order to modify the behavior of the
 // interceptors on a registered handler. Passing an InterceptorConfig whose
