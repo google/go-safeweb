@@ -74,9 +74,9 @@ type ServeMux struct {
 	interceps []Interceptor
 }
 
-// NewServeMux allocates and returns a new ServeMux. If the provided dispatcher
+// newServeMux allocates and returns a new ServeMux. If the provided dispatcher
 // is nil, the DefaultDispatcher is used.
-func NewServeMux(d Dispatcher) *ServeMux {
+func newServeMux(d Dispatcher) *ServeMux {
 	if d == nil {
 		d = DefaultDispatcher{}
 	}
@@ -87,15 +87,7 @@ func NewServeMux(d Dispatcher) *ServeMux {
 	}
 }
 
-// Handle registers a handler for the given pattern and method. If another
-// handler is already registered for the same pattern and method, Handle panics.
-//
-// InterceptorConfigs can be passed in order to modify the behavior of the
-// interceptors on a registered handler. Passing an InterceptorConfig whose
-// corresponding Interceptor was not installed will produce no effect. If
-// multiple configurations are passed for the same Interceptor, only the first
-// one will take effect.
-func (m *ServeMux) Handle(pattern string, method string, h Handler, cfgs ...InterceptorConfig) {
+func (m *ServeMux) handle(pattern string, method string, h Handler, cfgs ...InterceptorConfig) {
 	var interceps []ConfiguredInterceptor
 	for _, it := range m.interceps {
 		var cfg InterceptorConfig
@@ -130,10 +122,7 @@ func (m *ServeMux) Handle(pattern string, method string, h Handler, cfgs ...Inte
 	mh.handlers[method] = hi
 }
 
-// Install installs an Interceptor.
-//
-// Interceptors order is undetermined and should not be relied on.
-func (m *ServeMux) Install(i Interceptor) {
+func (m *ServeMux) install(i Interceptor) {
 	m.interceps = append(m.interceps, i)
 }
 
@@ -159,6 +148,58 @@ func (m *ServeMux) Install(i Interceptor) {
 // Interceptors should NOT rely on the order they're run.
 func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	m.mux.ServeHTTP(w, r)
+}
+
+// ServeMuxBuilder is a builder for ServeMux.
+type ServeMuxBuilder struct {
+	dispatcher   Dispatcher
+	handlers     []handlerRegistration
+	interceptors []Interceptor
+}
+
+type handlerRegistration struct {
+	pattern string
+	method  string
+	handler Handler
+	cfgs    []InterceptorConfig
+}
+
+// Handle registers a handler for the given pattern and method. If another
+// handler is already registered for the same pattern and method, Handle panics.
+//
+// InterceptorConfigs can be passed in order to modify the behavior of the
+// interceptors on a registered handler. Passing an InterceptorConfig whose
+// corresponding Interceptor was not installed will produce no effect. If
+// multiple configurations are passed for the same Interceptor, only the first
+// one will take effect.
+func (b *ServeMuxBuilder) Handle(pattern string, method string, h Handler, cfgs ...InterceptorConfig) *ServeMuxBuilder {
+	b.handlers = append(b.handlers, handlerRegistration{
+		pattern: pattern,
+		method:  method,
+		handler: h,
+		cfgs:    cfgs,
+	})
+	return b
+}
+
+// Install installs an Interceptor.
+//
+// Interceptors order is undetermined and should not be relied on.
+func (b *ServeMuxBuilder) Install(i Interceptor) *ServeMuxBuilder {
+	b.interceptors = append(b.interceptors, i)
+	return b
+}
+
+// Build builds the ServeMux.
+func (b *ServeMuxBuilder) Build() *ServeMux {
+	m := newServeMux(b.dispatcher)
+	for _, it := range b.interceptors {
+		m.install(it)
+	}
+	for _, hr := range b.handlers {
+		m.handle(hr.pattern, hr.method, hr.handler, hr.cfgs...)
+	}
+	return m
 }
 
 // standardHandler is a collection of handler based on the request method.
