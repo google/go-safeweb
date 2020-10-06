@@ -87,9 +87,10 @@ func NewServeMux(d Dispatcher) *ServeMux {
 	}
 }
 
-type appliedInterceptor struct {
-	it  Interceptor
-	cfg InterceptorConfig
+// ConfiguredInterceptor holds an interceptor together with its configuration.
+type ConfiguredInterceptor struct {
+	Interceptor Interceptor
+	Config      InterceptorConfig
 }
 
 // Handle registers a handler for the given pattern and method. If another
@@ -101,7 +102,7 @@ type appliedInterceptor struct {
 // multiple configurations are passed for the same Interceptor, only the first
 // one will take effect.
 func (m *ServeMux) Handle(pattern string, method string, h Handler, cfgs ...InterceptorConfig) {
-	var interceps []appliedInterceptor
+	var interceps []ConfiguredInterceptor
 	for _, it := range m.interceps {
 		var cfg InterceptorConfig
 		for _, c := range cfgs {
@@ -110,7 +111,7 @@ func (m *ServeMux) Handle(pattern string, method string, h Handler, cfgs ...Inte
 				break
 			}
 		}
-		interceps = append(interceps, appliedInterceptor{it: it, cfg: cfg})
+		interceps = append(interceps, ConfiguredInterceptor{Interceptor: it, Config: cfg})
 	}
 	hi := handlerWithInterceptors{
 		handler:   h,
@@ -188,7 +189,7 @@ func (m methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // interceptors.
 type handlerWithInterceptors struct {
 	handler   Handler
-	interceps []appliedInterceptor
+	interceps []ConfiguredInterceptor
 	disp      Dispatcher
 }
 
@@ -210,8 +211,8 @@ func (h handlerWithInterceptors) ServeHTTP(w http.ResponseWriter, r *http.Reques
 		}
 	}()
 
-	for _, interceptor := range h.interceps {
-		interceptor.it.Before(rw, ir, interceptor.cfg)
+	for _, it := range h.interceps {
+		it.Interceptor.Before(rw, ir, it.Config)
 		if rw.written {
 			return
 		}
@@ -234,8 +235,8 @@ func (h handlerWithInterceptors) ServeHTTP(w http.ResponseWriter, r *http.Reques
 // the Commit phase.
 func (h handlerWithInterceptors) commitPhase(w *ResponseWriter, resp Response) {
 	for i := len(h.interceps) - 1; i >= 0; i-- {
-		ai := h.interceps[i]
-		ai.it.Commit(w, w.req, resp, ai.cfg)
+		it := h.interceps[i]
+		it.Interceptor.Commit(w, w.req, resp, it.Config)
 		if w.written {
 			return
 		}
