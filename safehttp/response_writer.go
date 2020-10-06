@@ -31,7 +31,7 @@ type ResponseWriter struct {
 	// Having this field unexported is essential for security. Otherwise one can
 	// easily overwrite the struct bypassing all our safety guarantees.
 	header  Header
-	handler handlerWithInterceptors
+	handler handler
 	req     *IncomingRequest
 	written bool
 }

@@ -70,7 +70,7 @@ type ServeMux struct {
 	disp Dispatcher
 
 	// Maps patterns to handlers supporting multiple HTTP methods.
-	handlers  map[string]methodHandler
+	handlers  map[string]standardHandler
 	interceps []Interceptor
 }
 
@@ -83,7 +83,7 @@ func NewServeMux(d Dispatcher) *ServeMux {
 	return &ServeMux{
 		mux:      http.NewServeMux(),
 		disp:     d,
-		handlers: map[string]methodHandler{},
+		handlers: map[string]standardHandler{},
 	}
 }
 
@@ -113,7 +113,7 @@ func (m *ServeMux) Handle(pattern string, method string, h Handler, cfgs ...Inte
 		}
 		interceps = append(interceps, ConfiguredInterceptor{Interceptor: it, Config: cfg})
 	}
-	hi := handlerWithInterceptors{
+	hi := handler{
 		handler:   h,
 		interceps: interceps,
 		disp:      m.disp,
@@ -121,8 +121,8 @@ func (m *ServeMux) Handle(pattern string, method string, h Handler, cfgs ...Inte
 
 	mh, ok := m.handlers[pattern]
 	if !ok {
-		mh := methodHandler{
-			handlers: map[string]handlerWithInterceptors{method: hi},
+		mh := standardHandler{
+			handlers: map[string]handler{method: hi},
 		}
 
 		m.handlers[pattern] = mh
@@ -167,16 +167,16 @@ func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	m.mux.ServeHTTP(w, r)
 }
 
-// methodHandler is a collection of handlerWithInterceptors based on the request method.
-type methodHandler struct {
-	// Maps an HTTP method to its handlerWithInterceptors
-	handlers map[string]handlerWithInterceptors
+// standardHandler is a collection of handler based on the request method.
+type standardHandler struct {
+	// Maps an HTTP method to its handler
+	handlers map[string]handler
 }
 
-// ServeHTTP dispatches the request to the handlerWithInterceptors associated
+// ServeHTTP dispatches the request to the handler associated
 // with the IncomingRequest method.
-func (m methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	h, ok := m.handlers[r.Method]
+func (sh standardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	h, ok := sh.handlers[r.Method]
 	if !ok {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return
@@ -185,9 +185,9 @@ func (m methodHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.ServeHTTP(w, r)
 }
 
-// handlerWithInterceptors encapsulates a handler and its corresponding
+// handler encapsulates a handler and its corresponding
 // interceptors.
-type handlerWithInterceptors struct {
+type handler struct {
 	handler   Handler
 	interceps []ConfiguredInterceptor
 	disp      Dispatcher
@@ -197,7 +197,7 @@ type handlerWithInterceptors struct {
 // underlying handler. Any panics that occur during the Before phase, during handler
 // execution or during the Commit phase are recovered here and a 500 Internal Server
 // Error response is sent.
-func (h handlerWithInterceptors) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ir := NewIncomingRequest(r)
 	rw := NewResponseWriter(h.disp, w, ir)
 	rw.handler = h
@@ -233,7 +233,7 @@ func (h handlerWithInterceptors) ServeHTTP(w http.ResponseWriter, r *http.Reques
 // are called in Commit then this will recurse. CommitResponseWriter was an
 // attempt to prevent this by not giving access to Write and WriteTemplate in
 // the Commit phase.
-func (h handlerWithInterceptors) commitPhase(w *ResponseWriter, resp Response) {
+func (h handler) commitPhase(w *ResponseWriter, resp Response) {
 	for i := len(h.interceps) - 1; i >= 0; i-- {
 		it := h.interceps[i]
 		it.Interceptor.Commit(w, w.req, resp, it.Config)
