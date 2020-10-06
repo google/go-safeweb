@@ -29,20 +29,20 @@ import (
 )
 
 func TestHSTSServeMuxInstall(t *testing.T) {
-	mux := safehttp.NewServeMux(&safehttp.DefaultDispatcher{})
+	mb := &safehttp.ServeMuxBuilder{}
 
-	mux.Install(hsts.Default())
+	mb.Install(hsts.Default())
 	handler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 	})
-	mux.Handle("/asdf", safehttp.MethodGet, handler)
+	mb.Handle("/asdf", safehttp.MethodGet, handler)
 
 	b := strings.Builder{}
 	rw := safehttptest.NewTestResponseWriter(&b)
 
 	req := httptest.NewRequest(http.MethodGet, "https://foo.com/asdf", nil)
 
-	mux.ServeHTTP(rw, req)
+	mb.Build().ServeHTTP(rw, req)
 
 	if want := safehttp.StatusOK; rw.Status() != want {
 		t.Errorf("rw.Status() got: %v want: %v", rw.Status(), want)

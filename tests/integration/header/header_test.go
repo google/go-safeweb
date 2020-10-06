@@ -29,8 +29,8 @@ import (
 )
 
 func TestAccessIncomingHeaders(t *testing.T) {
-	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
-	mux.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+	mb := &safehttp.ServeMuxBuilder{}
+	mb.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 		if got, want := ir.Header.Get("A"), "B"; got != want {
 			t.Errorf(`ir.Header.Get("A") got: %v want: %v`, got, want)
 		}
@@ -48,12 +48,13 @@ func TestAccessIncomingHeaders(t *testing.T) {
 	b := &strings.Builder{}
 	rw := safehttptest.NewTestResponseWriter(b)
 
+	mux := mb.Build()
 	mux.ServeHTTP(rw, req)
 }
 
 func TestChangingResponseHeaders(t *testing.T) {
-	mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
-	mux.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+	mb := &safehttp.ServeMuxBuilder{}
+	mb.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 		rw.Header().Set("pIZZA", "Pasta")
 		return rw.Write(safehtml.HTMLEscaped("hello"))
 	}))
@@ -63,6 +64,7 @@ func TestChangingResponseHeaders(t *testing.T) {
 	b := &strings.Builder{}
 	rw := safehttptest.NewTestResponseWriter(b)
 
+	mux := mb.Build()
 	mux.ServeHTTP(rw, req)
 
 	want := []string{"Pasta"}

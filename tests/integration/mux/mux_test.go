@@ -38,13 +38,13 @@ func TestMuxDefaultDispatcher(t *testing.T) {
 		{
 			name: "Safe HTML Response",
 			mux: func() *safehttp.ServeMux {
-				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
+				mb := &safehttp.ServeMuxBuilder{}
 
 				h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 				})
-				mux.Handle("/pizza", safehttp.MethodGet, h)
-				return mux
+				mb.Handle("/pizza", safehttp.MethodGet, h)
+				return mb.Build()
 			}(),
 			wantHeaders: map[string][]string{
 				"Content-Type": {"text/html; charset=utf-8"},
@@ -54,15 +54,15 @@ func TestMuxDefaultDispatcher(t *testing.T) {
 		{
 			name: "Safe HTML Template Response",
 			mux: func() *safehttp.ServeMux {
-				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
+				mb := &safehttp.ServeMuxBuilder{}
 
 				h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					return w.WriteTemplate(safetemplate.
 						Must(safetemplate.New("name").
 							Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
 				})
-				mux.Handle("/pizza", safehttp.MethodGet, h)
-				return mux
+				mb.Handle("/pizza", safehttp.MethodGet, h)
+				return mb.Build()
 			}(),
 			wantHeaders: map[string][]string{
 				"Content-Type": {"text/html; charset=utf-8"},
@@ -72,7 +72,7 @@ func TestMuxDefaultDispatcher(t *testing.T) {
 		{
 			name: "Valid JSON Response",
 			mux: func() *safehttp.ServeMux {
-				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
+				mb := &safehttp.ServeMuxBuilder{}
 
 				h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					data := struct {
@@ -80,8 +80,8 @@ func TestMuxDefaultDispatcher(t *testing.T) {
 					}{Field: "myField"}
 					return w.WriteJSON(data)
 				})
-				mux.Handle("/pizza", safehttp.MethodGet, h)
-				return mux
+				mb.Handle("/pizza", safehttp.MethodGet, h)
+				return mb.Build()
 			}(),
 			wantHeaders: map[string][]string{
 				"Content-Type": {"application/json; charset=utf-8"},
@@ -120,39 +120,39 @@ func TestMuxDefaultDispatcherUnsafeResponses(t *testing.T) {
 		{
 			name: "Unsafe HTML Response",
 			mux: func() *safehttp.ServeMux {
-				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
+				mb := &safehttp.ServeMuxBuilder{}
 
 				h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					return w.Write("<h1>Hello World!</h1>")
 				})
-				mux.Handle("/pizza", safehttp.MethodGet, h)
-				return mux
+				mb.Handle("/pizza", safehttp.MethodGet, h)
+				return mb.Build()
 			}(),
 		},
 		{
 			name: "Unsafe Template Response",
 			mux: func() *safehttp.ServeMux {
-				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
+				mb := &safehttp.ServeMuxBuilder{}
 
 				h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					return w.WriteTemplate(template.
 						Must(template.New("name").
 							Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
 				})
-				mux.Handle("/pizza", safehttp.MethodGet, h)
-				return mux
+				mb.Handle("/pizza", safehttp.MethodGet, h)
+				return mb.Build()
 			}(),
 		},
 		{
 			name: "Invalid JSON Response",
 			mux: func() *safehttp.ServeMux {
-				mux := safehttp.NewServeMux(safehttp.DefaultDispatcher{})
+				mb := &safehttp.ServeMuxBuilder{}
 
 				h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					return w.WriteJSON(math.Inf(1))
 				})
-				mux.Handle("/pizza", safehttp.MethodGet, h)
-				return mux
+				mb.Handle("/pizza", safehttp.MethodGet, h)
+				return mb.Build()
 			}(),
 		},
 	}
