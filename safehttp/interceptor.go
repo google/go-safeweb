@@ -38,3 +38,9 @@ type InterceptorConfig interface {
 	// given Interceptor.
 	Match(Interceptor) bool
 }
+
+// ConfiguredInterceptor holds an interceptor together with its configuration.
+type ConfiguredInterceptor struct {
+	Interceptor Interceptor
+	Config      InterceptorConfig
+}

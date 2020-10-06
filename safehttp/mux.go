@@ -87,12 +87,6 @@ func NewServeMux(d Dispatcher) *ServeMux {
 	}
 }
 
-// ConfiguredInterceptor holds an interceptor together with its configuration.
-type ConfiguredInterceptor struct {
-	Interceptor Interceptor
-	Config      InterceptorConfig
-}
-
 // Handle registers a handler for the given pattern and method. If another
 // handler is already registered for the same pattern and method, Handle panics.
 //
