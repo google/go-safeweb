@@ -99,7 +99,8 @@ func (w *ResponseWriter) SetStatusCode(statusCode StatusCode) {
 }
 
 // Write dispatches the response to the Dispatcher, setting the Content-Type and
-// response status if the provided response is a safe response. The
+// response status if the provided response is a safe response. The status code
+// will be set to safehttp.StatusOK unless a valid status code was provided. The
 // Dispatcher will then write the response to the underlying Response Writer.
 //
 // TODO: replace panics with proper error handling when getting the response
@@ -131,7 +132,8 @@ func (w *ResponseWriter) Write(resp Response) Result {
 
 // WriteJSON encapsulates data into a JSON response and dispatches it to the
 // Dispatcher, to be serialised and written to the ResponseWriter. It will also
-// set the Content-Type and response status will be set.
+// set the Content-Type and response status will be set. The status code
+// will be set to safehttp.StatusOK unless a valid status code was provided.
 //
 // TODO: replace panics with proper error handling when getting the response
 // Content-Type or writing the response fails.
@@ -164,7 +166,8 @@ func (w *ResponseWriter) WriteJSON(data interface{}) Result {
 // WriteTemplate dispatches a parsed template and a data object to the
 // Dispatcher to be executed and written to the underlying Response Writer, in
 // case the template is a safe HTML template. If it is a safe HTML Template, the
-// Content-Type  and response status will also be set.
+// Content-Type  and response status will also be set. The status code
+// will be set to safehttp.StatusOK unless a valid status code was provided.
 //
 // TODO: replace panics with proper error handling when getting the response
 // Content-Type or writing the response fails.
