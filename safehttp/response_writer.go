@@ -27,14 +27,11 @@ import (
 type ResponseWriter struct {
 	d  Dispatcher
 	rw http.ResponseWriter
-	// Code can be used to set a 1xx or 2xx response status code. This will only
-	// take effect if modified before a response has been written. Trying to set
-	// a 3xx, 4xx or 5xx response status code will result in a panic as these
-	// should only be set by calling the appropriate methods.
-	Code StatusCode
 
 	// Having this field unexported is essential for security. Otherwise one can
 	// easily overwrite the struct bypassing all our safety guarantees.
+	code    StatusCode
+	codeSet bool
 	header  Header
 	handler handler
 	req     *IncomingRequest
@@ -71,15 +68,34 @@ func NotWritten() Result {
 	return Result{}
 }
 
-func (w *ResponseWriter) setStatusCode() {
-	if w.Code == 0 {
-		w.rw.WriteHeader(int(StatusOK))
-		return
+// SetStatusCode allows setting a 1xx or 2xx status code. Trying to set
+// a 3xx, 4xx or 5xx response status code will result in a panic as these
+// should only be set by calling the appropriate methods.
+//
+// TODO(clap@, kele@, maramihali@): better error handling
+// TODO(clap@, kele@, maramihali@): should we allow other headers to be set
+// after setting the status code
+func (w *ResponseWriter) SetStatusCode(statusCode StatusCode) {
+	if w.written {
+		panic("ResponseWriter was already written to")
 	}
-	if w.Code < 100 || w.Code >= 300 {
-		panic("invalid status code set")
+
+	if w.codeSet {
+		panic("the status code was already set")
 	}
-	w.rw.WriteHeader(int(w.Code))
+
+	if statusCode >= 300 && statusCode < 400 {
+		panic("redirection statusCodes cannot be manually set")
+	}
+	if statusCode >= 400 && statusCode < 600 {
+		panic("error statusCodes cannot be manually set")
+	}
+	if statusCode < 100 || statusCode >= 600 {
+		panic("invalid status code")
+	}
+
+	w.codeSet = true
+	w.code = statusCode
 }
 
 // Write dispatches the response to the Dispatcher, setting the Content-Type and
@@ -102,7 +118,11 @@ func (w *ResponseWriter) Write(resp Response) Result {
 		panic(err)
 	}
 	w.rw.Header().Set("Content-Type", ct)
-	w.setStatusCode()
+	if w.codeSet {
+		w.rw.WriteHeader(int(w.code))
+	} else {
+		w.rw.WriteHeader(int(StatusOK))
+	}
 	if err := w.d.Write(w.rw, resp); err != nil {
 		panic(err)
 	}
@@ -130,7 +150,11 @@ func (w *ResponseWriter) WriteJSON(data interface{}) Result {
 		panic(err)
 	}
 	w.rw.Header().Set("Content-Type", ct)
-	w.setStatusCode()
+	if w.codeSet {
+		w.rw.WriteHeader(int(w.code))
+	} else {
+		w.rw.WriteHeader(int(StatusOK))
+	}
 	if err := w.d.WriteJSON(w.rw, resp); err != nil {
 		panic(err)
 	}
@@ -159,14 +183,19 @@ func (w *ResponseWriter) WriteTemplate(t Template, data interface{}) Result {
 		panic(err)
 	}
 	w.rw.Header().Set("Content-Type", ct)
-	w.setStatusCode()
+	if w.codeSet {
+		w.rw.WriteHeader(int(w.code))
+	} else {
+		w.rw.WriteHeader(int(StatusOK))
+	}
 	if err := w.d.ExecuteTemplate(w.rw, resp); err != nil {
 		panic(err)
 	}
 	return Result{}
 }
 
-// NoContent responds with a 204 No Content response.
+// NoContent responds with a 204 No Content response. This will trigger a panic
+// if the status code was already set.
 //
 // If the ResponseWriter has already been written to, then this method will panic.
 func (w *ResponseWriter) NoContent() Result {
@@ -178,8 +207,10 @@ func (w *ResponseWriter) NoContent() Result {
 		return Result{}
 	}
 	w.markWritten()
-	w.Code = StatusNoContent
-	w.setStatusCode()
+	if w.codeSet {
+		panic("the status code was already set")
+	}
+	w.rw.WriteHeader(int(StatusNoContent))
 	return Result{}
 }
 

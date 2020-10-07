@@ -143,19 +143,10 @@ func TestResponseWriterStatusCode(t *testing.T) {
 			name: "Custom status code before calling write",
 			want: safehttp.StatusCreated,
 			write: func(w *safehttp.ResponseWriter) {
-				w.Code = safehttp.StatusCreated
+				w.SetStatusCode(safehttp.StatusCreated)
 				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
 			},
 		},
-		{
-			name: "Custom status code after calling write",
-			want: safehttp.StatusOK,
-			write: func(w *safehttp.ResponseWriter) {
-				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
-				w.Code = safehttp.StatusCreated
-			},
-		},
-
 		{
 			name: "No content status code",
 			want: safehttp.StatusNoContent,
@@ -175,9 +166,7 @@ func TestResponseWriterStatusCode(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			testRw := safehttptest.NewTestResponseWriter(&strings.Builder{})
 			w := safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, testRw, nil)
-
 			tt.write(w)
-
 			if got := testRw.Status(); tt.want != got {
 				t.Errorf("testRw.Status(): got %v want %v", got, tt.want)
 			}
@@ -193,22 +182,43 @@ func TestResponseWriterStatusCodePanic(t *testing.T) {
 		{
 			name: "Manual redirect status code set",
 			write: func(w *safehttp.ResponseWriter) {
-				w.Code = safehttp.StatusPermanentRedirect
+				w.SetStatusCode(safehttp.StatusPermanentRedirect)
 				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
 			},
 		},
 		{
 			name: "Manual error status code set",
 			write: func(w *safehttp.ResponseWriter) {
-				w.Code = safehttp.StatusBadRequest
+				w.SetStatusCode(safehttp.StatusBadRequest)
 				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
 			},
 		},
 		{
 			name: "Invalid status code set",
 			write: func(w *safehttp.ResponseWriter) {
-				w.Code = safehttp.StatusCode(50)
+				w.SetStatusCode(safehttp.StatusCode(50))
 				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
+			},
+		},
+		{
+			name: "Status code set after calling write",
+			write: func(w *safehttp.ResponseWriter) {
+				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
+				w.SetStatusCode(safehttp.StatusCreated)
+			},
+		},
+		{
+			name: "Status code set twice",
+			write: func(w *safehttp.ResponseWriter) {
+				w.SetStatusCode(safehttp.StatusCreated)
+				w.SetStatusCode(safehttp.StatusCreated)
+			},
+		},
+		{
+			name: "Status code set before writing a No Content response",
+			write: func(w *safehttp.ResponseWriter) {
+				w.SetStatusCode(safehttp.StatusCreated)
+				w.NoContent()
 			},
 		},
 	}
