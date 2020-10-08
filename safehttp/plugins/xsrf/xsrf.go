@@ -33,6 +33,10 @@ const (
 	// request.
 	TokenKey    = "xsrf-token"
 	cookieIDKey = "xsrf-cookie"
+
+	// Angular's XHR XSRF token support.
+	angularTokenCookie = "XSRF-TOKEN"
+	angularTokenHeader = "X-XSRF-TOKEN"
 )
 
 var statePreservingMethods = map[string]bool{
@@ -46,6 +50,11 @@ type Interceptor struct {
 	// SecretAppKey uniquely identifies each registered service and should have
 	// high entropy as it is used for generating the XSRF token.
 	SecretAppKey string
+	// AngularProtection is used to check whether the interceptor should provide
+	// protection against XSRF for Angular's XHR requests.
+	//
+	// See https://docs.angularjs.org/api/ng/service/$http#cross-site-request-forgery-xsrf-protection for more details.
+	AngularProtection bool
 }
 
 var _ safehttp.Interceptor = &Interceptor{}
@@ -76,15 +85,36 @@ func addCookieID(w *safehttp.ResponseWriter) (*safehttp.Cookie, error) {
 	return c, nil
 }
 
+func (it *Interceptor) addAngularTokenCookie(w *safehttp.ResponseWriter) error {
+	tok := make([]byte, 20)
+	if _, err := rand.Read(tok); err != nil {
+		return fmt.Errorf("crypto/rand.Read: %v", err)
+	}
+	c := safehttp.NewCookie(angularTokenCookie, base64.StdEncoding.EncodeToString(tok))
+
+	c.SetSameSite(safehttp.SameSiteStrictMode)
+	c.SetPath("/")
+	// Set the duration of the token cookie to 24 hours.
+	c.SetMaxAge(86400)
+	// Needed in order to make the cookie accessible by JavaScript
+	// running on the user's domain.
+	c.DisableHTTPOnly()
+
+	if err := w.SetCookie(c); err != nil {
+		return err
+	}
+	return nil
+}
+
 // Before should be executed before directing the safehttp.IncomingRequest to
 // the handler to ensure it is not part of a Cross-Site Request
 // Forgery attack.
 //
-// On first user visit through a state preserving request (GET, HEAD or
-// OPTIONS), a nonce-based cookie will be set in the response as a way to
-// distinguish between users and prevent pre-login XSRF attacks. The cookie will
-// be used in the token generation and verification algorithm and is expected to
-// be present in all subsequent incoming requests.
+// If Angular protection is not set, on first user visit through a state
+// preserving request (GET, HEAD  or OPTIONS), a nonce-based cookie will be set
+// in the response as a way to distinguish between users and prevent pre-login
+// XSRF attacks. The cookie will  be used in the token generation and
+// verification algorithm and is expected to be present in all subsequent incoming requests.
 //
 // For every authorized request, the interceptor will also generate a
 // cryptographically-safe XSRF token using the appKey, the cookie and the path
@@ -94,8 +124,41 @@ func addCookieID(w *safehttp.ResponseWriter) (*safehttp.Cookie, error) {
 // In case of state changing requests (all except GET, HEAD and OPTIONS), the
 // interceptor checks for the presence of the XSRF token in the request body
 // (expected to have been injected) and validates it.
+//
+// If Angular protection is enabled, a token will be generated on the first GET
+// request and assigned to the  the XSRF-TOKEN cookie, which will be set in the
+// response. On every subsequent request, the cookie is expected alongside the
+// X-XSRF-TOKEN header and their values should match. In case they don't, the
+// request will be rejected.
 func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
-	needsValidation := !statePreservingMethods[r.Method()]
+	if it.AngularProtection {
+		c, err := r.Cookie(angularTokenCookie)
+		if err != nil {
+			if r.Method() != safehttp.MethodGet {
+				return w.WriteError(safehttp.StatusUnauthorized)
+			}
+			err := it.addAngularTokenCookie(w)
+			if err != nil {
+				// An error is returned when the plugin fails to Set the Set-Cookie header in the response writer as this is a server misconfiguration
+				return w.WriteError(safehttp.StatusInternalServerError)
+			}
+			return safehttp.NotWritten()
+		}
+
+		tok := r.Header.Get(angularTokenHeader)
+		if tok == "" {
+			return w.WriteError(safehttp.StatusUnauthorized)
+		}
+
+		if tok != c.Value() {
+			return w.WriteError(safehttp.StatusForbidden)
+		}
+		return safehttp.NotWritten()
+
+	}
+
+	m := r.Method()
+	needsValidation := !statePreservingMethods[m]
 	cookieID, err := r.Cookie(cookieIDKey)
 	if err != nil {
 		if needsValidation {
@@ -128,7 +191,7 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 			return w.WriteError(safehttp.StatusUnauthorized)
 		}
 
-		if ok := xsrftoken.Valid(tok, it.SecretAppKey, cookieID.Value(), actionID); !ok {
+		if !xsrftoken.Valid(tok, it.SecretAppKey, cookieID.Value(), actionID) {
 			return w.WriteError(safehttp.StatusForbidden)
 		}
 	}
@@ -138,10 +201,15 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 	return safehttp.NotWritten()
 }
 
-// Commit adds the XSRF token corresponding to the safehttp.TemplateResponse
-// with key "XSRFToken". The token corresponds to the user information found in
-// the request.
+// Commit is a no-op, required to satisfy the safehttp.Interceptor interface,
+// for  Angular protection. Otherwise, it adds the XSRF token corresponding to
+// the safehttp.TemplateResponse  with key "XSRFToken". The token corresponds to
+// the  user information found in the request.
 func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+	if it.AngularProtection {
+		return safehttp.NotWritten()
+	}
+
 	tmplResp, ok := resp.(safehttp.TemplateResponse)
 	if !ok {
 		return safehttp.NotWritten()

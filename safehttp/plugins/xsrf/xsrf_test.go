@@ -400,3 +400,117 @@ func TestCommitNotTemplateResponse(t *testing.T) {
 		t.Errorf("rec.Body(): got %q want %q", got, want)
 	}
 }
+
+func TestAngularAddCookie(t *testing.T) {
+	req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
+	rec := safehttptest.NewResponseRecorder()
+	i := &Interceptor{
+		SecretAppKey:      "testSecretAppKey",
+		AngularProtection: true,
+	}
+	i.Before(rec.ResponseWriter, req, nil)
+
+	if got, want := rec.Status(), safehttp.StatusOK; got != want {
+		t.Errorf("rec.Status(): got %v, want %v", got, want)
+	}
+
+	tokCookieDefaults := "Path=/; Max-Age=86400; Secure; SameSite=Strict"
+	got := map[string][]string(rec.Header())["Set-Cookie"][0]
+	if !strings.Contains(got, angularTokenCookie) {
+		t.Errorf("Set-Cookie header: %s not present", angularTokenCookie)
+	}
+	if !strings.Contains(got, tokCookieDefaults) {
+		t.Errorf("Set-Cookie header: got %s, want defaults %s", got, tokCookieDefaults)
+	}
+
+	if got, want := rec.Body(), ""; got != want {
+		t.Errorf("rec.Body(): got %q want %q", got, want)
+	}
+}
+
+func TestAngularPostProtection(t *testing.T) {
+	tests := []struct {
+		name       string
+		req        *safehttp.IncomingRequest
+		wantStatus safehttp.StatusCode
+		wantHeader map[string][]string
+		wantBody   string
+	}{
+		{
+			name: "Same cookie and header",
+			req: func() *safehttp.IncomingRequest {
+				req := safehttptest.NewRequest(safehttp.MethodPost, "/", nil)
+				req.Header.Set("Cookie", angularTokenCookie+"="+"1234")
+				req.Header.Set(angularTokenHeader, "1234")
+				return req
+			}(),
+			wantStatus: safehttp.StatusOK,
+			wantHeader: map[string][]string{},
+			wantBody:   "",
+		},
+		{
+			name: "Different cookie and header",
+			req: func() *safehttp.IncomingRequest {
+				req := safehttptest.NewRequest(safehttp.MethodPost, "/", nil)
+				req.Header.Set("Cookie", angularTokenCookie+"="+"5768")
+				req.Header.Set(angularTokenHeader, "1234")
+				return req
+			}(),
+			wantStatus: safehttp.StatusForbidden,
+			wantHeader: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Forbidden\n",
+		},
+		{
+			name: "Missing header",
+			req: func() *safehttp.IncomingRequest {
+				req := safehttptest.NewRequest(safehttp.MethodPost, "/", nil)
+				req.Header.Set("Cookie", angularTokenCookie+"="+"1234")
+				return req
+			}(),
+			wantStatus: safehttp.StatusUnauthorized,
+			wantHeader: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Unauthorized\n",
+		},
+		{
+			name: "Missing cookie",
+			req: func() *safehttp.IncomingRequest {
+				req := safehttptest.NewRequest(safehttp.MethodPost, "/", nil)
+				req.Header.Set(angularTokenHeader, "1234")
+				return req
+			}(),
+			wantStatus: safehttp.StatusUnauthorized,
+			wantHeader: map[string][]string{
+				"Content-Type":           {"text/plain; charset=utf-8"},
+				"X-Content-Type-Options": {"nosniff"},
+			},
+			wantBody: "Unauthorized\n",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			rec := safehttptest.NewResponseRecorder()
+			i := &Interceptor{
+				SecretAppKey:      "testSecretAppKey",
+				AngularProtection: true,
+			}
+			i.Before(rec.ResponseWriter, test.req, nil)
+
+			if got := rec.Status(); got != test.wantStatus {
+				t.Errorf("rec.Status(): got %v, want %v", got, test.wantStatus)
+			}
+			if diff := cmp.Diff(test.wantHeader, map[string][]string(rec.Header())); diff != "" {
+				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
+			}
+			if got := rec.Body(); got != test.wantBody {
+				t.Errorf("rec.Body(): got %q want %q", got, test.wantBody)
+			}
+		})
+	}
+}
