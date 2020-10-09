@@ -16,11 +16,15 @@ package htmlinject
 
 import (
 	"html/template"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	safetemplate "github.com/google/safehtml/template"
+	"github.com/google/safehtml/template/uncheckedconversions"
 )
 
 func ExampleTransform() {
@@ -116,15 +120,15 @@ func BenchmarkTransform(b *testing.B) {
 		}
 	}
 }
-func TestTransform(t *testing.T) {
-	var tests = []struct {
-		name     string
-		config   []Config
-		in, want string
-	}{
-		{
-			name: "nothing to change",
-			in: `
+
+var tests = []struct {
+	name      string
+	xsrf, csp bool
+	in, want  string
+}{
+	{
+		name: "nothing to change",
+		in: `
 <html>
 <header><title>This is title</title></header>
 <body>
@@ -132,7 +136,7 @@ Hello world
 </body>
 </html>
 `,
-			want: `
+		want: `
 <html>
 <header><title>This is title</title></header>
 <body>
@@ -140,11 +144,11 @@ Hello world
 </body>
 </html>
 `,
-		},
-		{
-			name:   "add CSP nonces",
-			config: []Config{CSPNoncesDefault},
-			in: `
+	},
+	{
+		name: "add CSP nonces",
+		csp:  true,
+		in: `
 <html>
 <head>
 <link rel=preload as="script" src="gopher.js">
@@ -159,7 +163,7 @@ h1 {
 </body>
 </html>
 `,
-			want: `
+		want: `
 <html>
 <head>
 <link nonce="{{CSPNonce}}" rel=preload as="script" src="gopher.js">
@@ -174,11 +178,11 @@ h1 {
 </body>
 </html>
 `,
-		},
-		{
-			name:   "add XSRF protection",
-			config: []Config{XSRFTokensDefault},
-			in: `
+	},
+	{
+		name: "add XSRF protection",
+		xsrf: true,
+		in: `
 <form>
   First name:<br>
   <input type="text" name="firstname"><br>
@@ -186,7 +190,7 @@ h1 {
   <input type="text" name="lastname">
 </form>
 `,
-			want: `
+		want: `
 <form><input type="hidden" name="xsrf-token" value="{{XSRFToken}}">
   First name:<br>
   <input type="text" name="firstname"><br>
@@ -194,11 +198,12 @@ h1 {
   <input type="text" name="lastname">
 </form>
 `,
-		},
-		{
-			name:   "all configs",
-			config: []Config{CSPNoncesDefault, XSRFTokensDefault},
-			in: `
+	},
+	{
+		name: "all configs",
+		xsrf: true,
+		csp:  true,
+		in: `
 <html>
 <head>
 <link rel="stylesheet" href="styles.css">
@@ -215,7 +220,7 @@ h1 {
 </body>
 </html>
 `,
-			want: `
+		want: `
 <html>
 <head>
 <link rel="stylesheet" href="styles.css">
@@ -232,16 +237,89 @@ h1 {
 </body>
 </html>
 `,
-		},
-	}
+	},
+}
+
+func TestTransform(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := Transform(strings.NewReader(tt.in), tt.config...)
+			cfg := []Config{}
+			if tt.csp {
+				cfg = append(cfg, CSPNoncesDefault)
+			}
+			if tt.xsrf {
+				cfg = append(cfg, XSRFTokensDefault)
+
+			}
+			got, err := Transform(strings.NewReader(tt.in), cfg...)
 			if err != nil {
 				t.Fatalf("Transform: got err %q, didn't want one", err)
 			}
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("-want +got %s", diff)
+			}
+		})
+	}
+}
+
+func TestLoadTrustedTemplateWithDefaultConfig(t *testing.T) {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotTpl, err := LoadTrustedTemplate(nil, tt.csp, tt.xsrf, uncheckedconversions.TrustedTemplateFromStringKnownToSatisfyTypeContract(tt.in))
+			if err != nil {
+				t.Fatalf("LoadTrustedTemplate: got err %q", err)
+			}
+			// Test that whatever we provide is clonable or injection won't be possible.
+			gotTpl, err = gotTpl.Clone()
+			if err != nil {
+				t.Fatalf("Clone loaded template: got err %q", err)
+			}
+			var sb strings.Builder
+			// Make functions return the source code that calls them and compare the results with the source.
+			// Sadly there is no good way to take the parsed sources out of a text/template.Template.
+			err = gotTpl.Funcs(map[string]interface{}{
+				XSRFTokensDefaultFuncName: func() string { return "{{" + XSRFTokensDefaultFuncName + "}}" },
+				CSPNoncesDefaultFuncName:  func() string { return "{{" + CSPNoncesDefaultFuncName + "}}" },
+			}).Execute(&sb, nil)
+			if err != nil {
+				t.Fatalf("Execute: got err %q", err)
+			}
+			if diff := cmp.Diff(tt.want, sb.String()); diff != "" {
+				t.Errorf("-want +got %s", diff)
+			}
+		})
+	}
+}
+
+func TestLoadGlob(t *testing.T) {
+	tpl, err := LoadGlob(nil, true, true, safetemplate.TrustedSourceFromConstant("testdata/*.tpl"))
+
+	// Test that whatever we provide is clonable or injection won't be possible.
+	tpl, err = tpl.Clone()
+	if err != nil {
+		t.Fatalf("Clone loaded template: got err %q", err)
+	}
+	tpl = tpl.Funcs(map[string]interface{}{
+		XSRFTokensDefaultFuncName: func() string { return "{{" + XSRFTokensDefaultFuncName + "}}" },
+		CSPNoncesDefaultFuncName:  func() string { return "{{" + CSPNoncesDefaultFuncName + "}}" },
+	})
+	if got, want := len(tpl.Templates()), 2; got != want {
+		t.Fatalf("Loaded templates: got %d want %d %s", got, want, tpl.DefinedTemplates())
+	}
+	for _, inner := range tpl.Templates() {
+		t.Run(inner.Name(), func(t *testing.T) {
+			var sb strings.Builder
+			err := tpl.ExecuteTemplate(&sb, inner.Name(), nil)
+			if err != nil {
+				t.Fatalf("Executing: %v", err)
+			}
+			stripExt := strings.TrimSuffix(inner.Name(), filepath.Ext(inner.Name()))
+			b, err := ioutil.ReadFile("testdata/" + stripExt + ".want")
+			if err != nil {
+				t.Fatalf("Reading '.want' file: %v", err)
+			}
+			if got, want := sb.String(), string(b); got != want {
+				t.Errorf("got: %v, want: %v", got, want)
 			}
 		})
 	}

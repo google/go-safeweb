@@ -1,0 +1,20 @@
+<html>
+<head>
+<link rel="stylesheet" href="styles.css">
+<link nonce="{{CSPNonce}}" rel=preload as="script" src="gopher.js">
+<style nonce="{{CSPNonce}}">
+h1 {
+  border: 5px solid yellow;
+}
+</style>
+</head>
+<body>
+<script nonce="{{CSPNonce}}" type="application/javascript">alert("script")</script>
+<form><input type="hidden" name="xsrf-token" value="{{XSRFToken}}">
+  First name:<br>
+  <input type="text" name="firstname"><br>
+  Last name:<br>
+  <input type="text" name="lastname">
+</form>
+</body>
+</html>

@@ -19,8 +19,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"path/filepath"
 	"strings"
 
+	"github.com/google/safehtml/template"
+	"github.com/google/safehtml/template/uncheckedconversions"
 	"golang.org/x/net/html"
 )
 
@@ -115,6 +119,85 @@ func Transform(src io.Reader, cfg ...Config) (string, error) {
 		return "", err
 	}
 	return rw.out.String(), nil
+}
+
+// LoadTrustedTemplate processes the given TrustedTemplate with the specified default configurations and
+// adds it to the given template.
+// If the given template is nil a new one is created.
+func LoadTrustedTemplate(tpl *template.Template, csp, xsrf bool, src template.TrustedTemplate) (*template.Template, error) {
+	// Using bools to select configs prevents users to accidentally specify arbitrary and potentially unsafe rules.
+	var cfg []Config
+	noop := func() string {
+		panic("this function should never be called, templates should be cloned and injected with the noncing functions, not executed directly")
+	}
+	funcMap := map[string]interface{}{}
+	if csp {
+		cfg = append(cfg, CSPNoncesDefault)
+		funcMap[CSPNoncesDefaultFuncName] = noop
+	}
+	if xsrf {
+		cfg = append(cfg, XSRFTokensDefault)
+		funcMap[XSRFTokensDefaultFuncName] = noop
+	}
+	got, err := Transform(strings.NewReader(src.String()), cfg...)
+	if err != nil {
+		return nil, err
+	}
+	// We took a TrustedTemplate and transformed it with rules that we trust, so we know the output is still trusted.
+	tt := uncheckedconversions.TrustedTemplateFromStringKnownToSatisfyTypeContract(got)
+	if tpl == nil {
+		tpl = template.New("htmlinjected")
+	}
+	return tpl.Funcs(funcMap).ParseFromTrustedTemplate(tt)
+}
+
+// LoadGlob matches the behavior of safehtml.ParseGlob but runs a transformation on every loaded template.
+func LoadGlob(tpl *template.Template, csp, xsrf bool, pattern template.TrustedSource) (*template.Template, error) {
+	filenames, err := filepath.Glob(pattern.String())
+	if err != nil {
+		return nil, err
+	}
+	if len(filenames) == 0 {
+		return nil, fmt.Errorf("htmlinject: pattern matches no files: %#q", pattern.String())
+	}
+	var tts []template.TrustedSource
+	for _, fn := range filenames {
+		// The pattern expanded from a trusted source, so the expansion is still trusted.
+		tts = append(tts, uncheckedconversions.TrustedSourceFromStringKnownToSatisfyTypeContract(fn))
+	}
+	return LoadFiles(tpl, csp, xsrf, tts...)
+}
+
+// LoadFiles matches the behavior of safehtml.ParseFiles but runs a transformation on every loaded template.
+func LoadFiles(tpl *template.Template, csp, xsrf bool, filenames ...template.TrustedSource) (*template.Template, error) {
+	// The naming juggling below is quite odd but is kept for consistency.
+	if len(filenames) == 0 {
+		return nil, fmt.Errorf("htmlinject: no files named in call to LoadFiles")
+	}
+	for _, fnts := range filenames {
+		fn := fnts.String()
+		b, err := ioutil.ReadFile(fn)
+		if err != nil {
+			return nil, err
+		}
+		name := filepath.Base(fn)
+		var t *template.Template
+		if tpl == nil {
+			tpl = template.New(name)
+		}
+		if name == tpl.Name() {
+			t = tpl
+		} else {
+			t = tpl.New(name)
+		}
+		// We are loading a file from a TrustedSource, so this conversion is safe.
+		tts := uncheckedconversions.TrustedTemplateFromStringKnownToSatisfyTypeContract(string(b))
+		_, err = LoadTrustedTemplate(t, csp, xsrf, tts)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return tpl, nil
 }
 
 type rewriter struct {
