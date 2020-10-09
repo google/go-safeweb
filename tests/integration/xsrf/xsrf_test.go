@@ -26,9 +26,9 @@ import (
 )
 
 func TestServeMuxInstallXSRF(t *testing.T) {
-	mb := &safehttp.ServeMuxBuilder{}
+	mb := &safehttp.ServeMuxConfig{}
 	it := xsrf.Interceptor{SecretAppKey: "testSecretAppKey"}
-	mb.Install(&it)
+	mb.Intercept(&it)
 
 	var token string
 	var err error
@@ -52,7 +52,7 @@ func TestServeMuxInstallXSRF(t *testing.T) {
 
 	req := httptest.NewRequest(safehttp.MethodGet, "https://foo.com/bar", nil)
 
-	mb.Build().ServeHTTP(rr, req)
+	mb.Mux().ServeHTTP(rr, req)
 
 	if err != nil {
 		t.Fatalf("xsrf.Token: got error %v", err)

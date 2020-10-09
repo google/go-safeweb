@@ -29,9 +29,9 @@ import (
 )
 
 func TestHSTSServeMuxInstall(t *testing.T) {
-	mb := &safehttp.ServeMuxBuilder{}
+	mb := &safehttp.ServeMuxConfig{}
 
-	mb.Install(hsts.Default())
+	mb.Intercept(hsts.Default())
 	handler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 	})
@@ -42,7 +42,7 @@ func TestHSTSServeMuxInstall(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "https://foo.com/asdf", nil)
 
-	mb.Build().ServeHTTP(rw, req)
+	mb.Mux().ServeHTTP(rw, req)
 
 	if want := safehttp.StatusOK; rw.Status() != want {
 		t.Errorf("rw.Status() got: %v want: %v", rw.Status(), want)

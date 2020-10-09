@@ -29,9 +29,9 @@ import (
 )
 
 func TestServeMuxInstallStaticHeaders(t *testing.T) {
-	mb := &safehttp.ServeMuxBuilder{}
+	mb := &safehttp.ServeMuxConfig{}
 
-	mb.Install(staticheaders.Interceptor{})
+	mb.Intercept(staticheaders.Interceptor{})
 	handler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 	})
@@ -42,7 +42,7 @@ func TestServeMuxInstallStaticHeaders(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "https://foo.com/asdf", nil)
 
-	mb.Build().ServeHTTP(rw, req)
+	mb.Mux().ServeHTTP(rw, req)
 
 	if want := safehttp.StatusOK; rw.Status() != want {
 		t.Errorf("rw.Status() got: %v want: %v", rw.Status(), want)

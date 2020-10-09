@@ -151,7 +151,7 @@ func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // ServeMuxBuilder is a builder for ServeMux.
-type ServeMuxBuilder struct {
+type ServeMuxConfig struct {
 	dispatcher   Dispatcher
 	handlers     []handlerRegistration
 	interceptors []Interceptor
@@ -172,34 +172,46 @@ type handlerRegistration struct {
 // corresponding Interceptor was not installed will produce no effect. If
 // multiple configurations are passed for the same Interceptor, only the first
 // one will take effect.
-func (b *ServeMuxBuilder) Handle(pattern string, method string, h Handler, cfgs ...InterceptorConfig) *ServeMuxBuilder {
-	b.handlers = append(b.handlers, handlerRegistration{
+func (s *ServeMuxConfig) Handle(pattern string, method string, h Handler, cfgs ...InterceptorConfig) {
+	s.handlers = append(s.handlers, handlerRegistration{
 		pattern: pattern,
 		method:  method,
 		handler: h,
 		cfgs:    cfgs,
 	})
-	return b
 }
 
-// Install installs an Interceptor.
+// Intercept installs an Interceptor.
 //
 // Interceptors order is undetermined and should not be relied on.
-func (b *ServeMuxBuilder) Install(i Interceptor) *ServeMuxBuilder {
-	b.interceptors = append(b.interceptors, i)
-	return b
+func (s *ServeMuxConfig) Intercept(i Interceptor) {
+	s.interceptors = append(s.interceptors, i)
 }
 
-// Build builds the ServeMux.
-func (b *ServeMuxBuilder) Build() *ServeMux {
-	m := newServeMux(b.dispatcher)
-	for _, it := range b.interceptors {
+// Mux returns the ServeMux with a copy of the current configuration.
+func (s *ServeMuxConfig) Mux() *ServeMux {
+	m := newServeMux(s.dispatcher)
+	for _, it := range s.interceptors {
 		m.install(it)
 	}
-	for _, hr := range b.handlers {
+	for _, hr := range s.handlers {
 		m.handle(hr.pattern, hr.method, hr.handler, hr.cfgs...)
 	}
 	return m
+}
+
+// Clone creates a copy of the current config.
+// This can be used to create several instances of Mux that share the same set of
+// plugins and some common handlers.
+func (s *ServeMuxConfig) Clone() *ServeMuxConfig {
+	c := &ServeMuxConfig{
+		dispatcher:   s.dispatcher,
+		handlers:     make([]handlerRegistration, len(s.handlers)),
+		interceptors: make([]Interceptor, len(s.interceptors)),
+	}
+	copy(c.handlers, s.handlers)
+	copy(c.interceptors, s.interceptors)
+	return c
 }
 
 // standardHandler is a collection of handler based on the request method.

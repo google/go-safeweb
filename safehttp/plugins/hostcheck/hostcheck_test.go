@@ -46,8 +46,8 @@ func TestInterceptor(t *testing.T) {
 
 	for _, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
-			mb := &safehttp.ServeMuxBuilder{}
-			mb.Install(hostcheck.New("foo.com"))
+			mb := &safehttp.ServeMuxConfig{}
+			mb.Intercept(hostcheck.New("foo.com"))
 
 			h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
@@ -56,7 +56,7 @@ func TestInterceptor(t *testing.T) {
 
 			b := &strings.Builder{}
 			rw := safehttptest.NewTestResponseWriter(b)
-			mux := mb.Build()
+			mux := mb.Mux()
 			mux.ServeHTTP(rw, tt.req)
 
 			if rw.Status() != tt.wantStatus {
