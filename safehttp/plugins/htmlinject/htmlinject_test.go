@@ -148,6 +148,11 @@ Hello world
 <html>
 <head>
 <link rel=preload as="script" src="gopher.js">
+<style>
+h1 {
+  border: 5px solid yellow;
+}
+</style>
 </head>
 <body>
 <script type="application/javascript">alert("script")</script>
@@ -158,6 +163,11 @@ Hello world
 <html>
 <head>
 <link nonce="{{CSPNonce}}" rel=preload as="script" src="gopher.js">
+<style nonce="{{CSPNonce}}">
+h1 {
+  border: 5px solid yellow;
+}
+</style>
 </head>
 <body>
 <script nonce="{{CSPNonce}}" type="application/javascript">alert("script")</script>
