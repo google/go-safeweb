@@ -48,9 +48,12 @@ func (r Rule) String() string { return r.Name }
 // Config is a slice of Rules that are somehow related to each other.
 type Config []Rule
 
+// CSPNoncesDefaultFuncName is the default func name for the func that generates CSP nonces.
+const CSPNoncesDefaultFuncName = "CSPNonce"
+
 // CSPNoncesDefault is the default config for CSP Nonces. The rewritten template
 // expects the CSPNonce Func to be available in the template to provide nonces.
-var CSPNoncesDefault = CSPNonces(`nonce="{{CSPNonce}}"`)
+var CSPNoncesDefault = CSPNonces(`nonce="{{` + CSPNoncesDefaultFuncName + `}}"`)
 
 // CSPNonces constructs a Config to add CSP nonces to a template. The given nonce
 // attribute will be automatically prefixed with the required empty space.
@@ -68,13 +71,21 @@ func CSPNonces(nonceAttr string) Config {
 			WithAttributes: map[string]string{"rel": "preload", "as": "script"},
 			AddAttributes:  []string{nonceAttr},
 		},
+		Rule{
+			Name:          "Nonces for styles",
+			OnTag:         "style",
+			AddAttributes: []string{nonceAttr},
+		},
 	}
 }
+
+// XSRFTokensDefaultFuncName is the default func name for the func that generates XSRF tokens.
+const XSRFTokensDefaultFuncName = `XSRFToken`
 
 // XSRFTokensDefault is the default config to add hidden inputs to forms to provide
 // an anti-XSRF token. The rewritten template expects the XSRFToken Func to be available
 // in the template to provide tokens and sets the name for the sent value to be "xsrf-token".
-var XSRFTokensDefault = XSRFTokens(`<input type="hidden" name="xsrf-token" value="{{XSRFToken}}">`)
+var XSRFTokensDefault = XSRFTokens(`<input type="hidden" name="xsrf-token" value="{{` + XSRFTokensDefaultFuncName + `}}">`)
 
 // XSRFTokens constructs a Config to add the given string as a child node to forms.
 func XSRFTokens(inputTag string) Config {
