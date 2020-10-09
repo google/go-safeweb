@@ -27,9 +27,9 @@ import (
 )
 
 func TestServeMuxInstallCSP(t *testing.T) {
-	mb := &safehttp.ServeMuxBuilder{}
+	mb := &safehttp.ServeMuxConfig{}
 	it := csp.Default("")
-	mb.Install(&it)
+	mb.Intercept(&it)
 
 	var nonce string
 	var err error
@@ -53,7 +53,7 @@ func TestServeMuxInstallCSP(t *testing.T) {
 
 	req := httptest.NewRequest(safehttp.MethodGet, "https://foo.com/bar", nil)
 
-	mux := mb.Build()
+	mux := mb.Mux()
 	mux.ServeHTTP(rr, req)
 
 	if err != nil {
