@@ -41,6 +41,7 @@ type Policy struct {
 	ReportOnly bool
 }
 
+// String serializes the policy. The returned value can be used as a header value.
 func (p Policy) String() string {
 	if p.ReportingGroup == "" {
 		return string(p.Mode)
@@ -50,16 +51,16 @@ func (p Policy) String() string {
 
 // NewInterceptor constructs an interceptor that applies the given policies.
 func NewInterceptor(policies ...Policy) Interceptor {
-	var ro []string
+	var rep []string
 	var enf []string
 	for _, p := range policies {
 		if p.ReportOnly {
-			ro = append(ro, p.String())
+			rep = append(rep, p.String())
 		} else {
 			enf = append(enf, p.String())
 		}
 	}
-	return Interceptor{ro: ro, enf: enf}
+	return Interceptor{rep: rep, enf: enf}
 }
 
 // Default returns a same-origin enforcing interceptor with the given (potentially empty) report group.
@@ -69,20 +70,22 @@ func Default(reportGroup string) Interceptor {
 
 // Interceptor is the interceptor for COOP.
 type Interceptor struct {
-	ro  []string
+	rep []string
 	enf []string
 }
 
+// Before claims and sets the Report-Only and Enforcement headers for COOP.
 func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
 	if cfg != nil {
 		// We got an override, run its Before phase instead.
 		return Interceptor(cfg.(Overrider)).Before(w, r, nil)
 	}
 	w.Header().Claim("Cross-Origin-Opener-Policy")(it.enf)
-	w.Header().Claim("Cross-Origin-Opener-Policy-Report-Only")(it.ro)
+	w.Header().Claim("Cross-Origin-Opener-Policy-Report-Only")(it.rep)
 	return safehttp.NotWritten()
 }
 
+// Commit does nothing.
 func (it Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
@@ -95,6 +98,7 @@ func Override(policies ...Policy) Overrider {
 	return Overrider(NewInterceptor(policies...))
 }
 
+// Match recognizes just this package Interceptor.
 func (p Overrider) Match(i safehttp.Interceptor) bool {
 	_, ok := i.(Interceptor)
 	return ok
