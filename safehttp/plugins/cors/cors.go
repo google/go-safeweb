@@ -168,6 +168,11 @@ func appendToVary(w *safehttp.ResponseWriter, val string) {
 	}
 }
 
+// OnError is a no-op, required to satisfy the safehttp.Interceptor interface.
+func (it Interceptor) OnError(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+	return safehttp.NotWritten()
+}
+
 // preflight handles requests that have the method OPTIONS.
 func (it *Interceptor) preflight(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.StatusCode {
 	rh := r.Header

@@ -14,7 +14,10 @@
 
 package safehttp
 
-import "io"
+import (
+	"github.com/google/go-safeweb/safehttp"
+	"io"
+)
 
 // Response should encapsulate the data passed to the ResponseWriter to be
 // written by the Dispatcher. Any implementation of the interface should be
@@ -49,3 +52,8 @@ type TemplateResponse struct {
 // NoContentResponse is sent to the commit phase when it's initiated from
 // ResponseWriter.NoContent.
 type NoContentResponse struct{}
+
+// ErrorResponse is sent to the on error phase when initiated from ResponseWriter.WriteError.
+type ErrorResponse struct {
+	code safehttp.StatusCode
+}

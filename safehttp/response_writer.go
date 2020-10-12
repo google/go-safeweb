@@ -172,7 +172,9 @@ func (w *ResponseWriter) NoContent() Result {
 // If the ResponseWriter has already been written to, then this method will panic.
 func (w *ResponseWriter) WriteError(code StatusCode) Result {
 	w.markWritten()
-	http.Error(w.rw, http.StatusText(int(code)), int(code))
+	resp := &ErrorResponse{code: code}
+	w.handler.errorPhase(w, resp)
+	http.Error(w.rw, http.StatusText(int(resp.code)), int(resp.code))
 	return Result{}
 }
 

@@ -289,3 +289,16 @@ func (h handler) commitPhase(w *ResponseWriter, resp Response) {
 		}
 	}
 }
+
+// errrorPhase calls the OnError phases of all the interceptors associated with
+// a handler. This stage runs before an error response is written to the
+// ResponseWriter.
+//
+// TODO: BIG WARNING, if an interceptor attempts to write to the ResponseWriter
+// in the OnError phase then this method will recurse.
+func (h handler) errorPhase(w *ResponseWriter, resp Response) {
+	for i := len(h.interceps) - 1; i >= 0; i-- {
+		it := h.interceps[i]
+		it.Interceptor.OnError(w, w.req, resp, it.Config)
+	}
+}

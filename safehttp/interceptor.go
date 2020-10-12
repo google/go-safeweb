@@ -30,6 +30,11 @@ type Interceptor interface {
 	// is written to the ResponseWriter, then the Commit phases from the
 	// remaining interceptors won't execute.
 	Commit(w *ResponseWriter, r *IncomingRequest, resp Response, cfg InterceptorConfig) Result
+
+	// OnError runs when ResponseWriter.WriteError is called, before the
+	// actual error response is written. An attempt to write to the
+	// ResponseWriter in this phase will result in an irrecoverable error.
+	OnError(w *ResponseWriter, r *IncomingRequest, resp Response, cfg InterceptorConfig) Result
 }
 
 // InterceptorConfig is a configuration of an interceptor.
