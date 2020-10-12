@@ -22,16 +22,10 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"github.com/google/go-safeweb/safehttp"
 	"golang.org/x/net/xsrftoken"
 )
-
-const (
-	cookieIDKey = "xsrf-cookie"
-	TokenKey    = "xsrf-token"
-)
-
-type tokenCtxKey struct{}
 
 var statePreservingMethods = map[string]bool{
 	safehttp.MethodGet:     true,
@@ -60,9 +54,16 @@ func New(key string, g Generator, c Checker, i Injector) Interceptor {
 func Default(key string) Interceptor {
 	return Interceptor{
 		secretAppKey: key,
-		g:            defaultGenerator{secretAppKey: key},
-		c:            defaultChecker{secretAppKey: key},
-		i:            defaultInjector{},
+		g: defaultGenerator{
+			secretAppKey: key,
+			cookieIDKey:  "xsrf-cookie",
+		},
+		c: defaultChecker{
+			secretAppKey: key,
+			cookieIDKey:  "xsrf-cookie",
+			tokenKey:     "xsrf-token",
+		},
+		i: defaultInjector{},
 	}
 }
 
@@ -78,72 +79,83 @@ func Angular(cookieName, headerName string) Interceptor {
 }
 
 func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
-	if !statePreservingMethods[r.Method()] {
-		return it.c.Check(w, r)
+	code := it.c.Check(r)
+	if code != safehttp.StatusOK {
+		return w.WriteError(code)
 	}
 	return safehttp.NotWritten()
 }
 
 func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
-	it.g.Generate(w, r)
-	if w.Written() {
-		return safehttp.Result{}
-	}
-	tok, err := it.i.Token(r)
+	data, err := it.g.Generate(r)
 	if err != nil {
-		w.WriteError(safehttp.StatusInternalServerError)
+		return w.WriteError(safehttp.StatusInternalServerError)
 	}
-	return it.i.Inject(resp, tok)
-}
-
-type Generator interface {
-	Generate(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result
+	err = it.i.Inject(resp, w, data)
+	if err != nil {
+		return w.WriteError(safehttp.StatusInternalServerError)
+	}
+	return safehttp.Result{}
 }
 
 type Checker interface {
-	Check(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result
+	Check(r *safehttp.IncomingRequest) safehttp.StatusCode
+}
+
+type Generator interface {
+	Generate(r *safehttp.IncomingRequest) (GeneratedData, error)
 }
 
 type Injector interface {
-	Inject(resp safehttp.Response, token string) safehttp.Result
-	Token(r *safehttp.IncomingRequest) (string, error)
+	Inject(resp safehttp.Response, w *safehttp.ResponseWriter, data GeneratedData) error
 }
+
+type GeneratedData interface{}
 
 type defaultGenerator struct {
 	secretAppKey string
+	cookieIDKey  string
+}
+type defaultData struct {
+	cookieID  *safehttp.Cookie
+	token     string
+	setCookie bool
 }
 
-func (g defaultGenerator) Generate(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-	c, err := r.Cookie(cookieIDKey)
+func (g defaultGenerator) Generate(r *safehttp.IncomingRequest) (GeneratedData, error) {
+	data := defaultData{}
+	c, err := r.Cookie(g.cookieIDKey)
 	if err != nil {
-		if !statePreservingMethods[r.Method()] {
-			w.WriteError(safehttp.StatusForbidden)
-		}
 		buf := make([]byte, 20)
 		if _, err := rand.Read(buf); err != nil {
-			w.WriteError(safehttp.StatusInternalServerError)
+			return nil, fmt.Errorf("crypto/rand.Read: %v", err)
 		}
-		c = safehttp.NewCookie(cookieIDKey, base64.StdEncoding.EncodeToString(buf))
+		c = safehttp.NewCookie(g.cookieIDKey, base64.StdEncoding.EncodeToString(buf))
 		c.SetSameSite(safehttp.SameSiteStrictMode)
-		err = w.SetCookie(c)
-		if err != nil {
-			w.WriteError(safehttp.StatusInternalServerError)
-		}
+		data.setCookie = true
 	}
+	data.cookieID = c
 	tok := xsrftoken.Generate(g.secretAppKey, c.Value(), r.URL.Path())
-	r.SetContext(context.WithValue(r.Context(), tokenCtxKey{}, tok))
-	return safehttp.NotWritten()
+	data.token = tok
+	return data, nil
 }
 
 type defaultChecker struct {
 	secretAppKey string
+	cookieIDKey  string
+	tokenKey     string
 }
 
-func (c defaultChecker) Check(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-	cookie, err := r.Cookie(cookieIDKey)
-	if err != nil {
-		return w.WriteError(safehttp.StatusForbidden)
+func (c defaultChecker) Check(r *safehttp.IncomingRequest) safehttp.StatusCode {
+	if statePreservingMethods[r.Method()] {
+		return safehttp.StatusOK
 	}
+
+	cookie, err := r.Cookie(c.cookieIDKey)
+	if err != nil {
+		return safehttp.StatusForbidden
+	}
+
 	f, err := r.PostForm()
 	if err != nil {
 		// We fallback to checking whether the form is multipart. Both types
@@ -151,76 +163,76 @@ func (c defaultChecker) Check(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 		// present.
 		mf, err := r.MultipartForm(32 << 20)
 		if err != nil {
-			return w.WriteError(safehttp.StatusBadRequest)
+			return safehttp.StatusBadRequest
 		}
 		f = &mf.Form
 	}
 
-	tok := f.String(TokenKey, "")
+	tok := f.String(c.tokenKey, "")
 	if f.Err() != nil || tok == "" {
-		return w.WriteError(safehttp.StatusUnauthorized)
+		return safehttp.StatusUnauthorized
 	}
 
 	if !xsrftoken.Valid(tok, c.secretAppKey, cookie.Value(), r.URL.Path()) {
-		return w.WriteError(safehttp.StatusForbidden)
+		return safehttp.StatusForbidden
 	}
-	return safehttp.NotWritten()
+	return safehttp.StatusOK
 }
 
 type defaultInjector struct{}
 
-func (i defaultInjector) Token(r *safehttp.IncomingRequest) (string, error) {
-	tok := r.Context().Value(tokenCtxKey{})
-	if tok == nil {
-		return "", errors.New("xsrf token not found")
+func (i defaultInjector) Inject(resp safehttp.Response, w *safehttp.ResponseWriter, data GeneratedData) error {
+	d, ok := data.(defaultData)
+	if !ok {
+		return errors.New("invalid data received")
 	}
-	return tok.(string), nil
-}
-
-func (i defaultInjector) Inject(resp safehttp.Response, token string) safehttp.Result {
-
+	if d.setCookie {
+		if err := w.SetCookie(d.cookieID); err != nil {
+			return err
+		}
+	}
 	tmplResp, ok := resp.(safehttp.TemplateResponse)
 	if !ok {
-		return safehttp.NotWritten()
+		return nil
 	}
 	// TODO(maramihali@): Change the key when function names are exported by
 	// htmlinject
 	// TODO: what should happen if the XSRFToken key is not present in the
 	// tr.FuncMap?
-	tmplResp.FuncMap["XSRFToken"] = func() string { return token }
-	return safehttp.NotWritten()
+	tmplResp.FuncMap["XSRFToken"] = func() string { return d.token }
+	return nil
 }
 
 type angularGenerator struct {
 	tokenCookieName string
 }
 
-func (g angularGenerator) Generate(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+type angularData struct {
+	tokCookie *safehttp.Cookie
+	setCookie bool
+}
+
+func (g angularGenerator) Generate(r *safehttp.IncomingRequest) (GeneratedData, error) {
+	data := angularData{}
 	c, err := r.Cookie(g.tokenCookieName)
-	if err == nil {
-		return safehttp.NotWritten()
-	}
-	if r.Method() != safehttp.MethodGet {
-		return w.WriteError(safehttp.StatusUnauthorized)
-	}
-	tok := make([]byte, 20)
-	if _, err := rand.Read(tok); err != nil {
-		return w.WriteError(safehttp.StatusInternalServerError)
-	}
-	c = safehttp.NewCookie(g.tokenCookieName, base64.StdEncoding.EncodeToString(tok))
+	if err != nil {
+		tok := make([]byte, 20)
+		if _, err := rand.Read(tok); err != nil {
+			return nil, fmt.Errorf("crypto/rand.Read: %v", err)
+		}
+		c = safehttp.NewCookie(g.tokenCookieName, base64.StdEncoding.EncodeToString(tok))
 
-	c.SetSameSite(safehttp.SameSiteStrictMode)
-	c.SetPath("/")
-	// Set the duration of the token cookie to 24 hours.
-	c.SetMaxAge(86400)
-	// Needed in order to make the cookie accessible by JavaScript
-	// running on the user's domain.
-	c.DisableHTTPOnly()
-
-	if err := w.SetCookie(c); err != nil {
-		return w.WriteError(safehttp.StatusInternalServerError)
+		c.SetSameSite(safehttp.SameSiteStrictMode)
+		c.SetPath("/")
+		// Set the duration of the token cookie to 24 hours.
+		c.SetMaxAge(86400)
+		// Needed in order to make the cookie accessible by JavaScript
+		// running on the user's domain.
+		c.DisableHTTPOnly()
+		data.setCookie = true
 	}
-	return safehttp.NotWritten()
+	data.tokCookie = c
+	return data, nil
 }
 
 type angularChecker struct {
@@ -228,28 +240,32 @@ type angularChecker struct {
 	tokenHeaderName string
 }
 
-func (c angularChecker) Check(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-	tokCookie, err := r.Cookie(c.tokenCookieName)
+func (c angularChecker) Check(r *safehttp.IncomingRequest) safehttp.StatusCode {
+	if statePreservingMethods[r.Method()] {
+		return safehttp.StatusOK
+	}
+	cookie, err := r.Cookie(c.tokenCookieName)
 	if err != nil {
-		return w.WriteError(safehttp.StatusForbidden)
+		return safehttp.StatusForbidden
 	}
 	tok := r.Header.Get(c.tokenHeaderName)
-	if tok == "" {
-		return w.WriteError(safehttp.StatusUnauthorized)
+	if tok == "" || tok != cookie.Value() {
+		return safehttp.StatusUnauthorized
 	}
-
-	if tok != tokCookie.Value() {
-		return w.WriteError(safehttp.StatusForbidden)
-	}
-	return safehttp.NotWritten()
+	return safehttp.StatusOK
 }
 
 type angularInjector struct{}
 
-func (i angularInjector) Token(_ *safehttp.IncomingRequest) (string, error) {
-	return "", nil
-}
-
-func (i angularInjector) Inject(_ safehttp.Response, _ string) safehttp.Result {
-	return safehttp.NotWritten()
+func (i angularInjector) Inject(resp safehttp.Response, w *safehttp.ResponseWriter, data GeneratedData) error {
+	d, ok := data.(angularData)
+	if !ok {
+		return errors.New("invalid data received")
+	}
+	if d.setCookie {
+		if err := w.SetCookie(d.tokCookie); err != nil {
+			return err
+		}
+	}
+	return nil
 }
