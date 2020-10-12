@@ -66,6 +66,13 @@ func NotWritten() Result {
 	return Result{}
 }
 
+func (w *ResponseWriter) Written() bool {
+	if w.written {
+		return true
+	}
+	return false
+}
+
 // Write dispatches the response to the Dispatcher, setting the Content-Type and
 // response status if the provided response is a safe response. The
 // Dispatcher will then write the response to the underlying Response Writer.
