@@ -1,0 +1,105 @@
+package coop
+
+import (
+	"net/http"
+	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-safeweb/safehttp"
+	"github.com/google/go-safeweb/safehttp/safehttptest"
+)
+
+func TestBefore(t *testing.T) {
+	type want struct {
+		enf, ro []string
+	}
+	var tests = []struct {
+		name                 string
+		interceptor          Interceptor
+		overrider            Overrider
+		want, wantOverridden want
+	}{
+		{
+			name:           "No policies, override on header",
+			interceptor:    NewInterceptor(),
+			overrider:      Override(Policy{Mode: SameOrigin}),
+			wantOverridden: want{enf: []string{"same-origin"}},
+		},
+		{
+			name:        "Default",
+			interceptor: Default("coop"),
+			want:        want{enf: []string{`same-origin; report-to "coop"`}},
+		},
+		{
+			name: "policies, override disables enf",
+			interceptor: NewInterceptor(Policy{
+				Mode:           SameOriginAllowPopups,
+				ReportingGroup: "coop-ap",
+			}, Policy{
+				Mode:           SameOrigin,
+				ReportingGroup: "coop-so",
+				ReportOnly:     true,
+			},
+			),
+			overrider: Override(Policy{
+				Mode:           SameOrigin,
+				ReportingGroup: "coop-so",
+				ReportOnly:     true,
+			}),
+			want: want{
+				enf: []string{`same-origin-allow-popups; report-to "coop-ap"`},
+				ro:  []string{`same-origin; report-to "coop-so"`},
+			},
+			wantOverridden: want{
+				ro: []string{`same-origin; report-to "coop-so"`},
+			},
+		},
+		{
+			name: "multiple RO",
+			interceptor: NewInterceptor(Policy{
+				Mode:           SameOriginAllowPopups,
+				ReportingGroup: "coop-ap",
+			}, Policy{
+				Mode:           SameOrigin,
+				ReportingGroup: "coop-so",
+				ReportOnly:     true,
+			}, Policy{
+				Mode:           UnsafeNone,
+				ReportingGroup: "coop-un",
+				ReportOnly:     true,
+			}),
+			want: want{
+				enf: []string{`same-origin-allow-popups; report-to "coop-ap"`},
+				ro:  []string{`same-origin; report-to "coop-so"`, `unsafe-none; report-to "coop-un"`},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			check := func(h http.Header, w want) {
+				t.Helper()
+				enf, ro := h.Values("Cross-Origin-Opener-Policy"), h.Values("Cross-Origin-Opener-Policy-Report-Only")
+				if diff := cmp.Diff(w.enf, enf); diff != "" {
+					t.Errorf("Enforced COOP -want +got:\n%s", diff)
+				}
+				if diff := cmp.Diff(w.ro, ro); diff != "" {
+					t.Errorf("Report Only COOP -want +got:\n%s", diff)
+				}
+			}
+			// Non overridden
+			{
+				rr := safehttptest.NewResponseRecorder()
+				req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
+				tt.interceptor.Before(rr.ResponseWriter, req, nil)
+				check(rr.Header(), tt.want)
+			}
+			// Overridden
+			{
+				rr := safehttptest.NewResponseRecorder()
+				req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
+				tt.interceptor.Before(rr.ResponseWriter, req, tt.overrider)
+				check(rr.Header(), tt.wantOverridden)
+			}
+		})
+	}
+}
