@@ -75,7 +75,7 @@ Last name:<br>
 func BenchmarkTransform(b *testing.B) {
 	b.ReportAllocs()
 	var (
-		config = []Config{CSPNoncesDefault, XSRFTokensDefault}
+		config = []TransformConfig{CSPNoncesDefault, XSRFTokensDefault}
 		in     = `
 <html>
 <head>
@@ -243,7 +243,7 @@ h1 {
 func TestTransform(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := []Config{}
+			cfg := []TransformConfig{}
 			if tt.csp {
 				cfg = append(cfg, CSPNoncesDefault)
 			}
@@ -265,7 +265,8 @@ func TestTransform(t *testing.T) {
 func TestLoadTrustedTemplateWithDefaultConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotTpl, err := LoadTrustedTemplate(nil, tt.csp, tt.xsrf, uncheckedconversions.TrustedTemplateFromStringKnownToSatisfyTypeContract(tt.in))
+			cfg := LoadConfig{DisableCsp: !tt.csp, DisableXsrf: !tt.xsrf}
+			gotTpl, err := LoadTrustedTemplate(nil, cfg, uncheckedconversions.TrustedTemplateFromStringKnownToSatisfyTypeContract(tt.in))
 			if err != nil {
 				t.Fatalf("LoadTrustedTemplate: got err %q", err)
 			}
@@ -292,7 +293,7 @@ func TestLoadTrustedTemplateWithDefaultConfig(t *testing.T) {
 }
 
 func TestLoadGlob(t *testing.T) {
-	tpl, err := LoadGlob(nil, true, true, safetemplate.TrustedSourceFromConstant("testdata/*.tpl"))
+	tpl, err := LoadGlob(nil, LoadConfig{}, safetemplate.TrustedSourceFromConstant("testdata/*.tpl"))
 
 	// Test that whatever we provide is clonable or injection won't be possible.
 	tpl, err = tpl.Clone()

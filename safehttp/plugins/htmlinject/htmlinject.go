@@ -49,8 +49,8 @@ type Rule struct {
 
 func (r Rule) String() string { return r.Name }
 
-// Config is a slice of Rules that are somehow related to each other.
-type Config []Rule
+// TransformConfig is a slice of Rules that are somehow related to each other.
+type TransformConfig []Rule
 
 // CSPNoncesDefaultFuncName is the default func name for the func that generates CSP nonces.
 const CSPNoncesDefaultFuncName = "CSPNonce"
@@ -61,9 +61,9 @@ var CSPNoncesDefault = CSPNonces(`nonce="{{` + CSPNoncesDefaultFuncName + `}}"`)
 
 // CSPNonces constructs a Config to add CSP nonces to a template. The given nonce
 // attribute will be automatically prefixed with the required empty space.
-func CSPNonces(nonceAttr string) Config {
+func CSPNonces(nonceAttr string) TransformConfig {
 	nonceAttr = " " + nonceAttr
-	return Config{
+	return TransformConfig{
 		Rule{
 			Name:          "Nonces for scripts",
 			OnTag:         "script",
@@ -92,8 +92,8 @@ const XSRFTokensDefaultFuncName = `XSRFToken`
 var XSRFTokensDefault = XSRFTokens(`<input type="hidden" name="xsrf-token" value="{{` + XSRFTokensDefaultFuncName + `}}">`)
 
 // XSRFTokens constructs a Config to add the given string as a child node to forms.
-func XSRFTokens(inputTag string) Config {
-	return Config{Rule{
+func XSRFTokens(inputTag string) TransformConfig {
+	return TransformConfig{Rule{
 		Name:     "XSRFTokens on forms",
 		OnTag:    "form",
 		AddNodes: []string{inputTag}}}
@@ -101,7 +101,7 @@ func XSRFTokens(inputTag string) Config {
 
 // Transform rewrites the given template according to the given configs.
 // If the passed io.Rewriter has a `Size() int64` method it will be used to pre-allocate buffers.
-func Transform(src io.Reader, cfg ...Config) (string, error) {
+func Transform(src io.Reader, cfg ...TransformConfig) (string, error) {
 	rw := rewriter{
 		rules:     map[string][]Rule{},
 		tokenizer: html.NewTokenizer(src),
@@ -121,21 +121,29 @@ func Transform(src io.Reader, cfg ...Config) (string, error) {
 	return rw.out.String(), nil
 }
 
+// LoadConfig is a configuration to use with loaders when processing a template.
+type LoadConfig struct {
+	// DisableCsp disables CSP autononcing
+	DisableCsp bool
+	// DisableXsrf disables XSRF token injection
+	DisableXsrf bool
+}
+
 // LoadTrustedTemplate processes the given TrustedTemplate with the specified default configurations and
 // adds it to the given template.
 // If the given template is nil a new one is created.
-func LoadTrustedTemplate(tpl *template.Template, csp, xsrf bool, src template.TrustedTemplate) (*template.Template, error) {
+func LoadTrustedTemplate(tpl *template.Template, lcfg LoadConfig, src template.TrustedTemplate) (*template.Template, error) {
 	// Using bools to select configs prevents users to accidentally specify arbitrary and potentially unsafe rules.
-	var cfg []Config
+	var cfg []TransformConfig
 	noop := func() string {
 		panic("this function should never be called, templates should be cloned and injected with the noncing functions, not executed directly")
 	}
 	funcMap := map[string]interface{}{}
-	if csp {
+	if !lcfg.DisableCsp {
 		cfg = append(cfg, CSPNoncesDefault)
 		funcMap[CSPNoncesDefaultFuncName] = noop
 	}
-	if xsrf {
+	if !lcfg.DisableXsrf {
 		cfg = append(cfg, XSRFTokensDefault)
 		funcMap[XSRFTokensDefaultFuncName] = noop
 	}
@@ -152,27 +160,27 @@ func LoadTrustedTemplate(tpl *template.Template, csp, xsrf bool, src template.Tr
 }
 
 // LoadGlob matches the behavior of safehtml.ParseGlob but runs a transformation on every loaded template.
-func LoadGlob(tpl *template.Template, csp, xsrf bool, pattern template.TrustedSource) (*template.Template, error) {
+func LoadGlob(tpl *template.Template, lcfg LoadConfig, pattern template.TrustedSource) (*template.Template, error) {
 	filenames, err := filepath.Glob(pattern.String())
 	if err != nil {
 		return nil, err
 	}
 	if len(filenames) == 0 {
-		return nil, fmt.Errorf("htmlinject: pattern matches no files: %#q", pattern.String())
+		return nil, fmt.Errorf("pattern matches no files: %#q", pattern.String())
 	}
 	var tts []template.TrustedSource
 	for _, fn := range filenames {
 		// The pattern expanded from a trusted source, so the expansion is still trusted.
 		tts = append(tts, uncheckedconversions.TrustedSourceFromStringKnownToSatisfyTypeContract(fn))
 	}
-	return LoadFiles(tpl, csp, xsrf, tts...)
+	return LoadFiles(tpl, lcfg, tts...)
 }
 
 // LoadFiles matches the behavior of safehtml.ParseFiles but runs a transformation on every loaded template.
-func LoadFiles(tpl *template.Template, csp, xsrf bool, filenames ...template.TrustedSource) (*template.Template, error) {
+func LoadFiles(tpl *template.Template, lcfg LoadConfig, filenames ...template.TrustedSource) (*template.Template, error) {
 	// The naming juggling below is quite odd but is kept for consistency.
 	if len(filenames) == 0 {
-		return nil, fmt.Errorf("htmlinject: no files named in call to LoadFiles")
+		return nil, fmt.Errorf("no files named in call to LoadFiles")
 	}
 	for _, fnts := range filenames {
 		fn := fnts.String()
@@ -192,7 +200,7 @@ func LoadFiles(tpl *template.Template, csp, xsrf bool, filenames ...template.Tru
 		}
 		// We are loading a file from a TrustedSource, so this conversion is safe.
 		tts := uncheckedconversions.TrustedTemplateFromStringKnownToSatisfyTypeContract(string(b))
-		_, err = LoadTrustedTemplate(t, csp, xsrf, tts)
+		_, err = LoadTrustedTemplate(t, lcfg, tts)
 		if err != nil {
 			return nil, err
 		}
