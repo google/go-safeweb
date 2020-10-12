@@ -15,7 +15,6 @@
 package coop
 
 import (
-	"net/http"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -25,7 +24,7 @@ import (
 
 func TestBefore(t *testing.T) {
 	type want struct {
-		enf, ro []string
+		enf, rep []string
 	}
 	var tests = []struct {
 		name                 string
@@ -62,10 +61,10 @@ func TestBefore(t *testing.T) {
 			}),
 			want: want{
 				enf: []string{`same-origin-allow-popups; report-to "coop-ap"`},
-				ro:  []string{`same-origin; report-to "coop-so"`},
+				rep: []string{`same-origin; report-to "coop-so"`},
 			},
 			wantOverridden: want{
-				ro: []string{`same-origin; report-to "coop-so"`},
+				rep: []string{`same-origin; report-to "coop-so"`},
 			},
 		},
 		{
@@ -84,20 +83,27 @@ func TestBefore(t *testing.T) {
 			}),
 			want: want{
 				enf: []string{`same-origin-allow-popups; report-to "coop-ap"`},
-				ro:  []string{`same-origin; report-to "coop-so"`, `unsafe-none; report-to "coop-un"`},
+				rep: []string{`same-origin; report-to "coop-so"`, `unsafe-none; report-to "coop-un"`},
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			check := func(h http.Header, w want) {
+			check := func(rr *safehttptest.ResponseRecorder, w want) {
 				t.Helper()
-				enf, ro := h.Values("Cross-Origin-Opener-Policy"), h.Values("Cross-Origin-Opener-Policy-Report-Only")
+				h := rr.Header()
+				enf, rep := h.Values("Cross-Origin-Opener-Policy"), h.Values("Cross-Origin-Opener-Policy-Report-Only")
 				if diff := cmp.Diff(w.enf, enf); diff != "" {
 					t.Errorf("Enforced COOP -want +got:\n%s", diff)
 				}
-				if diff := cmp.Diff(w.ro, ro); diff != "" {
+				if diff := cmp.Diff(w.rep, rep); diff != "" {
 					t.Errorf("Report Only COOP -want +got:\n%s", diff)
+				}
+				if rr.Status() != safehttp.StatusOK {
+					t.Errorf("Status: got %v want: %v", rr.Status(), safehttp.StatusOK)
+				}
+				if rr.Body() != "" {
+					t.Errorf("Got body: %q, didn't want one", rr.Body())
 				}
 			}
 			// Non overridden
@@ -105,14 +111,14 @@ func TestBefore(t *testing.T) {
 				rr := safehttptest.NewResponseRecorder()
 				req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
 				tt.interceptor.Before(rr.ResponseWriter, req, nil)
-				check(rr.Header(), tt.want)
+				check(rr, tt.want)
 			}
 			// Overridden
 			{
 				rr := safehttptest.NewResponseRecorder()
 				req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
 				tt.interceptor.Before(rr.ResponseWriter, req, tt.overrider)
-				check(rr.Header(), tt.wantOverridden)
+				check(rr, tt.wantOverridden)
 			}
 		})
 	}
