@@ -133,7 +133,6 @@ type LoadConfig struct {
 // adds it to the given template.
 // If the given template is nil a new one is created.
 func LoadTrustedTemplate(tpl *template.Template, lcfg LoadConfig, src template.TrustedTemplate) (*template.Template, error) {
-	// Using bools to select configs prevents users to accidentally specify arbitrary and potentially unsafe rules.
 	var cfg []TransformConfig
 	noop := func() string {
 		panic("this function should never be called, templates should be cloned and injected with the noncing functions, not executed directly")
@@ -157,23 +156,6 @@ func LoadTrustedTemplate(tpl *template.Template, lcfg LoadConfig, src template.T
 		tpl = template.New("htmlinjected")
 	}
 	return tpl.Funcs(funcMap).ParseFromTrustedTemplate(tt)
-}
-
-// LoadGlob matches the behavior of safehtml.ParseGlob but runs a transformation on every loaded template.
-func LoadGlob(tpl *template.Template, lcfg LoadConfig, pattern template.TrustedSource) (*template.Template, error) {
-	filenames, err := filepath.Glob(pattern.String())
-	if err != nil {
-		return nil, err
-	}
-	if len(filenames) == 0 {
-		return nil, fmt.Errorf("pattern matches no files: %#q", pattern.String())
-	}
-	var tts []template.TrustedSource
-	for _, fn := range filenames {
-		// The pattern expanded from a trusted source, so the expansion is still trusted.
-		tts = append(tts, uncheckedconversions.TrustedSourceFromStringKnownToSatisfyTypeContract(fn))
-	}
-	return LoadFiles(tpl, lcfg, tts...)
 }
 
 // LoadFiles matches the behavior of safehtml.ParseFiles but runs a transformation on every loaded template.
@@ -206,6 +188,23 @@ func LoadFiles(tpl *template.Template, lcfg LoadConfig, filenames ...template.Tr
 		}
 	}
 	return tpl, nil
+}
+
+// LoadGlob matches the behavior of safehtml.ParseGlob but runs a transformation on every loaded template.
+func LoadGlob(tpl *template.Template, lcfg LoadConfig, pattern template.TrustedSource) (*template.Template, error) {
+	filenames, err := filepath.Glob(pattern.String())
+	if err != nil {
+		return nil, err
+	}
+	if len(filenames) == 0 {
+		return nil, fmt.Errorf("pattern matches no files: %#q", pattern.String())
+	}
+	var tts []template.TrustedSource
+	for _, fn := range filenames {
+		// The pattern expanded from a trusted source, so the expansion is still trusted.
+		tts = append(tts, uncheckedconversions.TrustedSourceFromStringKnownToSatisfyTypeContract(fn))
+	}
+	return LoadFiles(tpl, lcfg, tts...)
 }
 
 type rewriter struct {
