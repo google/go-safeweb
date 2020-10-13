@@ -295,7 +295,7 @@ func (h handler) commitPhase(w *ResponseWriter, resp Response) {
 // ResponseWriter.
 //
 // TODO: BIG WARNING, if an interceptor attempts to write to the ResponseWriter
-// in the OnError phase then this method will recurse.
+// in the OnError phase will result in an irrecoverable error.
 func (h handler) errorPhase(w *ResponseWriter, resp Response) {
 	for i := len(h.interceps) - 1; i >= 0; i-- {
 		it := h.interceps[i]
