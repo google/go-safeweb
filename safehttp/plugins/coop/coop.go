@@ -49,18 +49,26 @@ func (p Policy) String() string {
 	return string(p.Mode) + `; report-to "` + p.ReportingGroup + `"`
 }
 
-// NewInterceptor constructs an interceptor that applies the given policies.
-func NewInterceptor(policies ...Policy) Interceptor {
-	var rep []string
-	var enf []string
+type serializedPolicies struct {
+	rep []string
+	enf []string
+}
+
+func serializePolicies(policies ...Policy) serializedPolicies {
+	var s serializedPolicies
 	for _, p := range policies {
 		if p.ReportOnly {
-			rep = append(rep, p.String())
+			s.rep = append(s.rep, p.String())
 		} else {
-			enf = append(enf, p.String())
+			s.enf = append(s.enf, p.String())
 		}
 	}
-	return Interceptor{rep: rep, enf: enf}
+	return s
+}
+
+// NewInterceptor constructs an interceptor that applies the given policies.
+func NewInterceptor(policies ...Policy) Interceptor {
+	return Interceptor(serializePolicies(policies...))
 }
 
 // Default returns a same-origin enforcing interceptor with the given (potentially empty) report group.
@@ -69,10 +77,7 @@ func Default(reportGroup string) Interceptor {
 }
 
 // Interceptor is the interceptor for COOP.
-type Interceptor struct {
-	rep []string
-	enf []string
-}
+type Interceptor serializedPolicies
 
 // Before claims and sets the Report-Only and Enforcement headers for COOP.
 func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
@@ -91,11 +96,11 @@ func (it Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 }
 
 // Overrider is a safehttp.InterceptorConfig that allows to override COOP for a specific handler.
-type Overrider Interceptor
+type Overrider serializedPolicies
 
 // Override creates an Overrider with the given policies.
 func Override(policies ...Policy) Overrider {
-	return Overrider(NewInterceptor(policies...))
+	return Overrider(serializePolicies(policies...))
 }
 
 // Match recognizes just this package Interceptor.
