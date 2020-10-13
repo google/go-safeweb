@@ -78,11 +78,11 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 	if statePreservingMethods[r.Method()] {
 		return safehttp.NotWritten()
 	}
-	tok, code := it.c.Retrieve(r)
+	tok, userID, actionID, code := it.c.Retrieve(r)
 	if code != safehttp.StatusOK {
 		return w.WriteError(code)
 	}
-	code = it.c.Validate(r, tok)
+	code = it.c.Validate(tok, userID, actionID)
 	if code != safehttp.StatusOK {
 		return w.WriteError(code)
 	}
@@ -97,22 +97,37 @@ func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 	return safehttp.Result{}
 }
 
+// Checker decides whether a safehttp.IncomingRequest should be allowed to pass
+// or it's part of a Cross-Site Request Forgery (XSRF) attack.
 type Checker interface {
-	Retrieve(r *safehttp.IncomingRequest) (string, safehttp.StatusCode)
-	Validate(r *safehttp.IncomingRequest, token string) safehttp.StatusCode
+	// Retrieve returns the information necessary to verify the validity of
+	// a XSRF token.
+	Retrieve(r *safehttp.IncomingRequest) (token, userID, actionID string, code safehttp.StatusCode)
+	// Validate validates the token contained in the request, optionally using
+	// the user session and action the user is taking.
+	Validate(token string, userID string, actionID string) safehttp.StatusCode
 }
 
 type Injector interface {
+	// Inject adds the protection necessary to the safehttp.Response and
+	// safehttp.ResponseWriter so that subsequent request can be deemed safe.
 	Inject(resp safehttp.Response, w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) error
 }
-s
+
 type defaultChecker struct {
 	secretAppKey string
 	cookieIDKey  string
 	tokenKey     string
 }
 
-func (c defaultChecker) Retrieve(r *safehttp.IncomingRequest) (string, safehttp.StatusCode) {
+func (c defaultChecker) Retrieve(r *safehttp.IncomingRequest) (token, userID, actionID string, code safehttp.StatusCode) {
+	cookie, err := r.Cookie(c.cookieIDKey)
+	if err != nil {
+		code = safehttp.StatusForbidden
+		return
+	}
+	userID = cookie.Value()
+
 	f, err := r.PostForm()
 	if err != nil {
 		// We fallback to checking whether the form is multipart. Both types
@@ -120,26 +135,24 @@ func (c defaultChecker) Retrieve(r *safehttp.IncomingRequest) (string, safehttp.
 		// present.
 		mf, err := r.MultipartForm(32 << 20)
 		if err != nil {
-			return "", safehttp.StatusBadRequest
+			code = safehttp.StatusBadRequest
+			return
 		}
 		f = &mf.Form
 	}
 
-	tok := f.String(c.tokenKey, "")
-	if f.Err() != nil || tok == "" {
-		return "", safehttp.StatusUnauthorized
+	token = f.String(c.tokenKey, "")
+	if f.Err() != nil || token == "" {
+		code = safehttp.StatusUnauthorized
+		return
 	}
 
-	return tok, safehttp.StatusOK
+	actionID = r.URL.Path()
+	return
 }
 
-func (c defaultChecker) Validate(r *safehttp.IncomingRequest, token string) safehttp.StatusCode {
-	cookie, err := r.Cookie(c.cookieIDKey)
-	if err != nil {
-		return safehttp.StatusForbidden
-	}
-
-	if !xsrftoken.Valid(token, c.secretAppKey, cookie.Value(), r.URL.Path()) {
+func (c defaultChecker) Validate(token, userID, actionID string) safehttp.StatusCode {
+	if !xsrftoken.Valid(token, c.secretAppKey, userID, actionID) {
 		return safehttp.StatusForbidden
 	}
 	return safehttp.StatusOK
@@ -185,23 +198,21 @@ type angularChecker struct {
 	tokenHeaderName string
 }
 
-func (c angularChecker) Retrieve(r *safehttp.IncomingRequest) (string, safehttp.StatusCode) {
-	tok := r.Header.Get(c.tokenHeaderName)
-	if tok == "" {
-		return "", safehttp.StatusUnauthorized
-	}
-	return tok, safehttp.StatusOK
-}
-
-func (c angularChecker) Validate(r *safehttp.IncomingRequest, tok string) safehttp.StatusCode {
+func (c angularChecker) Retrieve(r *safehttp.IncomingRequest) (token, userID, actionID string, code safehttp.StatusCode) {
 	cookie, err := r.Cookie(c.tokenCookieName)
 	if err != nil {
-		return safehttp.StatusForbidden
+		code = safehttp.StatusForbidden
+		return
 	}
+	token = r.Header.Get(c.tokenHeaderName)
+	if token == "" || token != cookie.Value() {
+		code = safehttp.StatusUnauthorized
+		return
+	}
+	return
+}
 
-	if tok != cookie.Value() {
-		return safehttp.StatusUnauthorized
-	}
+func (c angularChecker) Validate(_, _, _ string) safehttp.StatusCode {
 	return safehttp.StatusOK
 }
 
