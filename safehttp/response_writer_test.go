@@ -15,6 +15,7 @@
 package safehttp_test
 
 import (
+	"math"
 	"strings"
 	"testing"
 	"text/template"
@@ -67,29 +68,6 @@ func TestResponseWriterWriteTwicePanic(t *testing.T) {
 			},
 		},
 		{
-			name: "Call WriteJSON twice",
-			write: func(w *safehttp.ResponseWriter) {
-				obj := struct{ Field string }{Field: "myField"}
-				w.WriteJSON(obj)
-				w.WriteJSON(obj)
-			},
-		},
-		{
-			name: "Call Write then WriteJSON",
-			write: func(w *safehttp.ResponseWriter) {
-				obj := struct{ Field string }{Field: "myField"}
-				w.Write(obj)
-				w.WriteJSON(obj)
-			},
-		},
-		{
-			name: "Call WriteTemplate twice",
-			write: func(w *safehttp.ResponseWriter) {
-				w.WriteTemplate(template.Must(template.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
-				w.WriteTemplate(template.Must(template.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
-			},
-		},
-		{
 			name: "Call NoContent twice",
 			write: func(w *safehttp.ResponseWriter) {
 				w.NoContent()
@@ -113,6 +91,45 @@ func TestResponseWriterWriteTwicePanic(t *testing.T) {
 		},
 	}
 
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, safehttptest.NewTestResponseWriter(&strings.Builder{}), nil)
+			defer func() {
+				if r := recover(); r == nil {
+					t.Errorf("tt.write(w) expected panic")
+				}
+			}()
+			tt.write(w)
+		})
+	}
+}
+
+func TestResponseWriterUnsafeResponse(t *testing.T) {
+	tests := []struct {
+		name  string
+		write func(w *safehttp.ResponseWriter)
+	}{
+		{
+			name: "Unsafe HTML Response",
+			write: func(w *safehttp.ResponseWriter) {
+				w.Write("<h1>Hello World!</h1>")
+			},
+		},
+		{
+			name: "Invalid JSON Response",
+			write: func(w *safehttp.ResponseWriter) {
+				w.Write(safehttp.NewJSONResponse(math.Inf(1)))
+			},
+		},
+		{
+			name: "Unsafe Template Response",
+			write: func(w *safehttp.ResponseWriter) {
+				w.Write(safehttp.NewTemplateResponse(template.
+					Must(template.New("name").
+						Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.", nil))
+			},
+		},
+	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, safehttptest.NewTestResponseWriter(&strings.Builder{}), nil)
