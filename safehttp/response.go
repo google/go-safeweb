@@ -15,7 +15,6 @@
 package safehttp
 
 import (
-	"github.com/google/go-safeweb/safehttp"
 	"io"
 )
 
@@ -53,7 +52,9 @@ type TemplateResponse struct {
 // ResponseWriter.NoContent.
 type NoContentResponse struct{}
 
-// ErrorResponse is sent to the on error phase when initiated from ResponseWriter.WriteError.
+// ErrorResponse is sent to the on error phase when initiated from
+// ResponseWriter.WriteError, encapsulating the status code with which the
+// method was called.
 type ErrorResponse struct {
-	code safehttp.StatusCode
+	Code StatusCode
 }

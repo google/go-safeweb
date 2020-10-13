@@ -250,18 +250,18 @@ func (committerInterceptor) OnError(w *safehttp.ResponseWriter, _ *safehttp.Inco
 	return safehttp.NotWritten()
 }
 
-type errorringInterceptor struct{}
+type setHeaderErroringInterceptor struct{}
 
-func (errorringInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
-	return w.WriteError(safehttp.StatusInternalServerError)
+func (setHeaderErroringInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
+	return w.WriteError(safehttp.StatusForbidden)
 }
 
-func (errorringInterceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (setHeaderErroringInterceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	w.Header().Set("name", "foo")
 	return safehttp.Result{}
 }
 
-func (errorringInterceptor) OnError(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (setHeaderErroringInterceptor) OnError(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	w.Header().Set("name", "bar")
 	return safehttp.Result{}
 }
@@ -381,7 +381,7 @@ func TestMuxInterceptors(t *testing.T) {
 			name: "OnError phase sets header",
 			mux: func() *safehttp.ServeMux {
 				mb := &safehttp.ServeMuxConfig{}
-				mb.Intercept(errorringInterceptor{})
+				mb.Intercept(setHeaderErroringInterceptor{})
 
 				registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
@@ -390,13 +390,13 @@ func TestMuxInterceptors(t *testing.T) {
 
 				return mb.Mux()
 			}(),
-			wantStatus: safehttp.StatusInternalServerError,
+			wantStatus: safehttp.StatusForbidden,
 			wantHeaders: map[string][]string{
 				"Content-Type":           {"text/plain; charset=utf-8"},
 				"X-Content-Type-Options": {"nosniff"},
 				"Name":                   {"bar"},
 			},
-			wantBody: "Internal Server Error\n",
+			wantBody: "Forbidden\n",
 		},
 	}
 
@@ -658,4 +658,42 @@ func TestMuxHandlerReturnsNotWritten(t *testing.T) {
 	if got := b.String(); got != "" {
 		t.Errorf(`response body got: %q want: ""`, got)
 	}
+}
+
+type onErrorWriteInterceptor struct{}
+
+func (onErrorWriteInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
+	return w.WriteError(safehttp.StatusBadRequest)
+}
+
+func (onErrorWriteInterceptor) Commit(_ *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, _ safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+	return safehttp.Result{}
+}
+
+func (onErrorWriteInterceptor) OnError(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, _ safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+	w.Header().Set("header", "bad")
+	return w.WriteError(safehttp.StatusInsufficientStorage)
+}
+
+func TestMuxInterceptorWriteInOnError(t *testing.T) {
+	b := &strings.Builder{}
+	rw := safehttptest.NewTestResponseWriter(b)
+
+	req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/bar", nil)
+
+	mb := &safehttp.ServeMuxConfig{}
+	mb.Intercept(onErrorWriteInterceptor{})
+
+	registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
+	})
+	mb.Handle("/bar", safehttp.MethodGet, registeredHandler)
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf(`mb.Mux().ServeHTTP(rw, req): expected panic`)
+		}
+	}()
+
+	mb.Mux().ServeHTTP(rw, req)
 }

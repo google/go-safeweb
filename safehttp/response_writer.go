@@ -166,15 +166,15 @@ func (w *ResponseWriter) NoContent() Result {
 	return Result{}
 }
 
-// WriteError writes an error response (400-599) according to the provided status
-// code.
+// WriteError writes an error response (400-599) according to the provided
+// status code.
 //
 // If the ResponseWriter has already been written to, then this method will panic.
 func (w *ResponseWriter) WriteError(code StatusCode) Result {
 	w.markWritten()
-	resp := &ErrorResponse{code: code}
+	resp := &ErrorResponse{Code: code}
 	w.handler.errorPhase(w, resp)
-	http.Error(w.rw, http.StatusText(int(resp.code)), int(resp.code))
+	http.Error(w.rw, http.StatusText(int(resp.Code)), int(resp.Code))
 	return Result{}
 }
 
