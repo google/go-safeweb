@@ -290,7 +290,7 @@ func (h handler) commitPhase(w *ResponseWriter, resp Response) {
 	}
 }
 
-// errrorPhase calls the OnError phases of all the interceptors associated with
+// errorPhase calls the OnError phases of all the interceptors associated with
 // a handler. This stage runs before an error response is written to the
 // ResponseWriter.
 //
