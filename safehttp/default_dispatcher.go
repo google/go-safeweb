@@ -26,62 +26,40 @@ import (
 // DefaultDispatcher is responsible for writing safe responses.
 type DefaultDispatcher struct{}
 
-// ContentType returns the Content-Type of a safe response if it's of a
-// safe-type and an error otherwise.
-func (DefaultDispatcher) ContentType(resp Response) (string, error) {
-	switch resp.(type) {
-	case safehtml.HTML, *template.Template:
-		return "text/html; charset=utf-8", nil
-	case JSONResponse:
-		return "application/json; charset=utf-8", nil
-	default:
-		return "", fmt.Errorf("%T is not a safe response type, a Content-Type cannot be provided", resp)
-	}
-}
-
-// Write writes the response to the Response Writer if it's safe HTML. It
-// returns a non-nil error if the response is not safe HTML or if writing the
-// response fails.
+// Write writes the response to the http.ResponseWriter if it's deemed safe.
+// A safe response is either safe HTML, a JSON object or safe HTML template. It
+// will  return a non-nil error if the response is deemed unsafe or if writing
+// operation fails.
 func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
-	x, ok := resp.(safehtml.HTML)
-	if !ok {
-		return fmt.Errorf("%T is not a safe response type and it cannot be written", resp)
-	}
-	_, err := io.WriteString(rw, x.String())
-	return err
-
-}
-
-// WriteJSON serialises and writes a JSON to the underlying http.ResponseWriter.
-// If the provided response is not valid JSON or writing the response fails, the
-// method will return an error.
-func (DefaultDispatcher) WriteJSON(rw http.ResponseWriter, resp JSONResponse) error {
-	io.WriteString(rw, ")]}',\n") // Break parsing of JavaScript in order to prevent XSSI.
-	return json.NewEncoder(rw).Encode(resp.Data)
-}
-
-// ExecuteTemplate applies the parsed template to the provided data object, if
-// the template is a safe HTML template, writing the output to the  http.
-// ResponseWriter. If the funcMap is non-nil, its elements override the
-// existing names to functions mappings in the template. An attempt to define a
-// new name to function mapping that is not already in the template will result
-// in a panic.
-//
-// If an error occurs executing the template or writing its output,
-// execution stops, but partial results may already have been written to
-// the Response Writer.
-func (DefaultDispatcher) ExecuteTemplate(rw http.ResponseWriter, resp TemplateResponse) error {
-	t := *resp.Template
-	x, ok := t.(*template.Template)
-	if !ok {
-		return fmt.Errorf("%T is not a safe template and it cannot be parsed and written", resp.Template)
-	}
-	if len(resp.FuncMap) == 0 {
-		return x.Execute(rw, resp.Data)
-	}
-	cloned, err := x.Clone()
-	if err != nil {
+	switch x := resp.(type) {
+	case JSONResponse:
+		rw.Header().Set("Content-Type", "application/json; charset=utf-8")
+		rw.WriteHeader(int(StatusOK))
+		io.WriteString(rw, ")]}',\n") // Break parsing of JavaScript in order to prevent XSSI.
+		return json.NewEncoder(rw).Encode(x.Data)
+	case TemplateResponse:
+		t, ok := (*x.Template).(*template.Template)
+		if !ok {
+			return fmt.Errorf("%T is not a safe template and it cannot be parsed and written", t)
+		}
+		rw.Header().Set("Content-Type", "text/html; charset=utf-8")
+		rw.WriteHeader(int(StatusOK))
+		if len(x.FuncMap) == 0 {
+			return t.Execute(rw, x.Data)
+		}
+		cloned, err := t.Clone()
+		if err != nil {
+			return err
+		}
+		return cloned.Funcs(x.FuncMap).Execute(rw, x.Data)
+	default:
+		r, ok := x.(safehtml.HTML)
+		if !ok {
+			return fmt.Errorf("%T is not a safe response type and it cannot be written", resp)
+		}
+		rw.Header().Set("Content-Type", "text/html; charset=utf-8")
+		rw.WriteHeader(int(StatusOK))
+		_, err := io.WriteString(rw, r.String())
 		return err
 	}
-	return cloned.Funcs(resp.FuncMap).Execute(rw, resp.Data)
 }

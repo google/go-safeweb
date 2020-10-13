@@ -44,7 +44,7 @@ func TestServeMuxInstallCSP(t *testing.T) {
 		nonce, err = csp.Nonce(r.Context())
 		t := template.Must(template.New("name").Funcs(fns).Parse(`<script nonce="{{CSPNonce}}" type="application/javascript">alert("script")</script><h1>{{.}}</h1>`))
 
-		return w.WriteTemplate(t, "Content")
+		return w.Write(safehttp.NewTemplateResponse(t, "Content", fns))
 	})
 	mb.Handle("/bar", safehttp.MethodGet, handler)
 
