@@ -326,9 +326,10 @@ func TestResourceIsolationReportMode(t *testing.T) {
 func TestReportModeMissingLogger(t *testing.T) {
 	p := fetchmetadata.NewPlugin()
 	defer func() {
-		if r := recover(); r == nil {
-			t.Error("p.SetReportOnly(nil) expected panic")
+		if r := recover(); r != nil {
+			return
 		}
+		t.Error("p.SetReportOnly(nil) expected panic")
 	}()
 	p.SetReportOnly()
 }

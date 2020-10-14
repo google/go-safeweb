@@ -45,9 +45,10 @@ func TestSetCanonicalization(t *testing.T) {
 func TestSetEmptySetCookie(t *testing.T) {
 	h := newHeader(http.Header{})
 	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf(`h.Set("Set-Cookie", "x=y") expected panic`)
+		if r := recover(); r != nil {
+			return
 		}
+		t.Errorf(`h.Set("Set-Cookie", "x=y") expected panic`)
 	}()
 	h.Set("Set-Cookie", "x=y")
 	if diff := cmp.Diff([]string{}, h.Values("Set-Cookie")); diff != "" {
@@ -60,9 +61,10 @@ func TestSetClaimed(t *testing.T) {
 	h.Set("Foo-Key", "Pizza-Value")
 	h.Claim("Foo-Key")
 	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf(`h.Set("Foo-Key", "Bar-Value") expected panic`)
+		if r := recover(); r != nil {
+			return
 		}
+		t.Errorf(`h.Set("Foo-Key", "Bar-Value") expected panic`)
 	}()
 	h.Set("Foo-Key", "Bar-Value")
 	if diff := cmp.Diff([]string{"Pizza-Value"}, h.Values("Foo-Key")); diff != "" {
@@ -74,9 +76,10 @@ func TestSetEmptyClaimed(t *testing.T) {
 	h := newHeader(http.Header{})
 	h.Claim("Foo-Key")
 	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf(`h.Set("Foo-Key", "Bar-Value") expected panic`)
+		if r := recover(); r != nil {
+			return
 		}
+		t.Errorf(`h.Set("Foo-Key", "Bar-Value") expected panic`)
 	}()
 	h.Set("Foo-Key", "Bar-Value")
 	if diff := cmp.Diff([]string{}, h.Values("Foo-Key")); diff != "" {
@@ -110,9 +113,10 @@ func TestAddCanonicalization(t *testing.T) {
 func TestAddEmptySetCookie(t *testing.T) {
 	h := newHeader(http.Header{})
 	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf(`h.Add("Set-Cookie", "x=y") expected panic`)
+		if r := recover(); r != nil {
+			return
 		}
+		t.Errorf(`h.Add("Set-Cookie", "x=y") expected panic`)
 	}()
 	h.Add("Set-Cookie", "x=y")
 	if diff := cmp.Diff([]string{}, h.Values("Set-Cookie")); diff != "" {
@@ -125,9 +129,10 @@ func TestAddClaimed(t *testing.T) {
 	h.Add("Foo-Key", "Bar-Value")
 	h.Claim("Foo-Key")
 	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf(`h.Add("Foo-Key", "Pizza-Value") expected panic`)
+		if r := recover(); r != nil {
+			return
 		}
+		t.Errorf(`h.Add("Foo-Key", "Pizza-Value") expected panic`)
 	}()
 	h.Add("Foo-Key", "Pizza-Value")
 	if diff := cmp.Diff([]string{"Bar-Value"}, h.Values("Foo-Key")); diff != "" {
@@ -139,9 +144,10 @@ func TestAddEmptyClaimed(t *testing.T) {
 	h := newHeader(http.Header{})
 	h.Claim("Foo-Key")
 	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf(`h.Add("Foo-Key", "Pizza-Value") expected panic`)
+		if r := recover(); r != nil {
+			return
 		}
+		t.Errorf(`h.Add("Foo-Key", "Pizza-Value") expected panic`)
 	}()
 	h.Add("Foo-Key", "Pizza-Value")
 	if diff := cmp.Diff([]string{}, h.Values("Foo-Key")); diff != "" {
@@ -175,9 +181,10 @@ func TestDelCanonicalization(t *testing.T) {
 func TestDelEmptySetCookie(t *testing.T) {
 	h := newHeader(http.Header{})
 	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf(`h.Del("Set-Cookie") expected panic`)
+		if r := recover(); r != nil {
+			return
 		}
+		t.Errorf(`h.Del("Set-Cookie") expected panic`)
 	}()
 	h.Del("Set-Cookie")
 	if diff := cmp.Diff([]string{}, h.Values("Set-Cookie")); diff != "" {
@@ -190,9 +197,10 @@ func TestDelClaimed(t *testing.T) {
 	h.Set("Foo-Key", "Bar-Value")
 	h.Claim("Foo-Key")
 	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf(`h.Del("Foo-Key") expected panic`)
+		if r := recover(); r != nil {
+			return
 		}
+		t.Errorf(`h.Del("Foo-Key") expected panic`)
 	}()
 	h.Del("Foo-Key")
 	if diff := cmp.Diff([]string{"Bar-Value"}, h.Values("Foo-Key")); diff != "" {
@@ -204,9 +212,10 @@ func TestDelEmptyClaimed(t *testing.T) {
 	h := newHeader(http.Header{})
 	h.Claim("Foo-Key")
 	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf(`h.Del("Foo-Key") expected panic`)
+		if r := recover(); r != nil {
+			return
 		}
+		t.Errorf(`h.Del("Foo-Key") expected panic`)
 	}()
 	h.Del("Foo-Key")
 	if diff := cmp.Diff([]string{}, h.Values("Foo-Key")); diff != "" {
@@ -316,9 +325,10 @@ func TestClaimCanonicalization(t *testing.T) {
 func TestClaimSetCookie(t *testing.T) {
 	h := newHeader(http.Header{})
 	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf(`h.Claim("Set-Cookie") expected panic`)
+		if r := recover(); r != nil {
+			return
 		}
+		t.Errorf(`h.Claim("Set-Cookie") expected panic`)
 	}()
 	h.Claim("Set-Cookie")
 }
@@ -327,9 +337,10 @@ func TestClaimClaimed(t *testing.T) {
 	h := newHeader(http.Header{})
 	h.Claim("Foo-Key")
 	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf(`h.Claim("Foo-Key") expected panic`)
+		if r := recover(); r != nil {
+			return
 		}
+		t.Errorf(`h.Claim("Foo-Key") expected panic`)
 	}()
 	h.Claim("Foo-Key")
 }
