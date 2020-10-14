@@ -33,7 +33,7 @@ func (DefaultDispatcher) ContentType(resp Response) (string, error) {
 	case safehtml.HTML:
 		return "text/html; charset=utf-8", nil
 	case TemplateResponse:
-		_, ok := (*x.Template).(*template.Template)
+		_, ok := (x.Template).(*template.Template)
 		if !ok {
 			return "", fmt.Errorf("%T is not a safe response type, a Content-Type cannot be provided", resp)
 		}
@@ -55,7 +55,7 @@ func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 		io.WriteString(rw, ")]}',\n") // Break parsing of JavaScript in order to prevent XSSI.
 		return json.NewEncoder(rw).Encode(x.Data)
 	case TemplateResponse:
-		t, ok := (*x.Template).(*template.Template)
+		t, ok := (x.Template).(*template.Template)
 		if !ok {
 			return fmt.Errorf("%T is not a safe template and it cannot be parsed and written", t)
 		}
