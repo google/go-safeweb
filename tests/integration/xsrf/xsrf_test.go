@@ -43,7 +43,7 @@ func TestServeMuxInstallXSRF(t *testing.T) {
 		token, err = xsrf.Token(r)
 		t := template.Must(template.New("name").Funcs(fns).Parse(`<form><input type="hidden" name="token" value="{{XSRFToken}}">{{.}}</form>`))
 
-		return w.Write(safehttp.NewTemplateResponse(t, "Content", fns))
+		return w.Write(safehttp.TemplateResp(t, "Content", fns))
 	})
 	mb.Handle("/bar", safehttp.MethodGet, handler)
 
