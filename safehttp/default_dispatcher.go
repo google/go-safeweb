@@ -26,6 +26,25 @@ import (
 // DefaultDispatcher is responsible for writing safe responses.
 type DefaultDispatcher struct{}
 
+// ContentType returns the Content-Type of a response if it's deemed safe and
+// an error otherwise.
+func (DefaultDispatcher) ContentType(resp Response) (string, error) {
+	switch x := resp.(type) {
+	case safehtml.HTML:
+		return "text/html; charset=utf-8", nil
+	case TemplateResponse:
+		_, ok := (*x.Template).(*template.Template)
+		if !ok {
+			return "", fmt.Errorf("%T is not a safe response type, a Content-Type cannot be provided", resp)
+		}
+		return "text/html; charset=utf-8", nil
+	case JSONResponse:
+		return "application/json; charset=utf-8", nil
+	default:
+		return "", fmt.Errorf("%T is not a safe response type, a Content-Type cannot be provided", resp)
+	}
+}
+
 // Write writes the response to the http.ResponseWriter if it's deemed safe.
 // A safe response is either safe HTML, a JSON object or safe HTML template. It
 // will  return a non-nil error if the response is deemed unsafe or if writing
@@ -33,8 +52,6 @@ type DefaultDispatcher struct{}
 func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 	switch x := resp.(type) {
 	case JSONResponse:
-		rw.Header().Set("Content-Type", "application/json; charset=utf-8")
-		rw.WriteHeader(int(StatusOK))
 		io.WriteString(rw, ")]}',\n") // Break parsing of JavaScript in order to prevent XSSI.
 		return json.NewEncoder(rw).Encode(x.Data)
 	case TemplateResponse:
@@ -42,8 +59,6 @@ func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 		if !ok {
 			return fmt.Errorf("%T is not a safe template and it cannot be parsed and written", t)
 		}
-		rw.Header().Set("Content-Type", "text/html; charset=utf-8")
-		rw.WriteHeader(int(StatusOK))
 		if len(x.FuncMap) == 0 {
 			return t.Execute(rw, x.Data)
 		}
@@ -52,14 +67,10 @@ func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 			return err
 		}
 		return cloned.Funcs(x.FuncMap).Execute(rw, x.Data)
-	default:
-		r, ok := x.(safehtml.HTML)
-		if !ok {
-			return fmt.Errorf("%T is not a safe response type and it cannot be written", resp)
-		}
-		rw.Header().Set("Content-Type", "text/html; charset=utf-8")
-		rw.WriteHeader(int(StatusOK))
-		_, err := io.WriteString(rw, r.String())
+	case safehtml.HTML:
+		_, err := io.WriteString(rw, x.String())
 		return err
+	default:
+		return fmt.Errorf("%T is not a safe response type and it cannot be written", resp)
 	}
 }
