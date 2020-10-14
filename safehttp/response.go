@@ -43,8 +43,8 @@ type Template interface {
 // TemplateResponse bundles a Template with its data and names to function
 // mappings to be passed together to the commit phase.
 type TemplateResponse struct {
-	Template *Template
-	Data     *interface{}
+	Template Template
+	Data     interface{}
 	FuncMap  map[string]interface{}
 }
 
@@ -74,8 +74,8 @@ func JSONResp(data interface{}) JSONResponse {
 // already in the template will result in a panic.
 func TemplateResp(t Template, data interface{}, funcMap map[string]interface{}) TemplateResponse {
 	return TemplateResponse{
-		Template: &t,
-		Data:     &data,
+		Template: t,
+		Data:     data,
 		FuncMap:  funcMap,
 	}
 }
