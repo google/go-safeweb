@@ -204,9 +204,10 @@ func TestPanicWhileGeneratingNonce(t *testing.T) {
 		randReader = endlessAReader{}
 	}()
 	defer func() {
-		if r := recover(); r == nil {
-			t.Error("generateNonce() expected panic")
+		if r := recover(); r != nil {
+			return
 		}
+		t.Error("generateNonce() expected panic")
 	}()
 	generateNonce()
 }

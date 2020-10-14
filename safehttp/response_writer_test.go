@@ -117,9 +117,10 @@ func TestResponseWriterWriteTwicePanic(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, safehttptest.NewTestResponseWriter(&strings.Builder{}), nil)
 			defer func() {
-				if r := recover(); r == nil {
-					t.Errorf("tt.write(w) expected panic")
+				if r := recover(); r != nil {
+					return
 				}
+				t.Errorf("tt.write(w) expected panic")
 			}()
 			tt.write(w)
 		})

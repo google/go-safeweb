@@ -189,9 +189,10 @@ func TestRequestSetNilContext(t *testing.T) {
 	ir := safehttp.NewIncomingRequest(req)
 
 	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf(`ir.SetContext(nil): expected panic`)
+		if r := recover(); r != nil {
+			return
 		}
+		t.Errorf(`ir.SetContext(nil): expected panic`)
 	}()
 
 	// Avoids a linter complaint about a nil context being passed as argument.

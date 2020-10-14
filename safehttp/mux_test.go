@@ -154,9 +154,10 @@ func TestMuxHandleSameMethodTwice(t *testing.T) {
 	mb.Handle("/bar", safehttp.MethodGet, registeredHandler)
 
 	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf(`mux.Handle("/bar", MethodGet, registeredHandler) expected panic`)
+		if r := recover(); r != nil {
+			return
 		}
+		t.Errorf(`mux.Handle("/bar", MethodGet, registeredHandler) expected panic`)
 	}()
 
 	mb.Handle("/bar", safehttp.MethodGet, registeredHandler)
