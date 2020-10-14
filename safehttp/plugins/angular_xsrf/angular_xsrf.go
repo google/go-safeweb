@@ -112,3 +112,8 @@ func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 	}
 	return safehttp.NotWritten()
 }
+
+// OnError is a no-op, required to satisfy the safehttp.Interceptor interface.
+func (it *Interceptor) OnError(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+	return safehttp.NotWritten()
+}
