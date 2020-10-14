@@ -12,10 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package xsrf provides a safehttp.Interceptor that ensures Cross-Site Request
-// Forgery protection by verifying the incoming requests, rejecting those
-// requests that are suspected to be part of an attack.
-package xsrf
+package xsrfhtml
 
 import (
 	"context"
@@ -23,6 +20,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/google/go-safeweb/safehttp/plugins/xsrf"
 
 	"github.com/google/go-safeweb/safehttp"
 	"golang.org/x/net/xsrftoken"
@@ -34,12 +32,6 @@ const (
 	TokenKey    = "xsrf-token"
 	cookieIDKey = "xsrf-cookie"
 )
-
-var statePreservingMethods = map[string]bool{
-	safehttp.MethodGet:     true,
-	safehttp.MethodHead:    true,
-	safehttp.MethodOptions: true,
-}
 
 // Interceptor implements XSRF protection.
 type Interceptor struct {
@@ -95,7 +87,7 @@ func addCookieID(w *safehttp.ResponseWriter) (*safehttp.Cookie, error) {
 // interceptor checks for the presence of the XSRF token in the request body
 // (expected to have been injected) and validates it.
 func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
-	needsValidation := !statePreservingMethods[r.Method()]
+	needsValidation := !xsrf.StatePreserving(r)
 	cookieID, err := r.Cookie(cookieIDKey)
 	if err != nil {
 		if needsValidation {
@@ -159,5 +151,10 @@ func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 	// TODO: what should happen if the XSRFToken key is not present in the
 	// tr.FuncMap?
 	tmplResp.FuncMap["XSRFToken"] = func() string { return tok }
+	return safehttp.NotWritten()
+}
+
+// OnError is a no-op, required to satisfy the safehttp.Interceptor interface.
+func (it *Interceptor) OnError(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
