@@ -51,7 +51,7 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 						Parse("<h1>{{ . }}</h1>")))
 				var data interface{}
 				data = "This is an actual heading, though."
-				return d.Write(w, safehttp.NewTemplateResponse(t, data, nil))
+				return d.Write(w, safehttp.TemplateResp(t, data, nil))
 			},
 			wantBody: "<h1>This is an actual heading, though.</h1>",
 		},
@@ -69,7 +69,7 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 				fm := map[string]interface{}{
 					"Token": func() string { return "Token-secret" },
 				}
-				return d.Write(w, safehttp.NewTemplateResponse(t, data, fm))
+				return d.Write(w, safehttp.TemplateResp(t, data, fm))
 			},
 			wantBody: `<form><input type="hidden" name="token" value="Token-secret">Content</form>`,
 		},
@@ -87,7 +87,7 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 				fm := map[string]interface{}{
 					"Nonce": func() string { return "Nonce-secret" },
 				}
-				return d.Write(w, safehttp.NewTemplateResponse(t, data, fm))
+				return d.Write(w, safehttp.TemplateResp(t, data, fm))
 			},
 			wantBody: `<script nonce="Nonce-secret" type="application/javascript">alert("script")</script><h1>Content</h1>`,
 		},
@@ -98,7 +98,7 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 				data := struct {
 					Field string `json:"field"`
 				}{Field: "myField"}
-				return d.Write(w, safehttp.NewJSONResponse(data))
+				return d.Write(w, safehttp.JSONResp(data))
 			},
 			wantBody: ")]}',\n{\"field\":\"myField\"}\n",
 		},
@@ -144,7 +144,7 @@ func TestDefaultDispatcherInvalidResponse(t *testing.T) {
 						Parse("<h1>{{ . }}</h1>")))
 				var data interface{}
 				data = "This is an actual heading, though."
-				return d.Write(w, safehttp.NewTemplateResponse(t, data, nil))
+				return d.Write(w, safehttp.TemplateResp(t, data, nil))
 			},
 			want: "",
 		},
@@ -152,7 +152,7 @@ func TestDefaultDispatcherInvalidResponse(t *testing.T) {
 			name: "Invalid JSON Response",
 			write: func(w http.ResponseWriter) error {
 				d := &safehttp.DefaultDispatcher{}
-				return d.Write(w, safehttp.NewJSONResponse(math.Inf(1)))
+				return d.Write(w, safehttp.JSONResp(math.Inf(1)))
 			},
 			want: ")]}',\n",
 		},

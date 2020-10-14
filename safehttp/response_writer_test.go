@@ -118,13 +118,13 @@ func TestResponseWriterUnsafeResponse(t *testing.T) {
 		{
 			name: "Invalid JSON Response",
 			write: func(w *safehttp.ResponseWriter) {
-				w.Write(safehttp.NewJSONResponse(math.Inf(1)))
+				w.Write(safehttp.JSONResp(math.Inf(1)))
 			},
 		},
 		{
 			name: "Unsafe Template Response",
 			write: func(w *safehttp.ResponseWriter) {
-				w.Write(safehttp.NewTemplateResponse(template.
+				w.Write(safehttp.TemplateResp(template.
 					Must(template.New("name").
 						Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.", nil))
 			},

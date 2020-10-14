@@ -59,20 +59,20 @@ type ErrorResponse struct {
 	Code StatusCode
 }
 
-// NewJSONResponse creates a JSON response from a data object. This should be a
+// JSONResp creates a JSONResponse from a data object. This should be a
 // valid JSON object that can be serialised and written to the
 // http.ResponseWriter using a JSON encoder.
-func NewJSONResponse(data interface{}) JSONResponse {
+func JSONResp(data interface{}) JSONResponse {
 	return JSONResponse{Data: data}
 }
 
-// NewTemplateResponse creates a TemplateResponse from a Template, its data and
+// TemplateResp creates a TemplateResponse from a Template, its data and
 // the name to function mappings. These will be pre-processed and then written
 // to the http.ResponseWriter, if deemed safe. If the funcMap is non-nil, its
 // elements will override the existing name to function mappings in the
 // template. An attempt to define a new name to function mapping that is not
 // already in the template will result in a panic.
-func NewTemplateResponse(t Template, data interface{}, funcMap map[string]interface{}) TemplateResponse {
+func TemplateResp(t Template, data interface{}, funcMap map[string]interface{}) TemplateResponse {
 	return TemplateResponse{
 		Template: &t,
 		Data:     &data,

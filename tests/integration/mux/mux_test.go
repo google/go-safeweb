@@ -48,7 +48,7 @@ func TestMuxDefaultDispatcher(t *testing.T) {
 		{
 			name: "Safe HTML Template Response",
 			handler: safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-				return w.Write(safehttp.NewTemplateResponse(safetemplate.
+				return w.Write(safehttp.TemplateResp(safetemplate.
 					Must(safetemplate.New("name").
 						Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.", nil))
 			}),
@@ -63,7 +63,7 @@ func TestMuxDefaultDispatcher(t *testing.T) {
 				data := struct {
 					Field string `json:"field"`
 				}{Field: "myField"}
-				return w.Write(safehttp.NewJSONResponse(data))
+				return w.Write(safehttp.JSONResp(data))
 			}),
 			wantHeaders: map[string][]string{
 				"Content-Type": {"application/json; charset=utf-8"},
@@ -110,7 +110,7 @@ func TestMuxDefaultDispatcherUnsafeResponses(t *testing.T) {
 		{
 			name: "Unsafe Template Response",
 			handler: safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-				return w.Write(safehttp.NewTemplateResponse(template.
+				return w.Write(safehttp.TemplateResp(template.
 					Must(template.New("name").
 						Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.", nil))
 			}),
@@ -118,7 +118,7 @@ func TestMuxDefaultDispatcherUnsafeResponses(t *testing.T) {
 		{
 			name: "Invalid JSON Response",
 			handler: safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-				return w.Write(safehttp.NewJSONResponse(math.Inf(1)))
+				return w.Write(safehttp.JSONResp(math.Inf(1)))
 			}),
 		},
 	}
