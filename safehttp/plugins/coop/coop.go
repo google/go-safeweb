@@ -96,6 +96,9 @@ func (it Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 }
 
 // OnError is a no-op, required to satisfy the safehttp.Interceptor interface.
+//
+// TODO: should OnError take as argument something that notifies it the commit
+// phase was already called?
 func (it Interceptor) OnError(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
