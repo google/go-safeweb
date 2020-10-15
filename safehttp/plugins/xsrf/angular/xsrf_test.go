@@ -12,10 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package xsrf provides a safehttp.Interceptor that ensures Cross-Site Request
-// Forgery protection by verifying the incoming requests, rejecting those
-// requests that are suspected to be part of an attack.
-package angularxsrf
+package xsrfangular
 
 import (
 	"github.com/google/go-cmp/cmp"
