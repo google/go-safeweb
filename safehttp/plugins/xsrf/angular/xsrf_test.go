@@ -27,7 +27,7 @@ const (
 	headerName = "X-XSRF-TOKEN"
 )
 
-func TestAngularAddCookie(t *testing.T) {
+func TestAddCookie(t *testing.T) {
 	req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
 	rec := safehttptest.NewResponseRecorder()
 	i := Default()
@@ -37,13 +37,13 @@ func TestAngularAddCookie(t *testing.T) {
 		t.Errorf("rec.Status(): got %v, want %v", got, want)
 	}
 
-	tokCookieDefaults := "Path=/; Max-Age=86400; Secure; SameSite=Strict"
+	wantCookie := "Path=/; Max-Age=86400; Secure; SameSite=Strict"
 	got := map[string][]string(rec.Header())["Set-Cookie"][0]
 	if !strings.Contains(got, i.TokenCookieName) {
 		t.Errorf("Set-Cookie header: %s not present", i.TokenCookieName)
 	}
-	if !strings.Contains(got, tokCookieDefaults) {
-		t.Errorf("Set-Cookie header: got %s, want defaults %s", got, tokCookieDefaults)
+	if !strings.Contains(got, wantCookie) {
+		t.Errorf("Set-Cookie header: got %q, want defaults %q", got, wantCookie)
 	}
 
 	if got, want := rec.Body(), ""; got != want {
@@ -51,7 +51,7 @@ func TestAngularAddCookie(t *testing.T) {
 	}
 }
 
-func TestAngularPostProtection(t *testing.T) {
+func TestPostProtection(t *testing.T) {
 	tests := []struct {
 		name       string
 		req        *safehttp.IncomingRequest
