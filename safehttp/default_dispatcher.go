@@ -45,8 +45,7 @@ func (DefaultDispatcher) ContentType(resp Response) (string, error) {
 	}
 }
 
-// Write writes the response to the http.ResponseWriter if it's deemed safe.
-// A safe response is either safe HTML, a JSON object or safe HTML template. It
+// Write writes the response to the http.ResponseWriter if it's deemed safe. It
 // returns a non-nil error if the response is deemed unsafe or if the writing
 // operation fails.
 //
