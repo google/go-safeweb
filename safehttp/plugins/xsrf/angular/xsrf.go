@@ -12,23 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package xsrf provides a safehttp.Interceptor that ensures Cross-Site Request
-// Forgery protection by verifying the incoming requests, rejecting those
-// requests that are suspected to be part of an attack.
-package angularxsrf
+package xsrfangular
 
 import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"github.com/google/go-safeweb/safehttp"
+	"github.com/google/go-safeweb/safehttp/plugins/xsrf"
 )
-
-var statePreservingMethods = map[string]bool{
-	safehttp.MethodGet:     true,
-	safehttp.MethodHead:    true,
-	safehttp.MethodOptions: true,
-}
 
 // Interceptor provides protection against Cross-Site Request Forgery attacks
 // for Angular's XHR requests.
@@ -40,24 +32,23 @@ type Interceptor struct {
 	// the same domain or subdomain, each application should set a unique name
 	// for the cookie.
 	TokenCookieName string
-	// TokenHeaderName is the name of the HTTP header that also holds the XSRF
-	// token.
+	// TokenHeaderName is the name of the HTTP header that holds the XSRF token.
 	TokenHeaderName string
 }
 
-// Before should be executed before directing the safehttp.IncomingRequest to
-// the handler to ensure it is not part of a Cross-Site Request Forgery attacks.
-//
-// It will check for the presence of a matching XSRF token, generated on the
+var _ safehttp.Interceptor = &Interceptor{}
+
+// Before checks for the presence of a matching XSRF token, generated on the
 // first page access, in both a cookie and a header. Their names should be set
 // when the Interceptor is created.
 func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
-	c, err := r.Cookie(it.TokenCookieName)
-	if err != nil {
-		if !statePreservingMethods[r.Method()] {
-			return w.WriteError(safehttp.StatusForbidden)
-		}
+	if xsrf.StatePreserving(r) {
 		return safehttp.NotWritten()
+	}
+
+	c, err := r.Cookie(it.TokenCookieName)
+	if err != nil || c.Value() == "" {
+		return w.WriteError(safehttp.StatusForbidden)
 	}
 
 	tok := r.Header.Get(it.TokenHeaderName)
@@ -68,7 +59,7 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 	return safehttp.NotWritten()
 }
 
-func (it *Interceptor) addAngularTokenCookie(w *safehttp.ResponseWriter) error {
+func (it *Interceptor) addTokenCookie(w *safehttp.ResponseWriter) error {
 	tok := make([]byte, 20)
 	if _, err := rand.Read(tok); err != nil {
 		return fmt.Errorf("crypto/rand.Read: %v", err)
@@ -89,22 +80,20 @@ func (it *Interceptor) addAngularTokenCookie(w *safehttp.ResponseWriter) error {
 	return nil
 }
 
-// Commit generates a cryptographically random cookie on the first state
+// Commit generates a cryptographically secure random cookie on the first state
 // preserving request (GET, HEAD or OPTION) and sets it in the response. On
 // every subsequent request the cookie is expected alongside a header that
 // matches its value.
 func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
-
-	_, err := r.Cookie(it.TokenCookieName)
-	if err == nil {
+	if c, err := r.Cookie(it.TokenCookieName); err == nil && c.Value() != "" {
 		return safehttp.NotWritten()
 	}
 
-	if !statePreservingMethods[r.Method()] {
+	if !xsrf.StatePreserving(r) {
 		return w.WriteError(safehttp.StatusForbidden)
 	}
 
-	err = it.addAngularTokenCookie(w)
+	err := it.addTokenCookie(w)
 	if err != nil {
 		// A 500 error is returned when the plugin fails to set the Set-Cookie
 		// header in the response writer as this is a server misconfiguration.

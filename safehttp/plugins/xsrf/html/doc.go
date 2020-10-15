@@ -12,21 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package xsrf contains helper functions for the safehttp.Interceptor that
-// provide protection against Cross-Site Request Forgery attacks.
-package xsrf
-
-import (
-	"github.com/google/go-safeweb/safehttp"
-)
-
-var statePreservingMethods = map[string]bool{
-	safehttp.MethodGet:     true,
-	safehttp.MethodHead:    true,
-	safehttp.MethodOptions: true,
-}
-
-// StatePreserving checks if the provided request is state preserving.
-func StatePreserving(r *safehttp.IncomingRequest) bool {
-	return statePreservingMethods[r.Method()]
-}
+// Package xsrfhtml provides a safehttp.Interceptor that ensures Cross-Site
+// Request Forgery protection for HTML pages by verifying the incoming requests,
+// rejecting those requests that are suspected to be part of an attack.
+package xsrfhtml

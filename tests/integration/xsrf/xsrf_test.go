@@ -20,14 +20,14 @@ import (
 	"testing"
 
 	"github.com/google/go-safeweb/safehttp"
-	"github.com/google/go-safeweb/safehttp/plugins/xsrf"
+	"github.com/google/go-safeweb/safehttp/plugins/xsrf/html"
 	"github.com/google/go-safeweb/safehttp/safehttptest"
 	"github.com/google/safehtml/template"
 )
 
 func TestServeMuxInstallXSRF(t *testing.T) {
 	mb := &safehttp.ServeMuxConfig{}
-	it := xsrf.Interceptor{SecretAppKey: "testSecretAppKey"}
+	it := xsrfhtml.Interceptor{SecretAppKey: "testSecretAppKey"}
 	mb.Intercept(&it)
 
 	var token string
@@ -40,7 +40,7 @@ func TestServeMuxInstallXSRF(t *testing.T) {
 		// handler can retrieve the XSRF token (e.g. for when the XSRF plugin is
 		// installed, but auto-injection isn't yet supported and has to be done
 		// manually by the handler).
-		token, err = xsrf.Token(r)
+		token, err = xsrfhtml.Token(r)
 		t := template.Must(template.New("name").Funcs(fns).Parse(`<form><input type="hidden" name="token" value="{{XSRFToken}}">{{.}}</form>`))
 
 		return w.WriteTemplate(t, "Content")
@@ -55,7 +55,7 @@ func TestServeMuxInstallXSRF(t *testing.T) {
 	mb.Mux().ServeHTTP(rr, req)
 
 	if err != nil {
-		t.Fatalf("xsrf.Token: got error %v", err)
+		t.Fatalf("xsrfhtml.Token: got error %v", err)
 	}
 
 	if token == "" {
