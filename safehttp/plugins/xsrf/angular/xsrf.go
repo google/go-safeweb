@@ -28,15 +28,24 @@ import (
 // See https://docs.angularjs.org/api/ng/service/$http#cross-site-request-forgery-xsrf-protection for more details.
 type Interceptor struct {
 	// TokenCookieName is the name of the seesion cookie that holds the XSRF
-	// token. In order to prevent collisions when multiple applications share
-	// the same domain or subdomain, each application should set a unique name
-	// for the cookie.
+	// token.
 	TokenCookieName string
 	// TokenHeaderName is the name of the HTTP header that holds the XSRF token.
 	TokenHeaderName string
 }
 
 var _ safehttp.Interceptor = &Interceptor{}
+
+// Default creates an Interceptor with TokenCookieName set to XSRF-TOKEN and
+// TokenHeaderName set to X-XSRF-TOKEN, their default values. However, in order
+// to prevent collisions when multiple applications share the same domain or
+// subdomain, each application should set a unique name for the cookie.
+func Default() *Interceptor {
+	return &Interceptor{
+		TokenCookieName: "XSRF-TOKEN",
+		TokenHeaderName: "X-XSRF-TOKEN",
+	}
+}
 
 // Before checks for the presence of a matching XSRF token, generated on the
 // first page access, in both a cookie and a header. Their names should be set
@@ -53,6 +62,10 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 
 	tok := r.Header.Get(it.TokenHeaderName)
 	if tok == "" || tok != c.Value() {
+		// Only JavaScript running on the user domain can read the
+		// cookie and correctly set the token header. Hence, if the same token
+		// is found in both the cookie and the header, this guarantees the
+		// request came from the user's domain.
 		return w.WriteError(safehttp.StatusUnauthorized)
 	}
 
