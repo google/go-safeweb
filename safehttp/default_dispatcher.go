@@ -47,8 +47,16 @@ func (DefaultDispatcher) ContentType(resp Response) (string, error) {
 
 // Write writes the response to the http.ResponseWriter if it's deemed safe.
 // A safe response is either safe HTML, a JSON object or safe HTML template. It
-// will  return a non-nil error if the response is deemed unsafe or if writing
+// returns a non-nil error if the response is deemed unsafe or if the writing
 // operation fails.
+//
+// For JSONResponses, the underlying object is serialised and written if it's a
+// valid JSON.
+//
+// For TemplateResponses, the parsed template is applied to the provided data
+// object. If the funcMap is non-nil, its elements override the  existing names
+// to functions mappings in the template. An attempt to define a new name to
+// function mapping that is not already in the template will result  in a panic.
 func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 	switch x := resp.(type) {
 	case JSONResponse:
