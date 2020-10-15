@@ -13,6 +13,7 @@
 // limitations under the License.
 
 // Package xsrfhtml provides a safehttp.Interceptor that ensures Cross-Site
-// Request Forgery protection for HTML pages by verifying the incoming requests,
-// rejecting those requests that are suspected to be part of an attack.
+// Request Forgery by verifying the incoming requests for the presence of an
+// XSRF token, rejecting those requests that are suspected to be part of an
+// attack.
 package xsrfhtml

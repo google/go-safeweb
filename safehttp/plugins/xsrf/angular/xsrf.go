@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/plugins/xsrf"
-	"strconv"
 	"time"
 )
 
@@ -29,7 +28,7 @@ import (
 //
 // See https://docs.angularjs.org/api/ng/service/$http#cross-site-request-forgery-xsrf-protection for more details.
 type Interceptor struct {
-	// TokenCookieName is the name of the seesion cookie that holds the XSRF
+	// TokenCookieName is the name of the session cookie that holds the XSRF
 	// token.
 	TokenCookieName string
 	// TokenHeaderName is the name of the HTTP header that holds the XSRF token.
@@ -66,10 +65,9 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 
 	tok := r.Header.Get(it.TokenHeaderName)
 	if tok == "" || tok != c.Value() {
-		// Only JavaScript running on the user domain can read the
-		// cookie and correctly set the token header. Hence, if the same token
-		// is found in both the cookie and the header, this guarantees the
-		// request came from the user's domain.
+		// JavaScript has access only to cookies from the domain it's running
+		// on. Hence, if the same token is found in both the cookie and the
+		// header, the request can be trusted.
 		return w.WriteError(safehttp.StatusUnauthorized)
 	}
 
@@ -85,15 +83,10 @@ func (it *Interceptor) addTokenCookie(w *safehttp.ResponseWriter) error {
 
 	c.SetSameSite(safehttp.SameSiteStrictMode)
 	c.SetPath("/")
-	d := 24 * time.Hour
-	timeout, err := strconv.Atoi(fmt.Sprintf("%.0f", d.Seconds()))
-	if err != nil {
-		return err
-	}
-	// Set the duration of the token cookie to 24 hours.
-	c.SetMaxAge(timeout)
+	day := 24 * time.Hour
+	c.SetMaxAge(int(day.Seconds()))
 	// Needed in order to make the cookie accessible by JavaScript
-	// running on the user's domain.
+	// running on the same domain.
 	c.DisableHTTPOnly()
 
 	if err := w.SetCookie(c); err != nil {
@@ -108,17 +101,19 @@ func (it *Interceptor) addTokenCookie(w *safehttp.ResponseWriter) error {
 // matches its value.
 func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	if c, err := r.Cookie(it.TokenCookieName); err == nil && c.Value() != "" {
+		// The XSRF cookie is there so we don't need to do anything else.
 		return safehttp.NotWritten()
 	}
 
 	if !xsrf.StatePreserving(r) {
-		return w.WriteError(safehttp.StatusForbidden)
+		// This should never happen as, if this is a state-changing request and
+		// it lacks the cookie, it would've been already rejected by Before.
+		return w.WriteError(safehttp.StatusInternalServerError)
 	}
 
 	err := it.addTokenCookie(w)
 	if err != nil {
-		// A 500 error is returned when the plugin fails to set the Set-Cookie
-		// header in the response writer as this is a server misconfiguration.
+		// This is a server misconfiguration.
 		return w.WriteError(safehttp.StatusInternalServerError)
 	}
 	return safehttp.NotWritten()
