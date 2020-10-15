@@ -30,10 +30,7 @@ const (
 func TestAngularAddCookie(t *testing.T) {
 	req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
 	rec := safehttptest.NewResponseRecorder()
-	i := &Interceptor{
-		TokenCookieName: cookieName,
-		TokenHeaderName: headerName,
-	}
+	i := Default()
 	i.Commit(rec.ResponseWriter, req, nil, nil)
 
 	if got, want := rec.Status(), safehttp.StatusOK; got != want {
@@ -122,10 +119,7 @@ func TestAngularPostProtection(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			rec := safehttptest.NewResponseRecorder()
-			i := &Interceptor{
-				TokenCookieName: cookieName,
-				TokenHeaderName: headerName,
-			}
+			i := Default()
 			i.Before(rec.ResponseWriter, test.req, nil)
 
 			if got := rec.Status(); got != test.wantStatus {
