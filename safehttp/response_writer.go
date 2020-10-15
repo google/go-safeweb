@@ -66,8 +66,10 @@ func NotWritten() Result {
 	return Result{}
 }
 
-// Write dispatches the response to the Dispatcher. This will be written to the
-// underlying http.ResponseWriter if the Dispatcher decides it's safe to do so.
+// Write dispatches the response to the Dispatcher after setting the
+// Content-Type header and the status code to safehttp.StatusOK. This is
+// written to the underlying http.ResponseWriter if the Dispatcher decides it's
+// safe to do so.
 //
 // TODO: replace panics with proper error handling when writing the response fails.
 func (w *ResponseWriter) Write(resp Response) Result {
@@ -87,6 +89,39 @@ func (w *ResponseWriter) Write(resp Response) Result {
 	}
 	w.rw.Header().Set("Content-Type", ct)
 	w.rw.WriteHeader(int(StatusOK))
+
+	if err := w.d.Write(w.rw, resp); err != nil {
+		panic(err)
+	}
+	return Result{}
+}
+
+// WriteCode sets the Content-Type header and the status code of a response to
+// code and then dispatches the response to the Dispatcher. This is
+// written to the underlying http.ResponseWriter if the Dispatcher decides it's
+// safe to do so.
+//
+// TODO(empijei@, kele@, maramihali@): decide what the behaviour of this
+// function should be if the function is called with an invalid or a
+// 4XX-5XX status code as the error phase and ResponseWriter.WriteError should
+// be called in that situation.
+func (w *ResponseWriter) WriteCode(resp Response, code StatusCode) Result {
+	if w.written {
+		panic("ResponseWriter was already written to")
+	}
+	w.handler.commitPhase(w, resp)
+	if w.written {
+		return Result{}
+	}
+
+	w.markWritten()
+
+	ct, err := w.d.ContentType(resp)
+	if err != nil {
+		panic(err)
+	}
+	w.rw.Header().Set("Content-Type", ct)
+	w.rw.WriteHeader(int(code))
 
 	if err := w.d.Write(w.rw, resp); err != nil {
 		panic(err)

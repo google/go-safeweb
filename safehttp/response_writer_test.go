@@ -144,3 +144,19 @@ func TestResponseWriterUnsafeResponse(t *testing.T) {
 		})
 	}
 }
+
+func TestResponseWriterCustomStatusCode(t *testing.T) {
+	b := &strings.Builder{}
+	testRw := safehttptest.NewTestResponseWriter(b)
+	w := safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, testRw, nil)
+
+	w.WriteCode(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"), safehttp.StatusAccepted)
+
+	if got, want := testRw.Status(), safehttp.StatusAccepted; got != want {
+		t.Errorf("testRw.Status(): got %v want %v", got, want)
+	}
+
+	if got, want := b.String(), "&lt;h1&gt;Escaped, so not really a heading&lt;/h1&gt;"; got != want {
+		t.Errorf("response body: got %q want %q", got, want)
+	}
+}
