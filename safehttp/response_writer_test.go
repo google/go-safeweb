@@ -95,9 +95,10 @@ func TestResponseWriterWriteTwicePanic(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, safehttptest.NewTestResponseWriter(&strings.Builder{}), nil)
 			defer func() {
-				if r := recover(); r == nil {
-					t.Errorf("tt.write(w) expected panic")
+				if r := recover(); r != nil {
+					return
 				}
+				t.Errorf("tt.write(w) expected panic")
 			}()
 			tt.write(w)
 		})
@@ -118,15 +119,15 @@ func TestResponseWriterUnsafeResponse(t *testing.T) {
 		{
 			name: "Invalid JSON Response",
 			write: func(w *safehttp.ResponseWriter) {
-				w.Write(safehttp.JSONResp(math.Inf(1)))
+				safehttp.WriteJSON(w, math.Inf(1))
 			},
 		},
 		{
 			name: "Unsafe Template Response",
 			write: func(w *safehttp.ResponseWriter) {
-				w.Write(safehttp.TemplateResp(template.
+				safehttp.ExecuteTemplate(w, template.
 					Must(template.New("name").
-						Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.", nil))
+						Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
 			},
 		},
 	}

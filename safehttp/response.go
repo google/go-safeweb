@@ -29,6 +29,13 @@ type JSONResponse struct {
 	Data interface{}
 }
 
+// WriteJSON creates a JSONResponse from the data object and calls the Write
+// function of the ResponseWriter, passing the response. The data object should
+// be valid JSON, otherwise an error will occur.
+func WriteJSON(w *ResponseWriter, data interface{}) Result {
+	return w.Write(JSONResponse{data})
+}
+
 // Template implements a template.
 type Template interface {
 	// Execute applies data to the template and then writes the result to
@@ -48,6 +55,20 @@ type TemplateResponse struct {
 	FuncMap  map[string]interface{}
 }
 
+// ExecuteTemplate creates a TemplateResponse from the provided Template and its
+// data and calls the Write function of the ResponseWriter, passing the
+// response.
+func ExecuteTemplate(w *ResponseWriter, t Template, data interface{}) Result {
+	return w.Write(TemplateResponse{t, data, nil})
+}
+
+// ExecuteTemplateWithFuncs creates a TemplateResponse from the provided
+// Template, its data and the name to function mappings and calls the Write
+// function of the ResponseWriter, passing the response.
+func ExecuteTemplateWithFuncs(w *ResponseWriter, t Template, data interface{}, fm map[string]interface{}) Result {
+	return w.Write(TemplateResponse{t, data, fm})
+}
+
 // NoContentResponse is sent to the commit phase when it's initiated from
 // ResponseWriter.NoContent.
 type NoContentResponse struct{}
@@ -57,25 +78,4 @@ type NoContentResponse struct{}
 // method was called.
 type ErrorResponse struct {
 	Code StatusCode
-}
-
-// JSONResp creates a JSONResponse from a data object. This should be a
-// valid JSON object that can be serialised and written to the
-// http.ResponseWriter using a JSON encoder.
-func JSONResp(data interface{}) JSONResponse {
-	return JSONResponse{Data: data}
-}
-
-// TemplateResp creates a TemplateResponse from a Template, its data and
-// the name to function mappings. These will be pre-processed and then written
-// to the http.ResponseWriter, if deemed safe. If the funcMap is non-nil, its
-// elements will override the existing name to function mappings in the
-// template. An attempt to define a new name to function mapping that is not
-// already in the template will result in a panic.
-func TemplateResp(t Template, data interface{}, funcMap map[string]interface{}) TemplateResponse {
-	return TemplateResponse{
-		Template: t,
-		Data:     data,
-		FuncMap:  funcMap,
-	}
 }

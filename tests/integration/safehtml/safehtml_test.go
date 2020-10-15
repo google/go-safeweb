@@ -49,7 +49,7 @@ func TestHandleRequestWrite(t *testing.T) {
 func TestHandleRequestWriteTemplate(t *testing.T) {
 	mb := &safehttp.ServeMuxConfig{}
 	mb.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw *safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
-		return rw.Write(safehttp.TemplateResp(template.Must(template.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.", nil))
+		return safehttp.ExecuteTemplate(rw, template.Must(template.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
 	}))
 
 	req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/", nil)
