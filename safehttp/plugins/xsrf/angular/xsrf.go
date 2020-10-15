@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/plugins/xsrf"
+	"strconv"
+	"time"
 )
 
 // Interceptor provides protection against Cross-Site Request Forgery attacks
@@ -40,6 +42,8 @@ var _ safehttp.Interceptor = &Interceptor{}
 // TokenHeaderName set to X-XSRF-TOKEN, their default values. However, in order
 // to prevent collisions when multiple applications share the same domain or
 // subdomain, each application should set a unique name for the cookie.
+//
+// See https://docs.angularjs.org/api/ng/service/$http#cross-site-request-forgery-xsrf-protection for more details.
 func Default() *Interceptor {
 	return &Interceptor{
 		TokenCookieName: "XSRF-TOKEN",
@@ -81,8 +85,13 @@ func (it *Interceptor) addTokenCookie(w *safehttp.ResponseWriter) error {
 
 	c.SetSameSite(safehttp.SameSiteStrictMode)
 	c.SetPath("/")
+	d := 24 * time.Hour
+	timeout, err := strconv.Atoi(fmt.Sprintf("%.0f", d.Seconds()))
+	if err != nil {
+		return err
+	}
 	// Set the duration of the token cookie to 24 hours.
-	c.SetMaxAge(86400)
+	c.SetMaxAge(timeout)
 	// Needed in order to make the cookie accessible by JavaScript
 	// running on the user's domain.
 	c.DisableHTTPOnly()
