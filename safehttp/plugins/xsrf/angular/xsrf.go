@@ -89,10 +89,7 @@ func (it *Interceptor) addTokenCookie(w *safehttp.ResponseWriter) error {
 	// running on the same domain.
 	c.DisableHTTPOnly()
 
-	if err := w.SetCookie(c); err != nil {
-		return err
-	}
-	return nil
+	return w.SetCookie(c)
 }
 
 // Commit generates a cryptographically secure random cookie on the first state
