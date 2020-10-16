@@ -28,26 +28,76 @@ const (
 )
 
 func TestAddCookie(t *testing.T) {
+	tests := []struct {
+		name, cookie string
+		it           *Interceptor
+	}{
+		{
+			name: "Default interceptor",
+			it: func() *Interceptor {
+				return Default()
+			}(),
+			cookie: cookieName,
+		},
+		{
+			name: "Custom interceptor",
+			it: func() *Interceptor {
+				return &Interceptor{
+					TokenCookieName: "FOO-TOKEN",
+					TokenHeaderName: "X-FOO-TOKEN",
+				}
+			}(),
+			cookie: "FOO-TOKEN",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
+			rec := safehttptest.NewResponseRecorder()
+			test.it.Commit(rec.ResponseWriter, req, nil, nil)
+
+			if got, want := rec.Status(), safehttp.StatusOK; got != want {
+				t.Errorf("rec.Status(): got %v, want %v", got, want)
+			}
+
+			wantCookie := "Path=/; Max-Age=86400; Secure; SameSite=Strict"
+			got := map[string][]string(rec.Header())["Set-Cookie"][0]
+			if !strings.Contains(got, test.cookie) {
+				t.Errorf("Set-Cookie header: %s not present", test.cookie)
+			}
+			if !strings.Contains(got, wantCookie) {
+				t.Errorf("Set-Cookie header: got %q, want defaults %q", got, wantCookie)
+			}
+
+			if got, want := rec.Body(), ""; got != want {
+				t.Errorf("rec.Body(): got %q want %q", got, want)
+			}
+
+		})
+	}
+}
+
+func TestAddCookieFail(t *testing.T) {
 	req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
 	rec := safehttptest.NewResponseRecorder()
-	i := Default()
-	i.Commit(rec.ResponseWriter, req, nil, nil)
+	it := &Interceptor{}
+	it.Commit(rec.ResponseWriter, req, nil, nil)
 
-	if got, want := rec.Status(), safehttp.StatusOK; got != want {
-		t.Errorf("rec.Status(): got %v, want %v", got, want)
+	if wantStatus := safehttp.StatusInternalServerError; rec.Status() != wantStatus {
+		t.Errorf("rec.Status(): got %v want %v", rec.Status(), wantStatus)
 	}
 
-	wantCookie := "Path=/; Max-Age=86400; Secure; SameSite=Strict"
-	got := map[string][]string(rec.Header())["Set-Cookie"][0]
-	if !strings.Contains(got, i.TokenCookieName) {
-		t.Errorf("Set-Cookie header: %s not present", i.TokenCookieName)
+	wantHeaders := map[string][]string{
+		"Content-Type":           {"text/plain; charset=utf-8"},
+		"X-Content-Type-Options": {"nosniff"},
 	}
-	if !strings.Contains(got, wantCookie) {
-		t.Errorf("Set-Cookie header: got %q, want defaults %q", got, wantCookie)
+	if diff := cmp.Diff(wantHeaders, map[string][]string(rec.Header())); diff != "" {
+		t.Errorf("rec.Header(): mismatch (-want +got):\n%s", diff)
 	}
 
-	if got, want := rec.Body(), ""; got != want {
-		t.Errorf("rec.Body(): got %q want %q", got, want)
+	if wantBody, gotBody := "Internal Server Error\n", rec.Body(); wantBody != gotBody {
+		t.Errorf("response body: got %v, want %v", gotBody, wantBody)
 	}
 }
 
