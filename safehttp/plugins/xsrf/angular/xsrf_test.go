@@ -33,20 +33,16 @@ func TestAddCookie(t *testing.T) {
 		it           *Interceptor
 	}{
 		{
-			name: "Default interceptor",
-			it: func() *Interceptor {
-				return Default()
-			}(),
+			name:   "Default interceptor",
+			it:     Default(),
 			cookie: cookieName,
 		},
 		{
 			name: "Custom interceptor",
-			it: func() *Interceptor {
-				return &Interceptor{
-					TokenCookieName: "FOO-TOKEN",
-					TokenHeaderName: "X-FOO-TOKEN",
-				}
-			}(),
+			it: &Interceptor{
+				TokenCookieName: "FOO-TOKEN",
+				TokenHeaderName: "X-FOO-TOKEN",
+			},
 			cookie: "FOO-TOKEN",
 		},
 	}
