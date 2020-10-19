@@ -167,6 +167,9 @@ func (w *ResponseWriter) SetCookie(c *Cookie) error {
 // invalid status code is passed (i.e. not in the range 1XX-5XX) or if the
 // response has already been written.
 //
+// If SetCode was called before NoContent, Redirect or WriteError, the status
+// code set by the latter will be the actual response status.
+//
 // TODO(empijei@, kele@, maramihali@): decide what should be done if the
 // code passed is either 3XX (redirect) or 4XX-5XX (client/server error).
 func (w *ResponseWriter) SetCode(code StatusCode) {
