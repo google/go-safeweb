@@ -28,8 +28,7 @@ import (
 //
 // See https://docs.angularjs.org/api/ng/service/$http#cross-site-request-forgery-xsrf-protection for more details.
 type Interceptor struct {
-	// TokenCookieName is the name of the session cookie that holds the XSRF
-	// token.
+	// TokenCookieName is the name of the session cookie that holds the XSRF token.
 	TokenCookieName string
 	// TokenHeaderName is the name of the HTTP header that holds the XSRF token.
 	TokenHeaderName string
@@ -108,8 +107,7 @@ func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 		return w.WriteError(safehttp.StatusInternalServerError)
 	}
 
-	err := it.addTokenCookie(w)
-	if err != nil {
+	if err := it.addTokenCookie(w); err != nil {
 		// This is a server misconfiguration.
 		return w.WriteError(safehttp.StatusInternalServerError)
 	}
