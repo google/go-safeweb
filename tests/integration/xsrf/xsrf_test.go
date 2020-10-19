@@ -30,17 +30,10 @@ func TestServeMuxInstallXSRF(t *testing.T) {
 	it := xsrfhtml.Interceptor{SecretAppKey: "testSecretAppKey"}
 	mb.Intercept(&it)
 
-	var token string
-	var err error
 	handler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		fns := map[string]interface{}{
 			"XSRFToken": func() string { return "WrongToken" },
 		}
-		// These are not used in the handler, just recorded to test whether the
-		// handler can retrieve the XSRF token (e.g. for when the XSRF plugin is
-		// installed, but auto-injection isn't yet supported and has to be done
-		// manually by the handler).
-		token, err = xsrfhtml.Token(r)
 		t := template.Must(template.New("name").Funcs(fns).Parse(`<form><input type="hidden" name="token" value="{{XSRFToken}}">{{.}}</form>`))
 
 		return safehttp.ExecuteTemplateWithFuncs(w, t, "Content", fns)
@@ -54,22 +47,12 @@ func TestServeMuxInstallXSRF(t *testing.T) {
 
 	mb.Mux().ServeHTTP(rr, req)
 
-	if err != nil {
-		t.Fatalf("xsrfhtml.Token: got error %v", err)
-	}
-
-	if token == "" {
-		t.Fatalf("csp.Nonce: got %q, want non-empty", token)
-	}
-
 	if got, want := rr.Status(), safehttp.StatusOK; got != want {
 		t.Errorf("rr.Status() got: %v want: %v", got, want)
 	}
 
-	wantBody := `<form><input type="hidden" name="token" value="` +
-		token + `">Content</form>`
-	if gotBody := b.String(); gotBody != wantBody {
-		t.Errorf("response body: got %q, want token %q", gotBody, wantBody)
+	if gotBody := b.String(); strings.Contains(gotBody, "WrongToken") {
+		t.Errorf("response body: got %q, injection failed", gotBody)
 	}
 
 }
