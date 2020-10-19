@@ -166,6 +166,30 @@ func TestResponseWriterStatusCode(t *testing.T) {
 			},
 			wantStatus: safehttp.StatusPartialContent,
 		},
+		{
+			name: "SetCode then NoContent",
+			write: func(w *safehttp.ResponseWriter) {
+				w.SetCode(safehttp.StatusPartialContent)
+				w.NoContent()
+			},
+			wantStatus: safehttp.StatusNoContent,
+		},
+		{
+			name: "SetCode then Redirect",
+			write: func(w *safehttp.ResponseWriter) {
+				w.SetCode(safehttp.StatusPartialContent)
+				w.Redirect(safehttptest.NewRequest(safehttp.MethodGet, "/", nil), "", safehttp.StatusTemporaryRedirect)
+			},
+			wantStatus: safehttp.StatusTemporaryRedirect,
+		},
+		{
+			name: "SetCode then WriteError",
+			write: func(w *safehttp.ResponseWriter) {
+				w.SetCode(safehttp.StatusPartialContent)
+				w.WriteError(safehttp.StatusInsufficientStorage)
+			},
+			wantStatus: safehttp.StatusInsufficientStorage,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
