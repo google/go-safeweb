@@ -15,15 +15,12 @@
 package xsrfhtml
 
 import (
-	"context"
 	"crypto/rand"
 	"encoding/base64"
-	"errors"
 	"fmt"
+	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/plugins/htmlinject"
 	"github.com/google/go-safeweb/safehttp/plugins/xsrf"
-
-	"github.com/google/go-safeweb/safehttp"
 	"golang.org/x/net/xsrftoken"
 )
 
@@ -43,18 +40,6 @@ type Interceptor struct {
 
 var _ safehttp.Interceptor = &Interceptor{}
 
-type tokenCtxKey struct{}
-
-// Token extracts the XSRF token from the incoming request. If it is not
-// present, it returns a non-nil error.
-func Token(r *safehttp.IncomingRequest) (string, error) {
-	tok := r.Context().Value(tokenCtxKey{})
-	if tok == nil {
-		return "", errors.New("xsrf token not found")
-	}
-	return tok.(string), nil
-}
-
 func addCookieID(w *safehttp.ResponseWriter) (*safehttp.Cookie, error) {
 	buf := make([]byte, 20)
 	if _, err := rand.Read(buf); err != nil {
@@ -69,86 +54,75 @@ func addCookieID(w *safehttp.ResponseWriter) (*safehttp.Cookie, error) {
 	return c, nil
 }
 
-// Before should be executed before directing the safehttp.IncomingRequest to
-// the handler to ensure it is not part of a Cross-Site Request
-// Forgery attack.
-//
-// On first user visit through a state preserving request (GET, HEAD or
-// OPTIONS), a nonce-based cookie will be set in the response as a way to
-// distinguish between users and prevent pre-login XSRF attacks. The cookie will
-// be used in the token generation and verification algorithm and is expected to
-// be present in all subsequent incoming requests.
-//
-// For every authorized request, the interceptor will also generate a
-// cryptographically-safe XSRF token using the appKey, the cookie and the path
-// visited. This can be later extracted using Token and should be injected as a
-// hidden input field in HTML forms.
-//
-// In case of state changing requests (all except GET, HEAD and OPTIONS), the
-// interceptor checks for the presence of the XSRF token in the request body
-// (expected to have been injected) and validates it.
+// Before checks for the presence of a XSRF token in the body of state changing
+// requests (all except GET, HEAD and OPTIONS) and validates it.
 func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
-	needsValidation := !xsrf.StatePreserving(r)
+	if xsrf.StatePreserving(r) {
+		return safehttp.NotWritten()
+	}
+
 	cookieID, err := r.Cookie(cookieIDKey)
 	if err != nil {
-		if needsValidation {
-			return w.WriteError(safehttp.StatusForbidden)
+		return w.WriteError(safehttp.StatusForbidden)
+	}
+
+	f, err := r.PostForm()
+	if err != nil {
+		// We fallback to checking whether the form is multipart. Both types
+		// are valid in an incoming request as long as the XSRF token is
+		// present.
+		mf, err := r.MultipartForm(32 << 20)
+		if err != nil {
+			return w.WriteError(safehttp.StatusBadRequest)
+		}
+		f = &mf.Form
+	}
+
+	tok := f.String(TokenKey, "")
+	if f.Err() != nil || tok == "" {
+		return w.WriteError(safehttp.StatusUnauthorized)
+	}
+
+	if ok := xsrftoken.Valid(tok, it.SecretAppKey, cookieID.Value(), r.URL.Path()); !ok {
+		return w.WriteError(safehttp.StatusForbidden)
+	}
+
+	return safehttp.NotWritten()
+}
+
+// Commit adds XSRF protection in the response, so the interceptor can
+// distinguish between subsequent requests coming from an authorized user and
+// requests that are potentially part of a Cross-Site Request Forgery attack.
+//
+// On first user visit through a state preserving request (GET, HEAD or
+// OPTIONS), a nonce-based cookie is set in the response as a way to
+// distinguish between users and prevent pre-login XSRF attacks. The cookie is
+// then used in the token generation and verification algorithm and is expected
+// to be present in all subsequent incoming requests.
+//
+// For every authorized request, the interceptor also generates a
+// cryptographically-safe XSRF token using the appKey, the cookie and the path
+// visited. This is then injected as a hidden input field in HTML forms.
+func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+	cookieID, err := r.Cookie(cookieIDKey)
+	if err != nil {
+		if !xsrf.StatePreserving(r) {
+			// This should never happen as, if this is a state-changing request and it lacks the cookie, it would've been already rejected by Before.
+			return w.WriteError(safehttp.StatusInternalServerError)
 		}
 		cookieID, err = addCookieID(w)
 		if err != nil {
-			// An error is returned when the plugin fails to Set the Set-Cookie
-			// header in the response writer as this is a server misconfiguration.
+			// This is a server misconfiguration.
 			return w.WriteError(safehttp.StatusInternalServerError)
 		}
 	}
 
-	actionID := r.URL.Path()
-	if needsValidation {
-		f, err := r.PostForm()
-		if err != nil {
-			// We fallback to checking whether the form is multipart. Both types
-			// are valid in an incoming request as long as the XSRF token is
-			// present.
-			mf, err := r.MultipartForm(32 << 20)
-			if err != nil {
-				return w.WriteError(safehttp.StatusBadRequest)
-			}
-			f = &mf.Form
-		}
-
-		tok := f.String(TokenKey, "")
-		if f.Err() != nil || tok == "" {
-			return w.WriteError(safehttp.StatusUnauthorized)
-		}
-
-		if ok := xsrftoken.Valid(tok, it.SecretAppKey, cookieID.Value(), actionID); !ok {
-			return w.WriteError(safehttp.StatusForbidden)
-		}
-	}
-
-	tok := xsrftoken.Generate(it.SecretAppKey, cookieID.Value(), actionID)
-	r.SetContext(context.WithValue(r.Context(), tokenCtxKey{}, tok))
-	return safehttp.NotWritten()
-}
-
-// Commit adds the XSRF token corresponding to the safehttp.TemplateResponse
-// with key "XSRFToken". The token corresponds to the user information found in
-// the request.
-func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	tmplResp, ok := resp.(safehttp.TemplateResponse)
 	if !ok {
 		return safehttp.NotWritten()
 	}
 
-	tok, err := Token(r)
-	if err != nil {
-		// The token should have been added in the Before stage and if that is
-		// not the case, a server misconfiguration occured.
-		return w.WriteError(safehttp.StatusInternalServerError)
-	}
-
-	// TODO(maramihali@): Change the key when function names are exported by
-	// htmlinject
+	tok := xsrftoken.Generate(it.SecretAppKey, cookieID.Value(), r.URL.Path())
 	// TODO: what should happen if the XSRFToken key is not present in the
 	// tr.FuncMap?
 	tmplResp.FuncMap[htmlinject.XSRFTokensDefaultFuncName] = func() string { return tok }
