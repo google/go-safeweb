@@ -144,3 +144,78 @@ func TestResponseWriterUnsafeResponse(t *testing.T) {
 		})
 	}
 }
+
+func TestResponseWriterStatusCode(t *testing.T) {
+	tests := []struct {
+		name       string
+		write      func(w *safehttp.ResponseWriter)
+		wantStatus safehttp.StatusCode
+	}{
+		{
+			name: "Default status code",
+			write: func(w *safehttp.ResponseWriter) {
+				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
+			},
+			wantStatus: safehttp.StatusOK,
+		},
+		{
+			name: "Custom status code",
+			write: func(w *safehttp.ResponseWriter) {
+				w.SetCode(safehttp.StatusPartialContent)
+				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
+			},
+			wantStatus: safehttp.StatusPartialContent,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			testRw := safehttptest.NewTestResponseWriter(&strings.Builder{})
+			w := safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, testRw, nil)
+			tt.write(w)
+			if gotStatus := testRw.Status(); gotStatus != tt.wantStatus {
+				t.Errorf("tt.write(w): got %v, want %v", gotStatus, tt.wantStatus)
+			}
+		})
+	}
+}
+
+func TestResponseWriterInvalidStatusCode(t *testing.T) {
+	tests := []struct {
+		name  string
+		write func(w *safehttp.ResponseWriter)
+	}{
+		{
+			name: "Status code smaller than 100",
+			write: func(w *safehttp.ResponseWriter) {
+				w.SetCode(50)
+				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
+			},
+		},
+		{
+			name: "Status code bigger than 599",
+			write: func(w *safehttp.ResponseWriter) {
+				w.SetCode(1000)
+				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
+			},
+		},
+		{
+			name: "Status code set after write",
+			write: func(w *safehttp.ResponseWriter) {
+				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
+				w.SetCode(safehttp.StatusPartialContent)
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, safehttptest.NewTestResponseWriter(&strings.Builder{}), nil)
+			defer func() {
+				if r := recover(); r != nil {
+					return
+				}
+				t.Errorf("tt.write(w) expected panic")
+			}()
+			tt.write(w)
+		})
+	}
+}

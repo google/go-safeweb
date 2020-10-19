@@ -30,6 +30,7 @@ type ResponseWriter struct {
 
 	// Having this field unexported is essential for security. Otherwise one can
 	// easily overwrite the struct bypassing all our safety guarantees.
+	code    StatusCode
 	header  Header
 	handler handler
 	req     *IncomingRequest
@@ -86,7 +87,12 @@ func (w *ResponseWriter) Write(resp Response) Result {
 		panic(err)
 	}
 	w.rw.Header().Set("Content-Type", ct)
-	w.rw.WriteHeader(int(StatusOK))
+
+	if w.code != 0 {
+		w.rw.WriteHeader(int(w.code))
+	} else {
+		w.rw.WriteHeader(int(StatusOK))
+	}
 
 	if err := w.d.Write(w.rw, resp); err != nil {
 		panic(err)
@@ -155,6 +161,22 @@ func (w ResponseWriter) Header() Header {
 // returned.
 func (w *ResponseWriter) SetCookie(c *Cookie) error {
 	return w.header.addCookie(c)
+}
+
+// SetCode allows setting a response status. This method will panic if an
+// invalid status code is passed (i.e. not in the range 1XX-5XX) or if the
+// response has already been written.
+//
+// TODO(empijei@, kele@, maramihali@): decide what should be done if the
+// code passed is either 3XX (redirect) or 4XX-5XX (client/server error).
+func (w *ResponseWriter) SetCode(code StatusCode) {
+	if w.written {
+		panic("ResponseWriter was already written to")
+	}
+	if code < 100 || code >= 600 {
+		panic("invalid status code")
+	}
+	w.code = code
 }
 
 // Dispatcher is responsible for writing a response received from the
