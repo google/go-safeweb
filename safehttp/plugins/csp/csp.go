@@ -26,6 +26,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/google/go-safeweb/safehttp/plugins/htmlinject"
 	"strings"
 
 	"github.com/google/go-safeweb/safehttp"
@@ -235,7 +236,7 @@ func (it Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 	// htmlinject
 	// TODO: What should happen if the CSPNonce is not present in the
 	// tr.FuncMap?
-	tmplResp.FuncMap["CSPNonce"] = func() string { return nonce }
+	tmplResp.FuncMap[htmlinject.CSPNoncesDefaultFuncName] = func() string { return nonce }
 	return safehttp.NotWritten()
 }
 

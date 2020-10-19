@@ -20,6 +20,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/google/go-safeweb/safehttp/plugins/htmlinject"
 	"github.com/google/go-safeweb/safehttp/plugins/xsrf"
 
 	"github.com/google/go-safeweb/safehttp"
@@ -150,7 +151,7 @@ func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 	// htmlinject
 	// TODO: what should happen if the XSRFToken key is not present in the
 	// tr.FuncMap?
-	tmplResp.FuncMap["XSRFToken"] = func() string { return tok }
+	tmplResp.FuncMap[htmlinject.XSRFTokensDefaultFuncName] = func() string { return tok }
 	return safehttp.NotWritten()
 }
 
