@@ -163,9 +163,9 @@ func (w *ResponseWriter) SetCookie(c *Cookie) error {
 	return w.header.addCookie(c)
 }
 
-// SetCode allows setting a response status. This method will panic if an
-// invalid status code is passed (i.e. not in the range 1XX-5XX) or if the
-// response has already been written.
+// SetCode allows setting a response status. If the response was already
+// written, trying to set the status code will have no effect. This method will
+// panic if an invalid status code is passed (i.e. not in the range 1XX-5XX).
 //
 // If SetCode was called before NoContent, Redirect or WriteError, the status
 // code set by the latter will be the actual response status.
@@ -174,7 +174,7 @@ func (w *ResponseWriter) SetCookie(c *Cookie) error {
 // code passed is either 3XX (redirect) or 4XX-5XX (client/server error).
 func (w *ResponseWriter) SetCode(code StatusCode) {
 	if w.written {
-		panic("ResponseWriter was already written to")
+		return
 	}
 	if code < 100 || code >= 600 {
 		panic("invalid status code")
