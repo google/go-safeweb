@@ -265,7 +265,7 @@ func TestTransform(t *testing.T) {
 func TestLoadTrustedTemplateWithDefaultConfig(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := LoadConfig{DisableCsp: !tt.csp, DisableXsrf: !tt.xsrf}
+			cfg := LoadConfig{DisableCSP: !tt.csp, DisableXSRF: !tt.xsrf}
 			gotTpl, err := LoadTrustedTemplate(nil, cfg, uncheckedconversions.TrustedTemplateFromStringKnownToSatisfyTypeContract(tt.in))
 			if err != nil {
 				t.Fatalf("LoadTrustedTemplate: got err %q", err)

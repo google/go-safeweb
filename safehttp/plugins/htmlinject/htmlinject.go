@@ -123,10 +123,10 @@ func Transform(src io.Reader, cfg ...TransformConfig) (string, error) {
 
 // LoadConfig is a configuration to use with loaders when processing a template.
 type LoadConfig struct {
-	// DisableCsp disables CSP autononcing
-	DisableCsp bool
-	// DisableXsrf disables XSRF token injection
-	DisableXsrf bool
+	// DisableCSP disables CSP autononcing
+	DisableCSP bool
+	// DisableXSRF disables XSRF token injection
+	DisableXSRF bool
 }
 
 // LoadTrustedTemplate processes the given TrustedTemplate with the specified default configurations and
@@ -138,11 +138,11 @@ func LoadTrustedTemplate(tpl *template.Template, lcfg LoadConfig, src template.T
 		panic("this function should never be called, templates should be cloned and injected with the noncing functions, not executed directly")
 	}
 	funcMap := map[string]interface{}{}
-	if !lcfg.DisableCsp {
+	if !lcfg.DisableCSP {
 		cfg = append(cfg, CSPNoncesDefault)
 		funcMap[CSPNoncesDefaultFuncName] = noop
 	}
-	if !lcfg.DisableXsrf {
+	if !lcfg.DisableXSRF {
 		cfg = append(cfg, XSRFTokensDefault)
 		funcMap[XSRFTokensDefaultFuncName] = noop
 	}
