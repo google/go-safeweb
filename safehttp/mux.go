@@ -150,7 +150,7 @@ func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	m.mux.ServeHTTP(w, r)
 }
 
-// ServeMuxBuilder is a builder for ServeMux.
+// ServeMuxConfig is a builder for ServeMux.
 type ServeMuxConfig struct {
 	dispatcher   Dispatcher
 	handlers     []handlerRegistration
