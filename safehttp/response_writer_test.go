@@ -167,6 +167,14 @@ func TestResponseWriterStatusCode(t *testing.T) {
 			wantStatus: safehttp.StatusPartialContent,
 		},
 		{
+			name: "Status code set after Write",
+			write: func(w *safehttp.ResponseWriter) {
+				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
+				w.SetCode(safehttp.StatusPartialContent)
+			},
+			wantStatus: safehttp.StatusOK,
+		},
+		{
 			name: "SetCode then NoContent",
 			write: func(w *safehttp.ResponseWriter) {
 				w.SetCode(safehttp.StatusPartialContent)
@@ -220,13 +228,6 @@ func TestResponseWriterInvalidStatusCode(t *testing.T) {
 			write: func(w *safehttp.ResponseWriter) {
 				w.SetCode(1000)
 				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
-			},
-		},
-		{
-			name: "Status code set after write",
-			write: func(w *safehttp.ResponseWriter) {
-				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
-				w.SetCode(safehttp.StatusPartialContent)
 			},
 		},
 	}
