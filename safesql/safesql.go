@@ -39,8 +39,8 @@
 //
 // Explainer
 //
-// This package wraps the sql package and all methods that would normally take a `string` take a TrustedSQLString instead.
-// The constructor for TrustedSQLString takes a `stringConstant` as an argument, which is an unexported type constituted by a named string.
+// This package wraps the sql package and all methods that would normally take a string take a TrustedSQLString instead.
+// The constructor for TrustedSQLString takes a stringConstant as an argument, which is an unexported type constituted by a named string.
 // The only way for a package outside of safesql to construct a TrustedSQLString is thus to pass an untyped string (only const strings can be untyped) to the constructor.
 package safesql
 
