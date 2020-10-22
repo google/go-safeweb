@@ -8,5 +8,5 @@ import "time"
 
 // SetConnMaxIdleTime is a tiny wrapper for https://pkg.go.dev/sql#DB.SetConnMaxIdleTime
 func (db DB) SetConnMaxIdleTime(d time.Duration) {
-  db.db.SetConnMaxIdleTime(d)
+	db.db.SetConnMaxIdleTime(d)
 }
