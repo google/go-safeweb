@@ -21,64 +21,64 @@ import (
 	"time"
 )
 
-// Drivers is a tyny wrapper for https://pkg.go.dev/sql#Drivers
+// Drivers is a tiny wrapper for https://pkg.go.dev/sql#Drivers
 func Drivers() []string { return sql.Drivers() }
 
-// Register is a tyny wrapper for https://pkg.go.dev/sql#Register
+// Register is a tiny wrapper for https://pkg.go.dev/sql#Register
 func Register(name string, driver driver.Driver) { sql.Register(name, driver) }
 
-// ColumnType is a tyny wrapper for https://pkg.go.dev/sql#ColumnType
+// ColumnType is a tiny wrapper for https://pkg.go.dev/sql#ColumnType
 type ColumnType = sql.ColumnType
 
-// DBStats is a tyny wrapper for https://pkg.go.dev/sql#DBStats
+// DBStats is a tiny wrapper for https://pkg.go.dev/sql#DBStats
 type DBStats = sql.DBStats
 
-// IsolationLevel is a tyny wrapper for https://pkg.go.dev/sql#IsolationLevel
+// IsolationLevel is a tiny wrapper for https://pkg.go.dev/sql#IsolationLevel
 type IsolationLevel = sql.IsolationLevel
 
-// NamedArg is a tyny wrapper for https://pkg.go.dev/sql#NamedArg
+// NamedArg is a tiny wrapper for https://pkg.go.dev/sql#NamedArg
 type NamedArg = sql.NamedArg
 
-// NullBool is a tyny wrapper for https://pkg.go.dev/sql#NullBool
+// NullBool is a tiny wrapper for https://pkg.go.dev/sql#NullBool
 type NullBool = sql.NullBool
 
-// NullFloat64 is a tyny wrapper for https://pkg.go.dev/sql#NullFloat64
+// NullFloat64 is a tiny wrapper for https://pkg.go.dev/sql#NullFloat64
 type NullFloat64 = sql.NullFloat64
 
-// NullInt32 is a tyny wrapper for https://pkg.go.dev/sql#NullInt32
+// NullInt32 is a tiny wrapper for https://pkg.go.dev/sql#NullInt32
 type NullInt32 = sql.NullInt32
 
-// NullInt64 is a tyny wrapper for https://pkg.go.dev/sql#NullInt64
+// NullInt64 is a tiny wrapper for https://pkg.go.dev/sql#NullInt64
 type NullInt64 = sql.NullInt64
 
-// NullString is a tyny wrapper for https://pkg.go.dev/sql#NullString
+// NullString is a tiny wrapper for https://pkg.go.dev/sql#NullString
 type NullString = sql.NullString
 
-// NullTime is a tyny wrapper for https://pkg.go.dev/sql#NullTime
+// NullTime is a tiny wrapper for https://pkg.go.dev/sql#NullTime
 type NullTime = sql.NullTime
 
-// Out is a tyny wrapper for https://pkg.go.dev/sql#Out
+// Out is a tiny wrapper for https://pkg.go.dev/sql#Out
 type Out = sql.Out
 
-// RawBytes is a tyny wrapper for https://pkg.go.dev/sql#RawBytes
+// RawBytes is a tiny wrapper for https://pkg.go.dev/sql#RawBytes
 type RawBytes = sql.RawBytes
 
-// Result is a tyny wrapper for https://pkg.go.dev/sql#Result
+// Result is a tiny wrapper for https://pkg.go.dev/sql#Result
 type Result = sql.Result
 
-// Row is a tyny wrapper for https://pkg.go.dev/sql#Row
+// Row is a tiny wrapper for https://pkg.go.dev/sql#Row
 type Row = sql.Row
 
-// Rows is a tyny wrapper for https://pkg.go.dev/sql#Rows
+// Rows is a tiny wrapper for https://pkg.go.dev/sql#Rows
 type Rows = sql.Rows
 
-// Scanner is a tyny wrapper for https://pkg.go.dev/sql#Scanner
+// Scanner is a tiny wrapper for https://pkg.go.dev/sql#Scanner
 type Scanner = sql.Scanner
 
-// Stmt is a tyny wrapper for https://pkg.go.dev/sql#Stmt
+// Stmt is a tiny wrapper for https://pkg.go.dev/sql#Stmt
 type Stmt = sql.Stmt
 
-// TxOptions is a tyny wrapper for https://pkg.go.dev/sql#TxOptions
+// TxOptions is a tiny wrapper for https://pkg.go.dev/sql#TxOptions
 type TxOptions = sql.TxOptions
 
 // Conn behaves as the standard SQL package one, with the exception that it does not implement the `Raw` method for security reasons.
@@ -87,38 +87,38 @@ type Conn struct {
 	c *sql.Conn
 }
 
-// Begin is a tyny wrapper for https://pkg.go.dev/sql#Conn.Begin
+// Begin is a tiny wrapper for https://pkg.go.dev/sql#Conn.Begin
 func (c Conn) BeginTx(ctx context.Context, opts *TxOptions) (Tx, error) {
 	t, err := c.c.BeginTx(ctx, opts)
 	return Tx{t}, err
 }
 
-// Close is a tyny wrapper for https://pkg.go.dev/sql#Conn.Close
+// Close is a tiny wrapper for https://pkg.go.dev/sql#Conn.Close
 func (c Conn) Close() error {
 	return c.c.Close()
 }
 
-// ExecContext is a tyny wrapper for https://pkg.go.dev/sql#Conn.ExecContext
+// ExecContext is a tiny wrapper for https://pkg.go.dev/sql#Conn.ExecContext
 func (c Conn) ExecContext(ctx context.Context, query TrustedSQLString, args ...interface{}) (Result, error) {
 	return c.c.ExecContext(ctx, query.s, args)
 }
 
-// PingContext is a tyny wrapper for https://pkg.go.dev/sql#Conn.PingContext
+// PingContext is a tiny wrapper for https://pkg.go.dev/sql#Conn.PingContext
 func (c Conn) PingContext(ctx context.Context) error {
 	return c.c.PingContext(ctx)
 }
 
-// PrepareContext is a tyny wrapper for https://pkg.go.dev/sql#Conn.PrepareContext
+// PrepareContext is a tiny wrapper for https://pkg.go.dev/sql#Conn.PrepareContext
 func (c Conn) PrepareContext(ctx context.Context, query TrustedSQLString) (*Stmt, error) {
 	return c.c.PrepareContext(ctx, query.s)
 }
 
-// QueryContext is a tyny wrapper for https://pkg.go.dev/sql#Conn.QueryContext
+// QueryContext is a tiny wrapper for https://pkg.go.dev/sql#Conn.QueryContext
 func (c Conn) QueryContext(ctx context.Context, query TrustedSQLString, args ...interface{}) (*Rows, error) {
 	return c.c.QueryContext(ctx, query.s, args)
 }
 
-// QueryRowContext is a tyny wrapper for https://pkg.go.dev/sql#Conn.QueryRowContext
+// QueryRowContext is a tiny wrapper for https://pkg.go.dev/sql#Conn.QueryRowContext
 func (c Conn) QueryRowContext(ctx context.Context, query TrustedSQLString, args ...interface{}) *Row {
 	return c.c.QueryRowContext(ctx, query.s, args)
 }
@@ -129,168 +129,165 @@ type DB struct {
 	db *sql.DB
 }
 
-// Open is a tyny wrapper for https://pkg.go.dev/sql#Open
+// Open is a tiny wrapper for https://pkg.go.dev/sql#Open
 func Open(driverName, dataSourceName string) (DB, error) {
 	db, err := sql.Open(driverName, dataSourceName)
 	return DB{db}, err
 }
 
-// OpenDB is a tyny wrapper for https://pkg.go.dev/sql#OpenDB
+// OpenDB is a tiny wrapper for https://pkg.go.dev/sql#OpenDB
 func OpenDB(c driver.Connector) DB { return DB{sql.OpenDB(c)} }
 
-// Begin is a tyny wrapper for https://pkg.go.dev/sql#DB.Begin
+// Begin is a tiny wrapper for https://pkg.go.dev/sql#DB.Begin
 func (db DB) Begin() (Tx, error) {
 	t, err := db.db.Begin()
 	return Tx{t}, err
 }
 
-// BeginTx is a tyny wrapper for https://pkg.go.dev/sql#DB.BeginTx
+// BeginTx is a tiny wrapper for https://pkg.go.dev/sql#DB.BeginTx
 func (db DB) BeginTx(ctx context.Context, opts *TxOptions) (Tx, error) {
 	t, err := db.db.BeginTx(ctx, opts)
 	return Tx{t}, err
 }
 
-// Close is a tyny wrapper for https://pkg.go.dev/sql#DB.Close
+// Close is a tiny wrapper for https://pkg.go.dev/sql#DB.Close
 func (db DB) Close() error {
 	return db.db.Close()
 }
 
-// Conn is a tyny wrapper for https://pkg.go.dev/sql#DB.Conn
+// Conn is a tiny wrapper for https://pkg.go.dev/sql#DB.Conn
 func (db DB) Conn(ctx context.Context) (Conn, error) {
 	c, err := db.db.Conn(ctx)
 	return Conn{c}, err
 }
 
-// Exec is a tyny wrapper for https://pkg.go.dev/sql#DB.Exec
+// Exec is a tiny wrapper for https://pkg.go.dev/sql#DB.Exec
 func (db DB) Exec(query TrustedSQLString, args ...interface{}) (Result, error) {
 	return db.db.Exec(query.s, args)
 }
 
-// ExecContext is a tyny wrapper for https://pkg.go.dev/sql#DB.ExecContext
+// ExecContext is a tiny wrapper for https://pkg.go.dev/sql#DB.ExecContext
 func (db DB) ExecContext(ctx context.Context, query TrustedSQLString, args ...interface{}) (Result, error) {
 	return db.db.ExecContext(ctx, query.s, args)
 }
 
-// Ping is a tyny wrapper for https://pkg.go.dev/sql#DB.Ping
+// Ping is a tiny wrapper for https://pkg.go.dev/sql#DB.Ping
 func (db DB) Ping() error {
 	return db.db.Ping()
 }
 
-// PingContext is a tyny wrapper for https://pkg.go.dev/sql#DB.PingContext
+// PingContext is a tiny wrapper for https://pkg.go.dev/sql#DB.PingContext
 func (db DB) PingContext(ctx context.Context) error {
 	return db.db.PingContext(ctx)
 }
 
-// Prepare is a tyny wrapper for https://pkg.go.dev/sql#DB.Prepare
+// Prepare is a tiny wrapper for https://pkg.go.dev/sql#DB.Prepare
 func (db DB) Prepare(query TrustedSQLString) (*Stmt, error) {
 	return db.db.Prepare(query.s)
 }
 
-// PrepareContext is a tyny wrapper for https://pkg.go.dev/sql#DB.PrepareContext
+// PrepareContext is a tiny wrapper for https://pkg.go.dev/sql#DB.PrepareContext
 func (db DB) PrepareContext(ctx context.Context, query TrustedSQLString) (*Stmt, error) {
 	return db.db.PrepareContext(ctx, query.s)
 }
 
-// Query is a tyny wrapper for https://pkg.go.dev/sql#DB.Query
+// Query is a tiny wrapper for https://pkg.go.dev/sql#DB.Query
 func (db DB) Query(query TrustedSQLString, args ...interface{}) (*Rows, error) {
 	return db.db.Query(query.s, args)
 }
 
-// QueryContext is a tyny wrapper for https://pkg.go.dev/sql#DB.QueryContext
+// QueryContext is a tiny wrapper for https://pkg.go.dev/sql#DB.QueryContext
 func (db DB) QueryContext(ctx context.Context, query TrustedSQLString, args ...interface{}) (*Rows, error) {
 	return db.db.QueryContext(ctx, query.s, args)
 }
 
-// QueryRow is a tyny wrapper for https://pkg.go.dev/sql#DB.QueryRow
+// QueryRow is a tiny wrapper for https://pkg.go.dev/sql#DB.QueryRow
 func (db DB) QueryRow(query TrustedSQLString, args ...interface{}) *Row {
 	return db.db.QueryRow(query.s, args)
 }
 
-// QueryRowContext is a tyny wrapper for https://pkg.go.dev/sql#DB.QueryRowContext
+// QueryRowContext is a tiny wrapper for https://pkg.go.dev/sql#DB.QueryRowContext
 func (db DB) QueryRowContext(ctx context.Context, query TrustedSQLString, args ...interface{}) *Row {
 	return db.db.QueryRowContext(ctx, query.s, args)
 }
 
-// Only available in Go 1.15+
-// func (db DB) SetConnMaxIdleTime(d time.Duration) { db.db.SetConnMaxIdleTime(d) }
-
-// SetConnMaxLifetime is a tyny wrapper for https://pkg.go.dev/sql#DB.SetConnMaxLifetime
+// SetConnMaxLifetime is a tiny wrapper for https://pkg.go.dev/sql#DB.SetConnMaxLifetime
 func (db DB) SetConnMaxLifetime(d time.Duration) {
 	db.db.SetConnMaxLifetime(d)
 }
 
-// SetMaxIdleConns is a tyny wrapper for https://pkg.go.dev/sql#DB.SetMaxIdleConns
+// SetMaxIdleConns is a tiny wrapper for https://pkg.go.dev/sql#DB.SetMaxIdleConns
 func (db DB) SetMaxIdleConns(n int) {
 	db.db.SetMaxIdleConns(n)
 }
 
-// SetMaxOpenConns is a tyny wrapper for https://pkg.go.dev/sql#DB.SetMaxOpenConns
+// SetMaxOpenConns is a tiny wrapper for https://pkg.go.dev/sql#DB.SetMaxOpenConns
 func (db DB) SetMaxOpenConns(n int) {
 	db.db.SetMaxOpenConns(n)
 }
 
-// Stats is a tyny wrapper for https://pkg.go.dev/sql#DB.Stats
+// Stats is a tiny wrapper for https://pkg.go.dev/sql#DB.Stats
 func (db DB) Stats() DBStats {
 	return db.db.Stats()
 }
 
-// Tx is a tyny wrapper for https://pkg.go.dev/sql#Tx
+// Tx is a tiny wrapper for https://pkg.go.dev/sql#Tx
 type Tx struct {
 	tx *sql.Tx
 }
 
-// Commit is a tyny wrapper for https://pkg.go.dev/sql#Tx.Commit
+// Commit is a tiny wrapper for https://pkg.go.dev/sql#Tx.Commit
 func (tx Tx) Commit() error { return tx.tx.Commit() }
 
-// Exec is a tyny wrapper for https://pkg.go.dev/sql#Tx.Exec
+// Exec is a tiny wrapper for https://pkg.go.dev/sql#Tx.Exec
 func (tx Tx) Exec(query TrustedSQLString, args ...interface{}) (Result, error) {
 	return tx.tx.Exec(query.s, args)
 }
 
-// ExecContext is a tyny wrapper for https://pkg.go.dev/sql#Tx.ExecContext
+// ExecContext is a tiny wrapper for https://pkg.go.dev/sql#Tx.ExecContext
 func (tx Tx) ExecContext(ctx context.Context, query TrustedSQLString, args ...interface{}) (Result, error) {
 	return tx.tx.ExecContext(ctx, query.s, args)
 }
 
-// Prepare is a tyny wrapper for https://pkg.go.dev/sql#Tx.Prepare
+// Prepare is a tiny wrapper for https://pkg.go.dev/sql#Tx.Prepare
 func (tx Tx) Prepare(query TrustedSQLString) (*Stmt, error) { return tx.tx.Prepare(query.s) }
 
-// PrepareContext is a tyny wrapper for https://pkg.go.dev/sql#Tx.PrepareContext
+// PrepareContext is a tiny wrapper for https://pkg.go.dev/sql#Tx.PrepareContext
 func (tx Tx) PrepareContext(ctx context.Context, query TrustedSQLString) (*Stmt, error) {
 	return tx.tx.PrepareContext(ctx, query.s)
 }
 
-// Query is a tyny wrapper for https://pkg.go.dev/sql#Tx.Query
+// Query is a tiny wrapper for https://pkg.go.dev/sql#Tx.Query
 func (tx Tx) Query(query TrustedSQLString, args ...interface{}) (*Rows, error) {
 	return tx.tx.Query(query.s, args)
 }
 
-// QueryContext is a tyny wrapper for https://pkg.go.dev/sql#Tx.QueryContext
+// QueryContext is a tiny wrapper for https://pkg.go.dev/sql#Tx.QueryContext
 func (tx Tx) QueryContext(ctx context.Context, query TrustedSQLString, args ...interface{}) (*Rows, error) {
 	return tx.tx.QueryContext(ctx, query.s, args)
 }
 
-// QueryRow is a tyny wrapper for https://pkg.go.dev/sql#Tx.QueryRow
+// QueryRow is a tiny wrapper for https://pkg.go.dev/sql#Tx.QueryRow
 func (tx Tx) QueryRow(query TrustedSQLString, args ...interface{}) *Row {
 	return tx.tx.QueryRow(query.s, args)
 }
 
-// QueryRowContext is a tyny wrapper for https://pkg.go.dev/sql#Tx.QueryRowContext
+// QueryRowContext is a tiny wrapper for https://pkg.go.dev/sql#Tx.QueryRowContext
 func (tx Tx) QueryRowContext(ctx context.Context, query TrustedSQLString, args ...interface{}) *Row {
 	return tx.tx.QueryRowContext(ctx, query.s, args)
 }
 
-// Rollback is a tyny wrapper for https://pkg.go.dev/sql#Tx.Rollback
+// Rollback is a tiny wrapper for https://pkg.go.dev/sql#Tx.Rollback
 func (tx Tx) Rollback() error {
 	return tx.tx.Rollback()
 }
 
-// Stmt is a tyny wrapper for https://pkg.go.dev/sql#Tx.Stmt
+// Stmt is a tiny wrapper for https://pkg.go.dev/sql#Tx.Stmt
 func (tx Tx) Stmt(stmt *Stmt) *Stmt {
 	return tx.tx.Stmt(stmt)
 }
 
-// StmtContext is a tyny wrapper for https://pkg.go.dev/sql#Tx.StmtContext
+// StmtContext is a tiny wrapper for https://pkg.go.dev/sql#Tx.StmtContext
 func (tx Tx) StmtContext(ctx context.Context, stmt *Stmt) *Stmt {
 	return tx.tx.StmtContext(ctx, stmt)
 }
