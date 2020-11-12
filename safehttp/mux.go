@@ -15,6 +15,7 @@
 package safehttp
 
 import (
+	"fmt"
 	"net/http"
 )
 
@@ -66,64 +67,22 @@ const (
 // Multiple handlers can be registered for a single pattern, as long as they
 // handle different HTTP methods.
 type ServeMux struct {
-	mux  *http.ServeMux
-	disp Dispatcher
-
-	// Maps patterns to handlers supporting multiple HTTP methods.
-	handlers  map[string]standardHandler
-	interceps []Interceptor
+	mux *http.ServeMux
 }
 
-// newServeMux allocates and returns a new ServeMux. If the provided dispatcher
-// is nil, the DefaultDispatcher is used.
-func newServeMux(d Dispatcher) *ServeMux {
-	if d == nil {
-		d = DefaultDispatcher{}
-	}
-	return &ServeMux{
-		mux:      http.NewServeMux(),
-		disp:     d,
-		handlers: map[string]standardHandler{},
-	}
-}
-
-func (m *ServeMux) handle(pattern string, method string, h Handler, cfgs ...InterceptorConfig) {
-	var interceps []ConfiguredInterceptor
-	for _, it := range m.interceps {
-		var cfg InterceptorConfig
-		for _, c := range cfgs {
-			if c.Match(it) {
-				cfg = c
-				break
+func registerHandlers(mux *http.ServeMux, handlers map[string]map[string]handler) {
+	for pattern, handlersPerMethod := range handlers {
+		pattern := pattern
+		handlersPerMethod := handlersPerMethod
+		mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
+			h, ok := handlersPerMethod[r.Method]
+			if !ok {
+				http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+				return
 			}
-		}
-		interceps = append(interceps, ConfiguredInterceptor{interceptor: it, config: cfg})
+			h.ServeHTTP(w, r)
+		})
 	}
-	hi := handler{
-		handler:   h,
-		interceps: interceps,
-		disp:      m.disp,
-	}
-
-	mh, ok := m.handlers[pattern]
-	if !ok {
-		mh := standardHandler{
-			handlers: map[string]handler{method: hi},
-		}
-
-		m.handlers[pattern] = mh
-		m.mux.Handle(pattern, mh)
-		return
-	}
-
-	if _, ok := mh.handlers[method]; ok {
-		panic("method already registered")
-	}
-	mh.handlers[method] = hi
-}
-
-func (m *ServeMux) install(i Interceptor) {
-	m.interceps = append(m.interceps, i)
 }
 
 // ServeHTTP dispatches the request to the handler whose method matches the
@@ -190,14 +149,43 @@ func (s *ServeMuxConfig) Intercept(i Interceptor) {
 
 // Mux returns the ServeMux with a copy of the current configuration.
 func (s *ServeMuxConfig) Mux() *ServeMux {
-	m := newServeMux(s.dispatcher)
-	for _, it := range s.interceptors {
-		m.install(it)
+	dispatcher := s.dispatcher
+	if dispatcher == nil {
+		dispatcher = DefaultDispatcher{}
 	}
+	// pattern -> method -> handler
+	handlers := map[string]map[string]handler{}
 	for _, hr := range s.handlers {
-		m.handle(hr.pattern, hr.method, hr.handler, hr.cfgs...)
+		if handlers[hr.pattern] == nil {
+			handlers[hr.pattern] = map[string]handler{}
+		}
+		if _, ok := handlers[hr.pattern][hr.method]; ok {
+			panic(fmt.Sprintf("double registration of (pattern = %q, method = %q)", hr.pattern, hr.method))
+		}
+		handlers[hr.pattern][hr.method] = handler{
+			handler:   hr.handler,
+			interceps: configureInterceptors(s.interceptors, hr.cfgs),
+			disp:      dispatcher,
+		}
 	}
-	return m
+	m := http.NewServeMux()
+	registerHandlers(m, handlers)
+	return &ServeMux{mux: m}
+}
+
+func configureInterceptors(interceptors []Interceptor, cfgs []InterceptorConfig) []ConfiguredInterceptor {
+	var its []ConfiguredInterceptor
+	for _, it := range interceptors {
+		var cfg InterceptorConfig
+		for _, c := range cfgs {
+			if c.Match(it) {
+				cfg = c
+				break
+			}
+		}
+		its = append(its, ConfiguredInterceptor{interceptor: it, config: cfg})
+	}
+	return its
 }
 
 // Clone creates a copy of the current config.
@@ -212,24 +200,6 @@ func (s *ServeMuxConfig) Clone() *ServeMuxConfig {
 	copy(c.handlers, s.handlers)
 	copy(c.interceptors, s.interceptors)
 	return c
-}
-
-// standardHandler is a collection of handler based on the request method.
-type standardHandler struct {
-	// Maps an HTTP method to its handler
-	handlers map[string]handler
-}
-
-// ServeHTTP dispatches the request to the handler associated
-// with the IncomingRequest method.
-func (sh standardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	h, ok := sh.handlers[r.Method]
-	if !ok {
-		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-		return
-	}
-
-	h.ServeHTTP(w, r)
 }
 
 // handler encapsulates a handler and its corresponding
