@@ -49,7 +49,7 @@ func TestInterceptor(t *testing.T) {
 			mb := &safehttp.ServeMuxConfig{}
 			mb.Intercept(hostcheck.New("foo.com"))
 
-			h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+			h := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 			})
 			mb.Handle("/", safehttp.MethodGet, h)

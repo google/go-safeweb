@@ -24,17 +24,17 @@ type Interceptor interface {
 	// response is written to the ResponseWriter, then the remaining
 	// interceptors and the handler won't execute. If Before panics, it will be
 	// recovered and the ServeMux will respond with 500 Internal Server Error.
-	Before(w *ResponseWriter, r *IncomingRequest, cfg InterceptorConfig) Result
+	Before(w ResponseWriter, r *IncomingRequest, cfg InterceptorConfig) Result
 
 	// Commit runs before the response is written by the Dispatcher. If an error
 	// is written to the ResponseWriter, then the Commit phases from the
 	// remaining interceptors won't execute.
-	Commit(w *ResponseWriter, r *IncomingRequest, resp Response, cfg InterceptorConfig) Result
+	Commit(w ResponseWriter, r *IncomingRequest, resp Response, cfg InterceptorConfig) Result
 
 	// OnError runs when ResponseWriter.WriteError is called, before the
 	// actual error response is written. An attempt to write to the
 	// ResponseWriter in this phase will result in an irrecoverable error.
-	OnError(w *ResponseWriter, r *IncomingRequest, resp Response, cfg InterceptorConfig) Result
+	OnError(w ResponseWriter, r *IncomingRequest, resp Response, cfg InterceptorConfig) Result
 }
 
 // InterceptorConfig is a configuration of an interceptor.
@@ -54,20 +54,20 @@ type ConfiguredInterceptor struct {
 // response is written to the ResponseWriter, then the remaining
 // interceptors and the handler won't execute. If Before panics, it will be
 // recovered and the ServeMux will respond with 500 Internal Server Error.
-func (ci *ConfiguredInterceptor) Before(w *ResponseWriter, r *IncomingRequest) Result {
+func (ci *ConfiguredInterceptor) Before(w ResponseWriter, r *IncomingRequest) Result {
 	return ci.interceptor.Before(w, r, ci.config)
 }
 
 // Commit runs before the response is written by the Dispatcher. If an error
 // is written to the ResponseWriter, then the Commit phases from the
 // remaining interceptors won't execute.
-func (ci *ConfiguredInterceptor) Commit(w *ResponseWriter, r *IncomingRequest, resp Response) Result {
+func (ci *ConfiguredInterceptor) Commit(w ResponseWriter, r *IncomingRequest, resp Response) Result {
 	return ci.interceptor.Commit(w, r, resp, ci.config)
 }
 
 // OnError runs when ResponseWriter.WriteError is called, before the
 // actual error response is written. An attempt to write to the
 // ResponseWriter in this phase will result in an irrecoverable error.
-func (ci *ConfiguredInterceptor) OnError(w *ResponseWriter, r *IncomingRequest, resp Response) Result {
+func (ci *ConfiguredInterceptor) OnError(w ResponseWriter, r *IncomingRequest, resp Response) Result {
 	return ci.interceptor.OnError(w, r, resp, ci.config)
 }

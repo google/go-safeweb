@@ -32,7 +32,7 @@ func TestServeMuxInstallStaticHeaders(t *testing.T) {
 	mb := &safehttp.ServeMuxConfig{}
 
 	mb.Intercept(staticheaders.Interceptor{})
-	handler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+	handler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 	})
 	mb.Handle("/asdf", safehttp.MethodGet, handler)

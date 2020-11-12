@@ -111,7 +111,7 @@ func (it *Interceptor) SetAllowedHeaders(headers ...string) {
 //  - Access-Control-Expose-Headers
 //  - Access-Control-Max-Age
 //  - Vary
-func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
+func (it *Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
 	origin := r.Header.Get("Origin")
 	if origin != "" && !it.AllowedOrigins[origin] {
 		return w.WriteError(safehttp.StatusForbidden)
@@ -155,11 +155,11 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 }
 
 // Commit is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (it *Interceptor) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
 
-func appendToVary(w *safehttp.ResponseWriter, val string) {
+func appendToVary(w safehttp.ResponseWriter, val string) {
 	h := w.Header()
 	if curr := h.Get("Vary"); curr != "" {
 		h.Set("Vary", curr+", "+val)
@@ -169,12 +169,12 @@ func appendToVary(w *safehttp.ResponseWriter, val string) {
 }
 
 // OnError is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (it Interceptor) OnError(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+func (it Interceptor) OnError(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
 
 // preflight handles requests that have the method OPTIONS.
-func (it *Interceptor) preflight(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.StatusCode {
+func (it *Interceptor) preflight(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.StatusCode {
 	rh := r.Header
 	if rh.Get("Origin") == "" {
 		return safehttp.StatusForbidden
@@ -213,7 +213,7 @@ func (it *Interceptor) preflight(w *safehttp.ResponseWriter, r *safehttp.Incomin
 }
 
 // request handles all requests that are not preflight requests.
-func (it *Interceptor) request(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.StatusCode {
+func (it *Interceptor) request(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.StatusCode {
 	h := r.Header
 	if h.Get(requiredHeader) != "1" {
 		return safehttp.StatusPreconditionFailed

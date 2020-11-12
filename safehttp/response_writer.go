@@ -24,7 +24,45 @@ import (
 // cause a panic.
 //
 // A ResponseWriter may not be used after the Handler.ServeHTTP method has returned.
-type ResponseWriter struct {
+type ResponseWriter interface {
+	// Write writes a safe response.
+	Write(resp Response) Result
+
+	// NoContent responds with a 204 No Content response.
+	//
+	// If the ResponseWriter has already been written to, then this method panics.
+	NoContent() Result
+
+	// WriteError writes an error response (400-599) according to the provided status code.
+	//
+	// If the ResponseWriter has already been written to, then this method panics.
+	WriteError(code StatusCode) Result
+
+	// Redirect responds with a redirect to the given url, using code as the status code.
+	//
+	// If the ResponseWriter has already been written to, then this method panics.
+	Redirect(r *IncomingRequest, url string, code StatusCode) Result
+
+	// Header returns the collection of headers that will be set
+	// on the response. Headers must be set before writing a
+	// response (e.g. Write, WriteTemplate).
+	Header() Header
+
+	// SetCookie adds a Set-Cookie header to the provided ResponseWriter's headers.
+	// The provided cookie must have a valid Name, otherwise an error will be
+	// returned.
+	SetCookie(c *Cookie) error
+
+	// SetCode allows setting a response status. If the response was already
+	// written, trying to set the status code will have no effect. This method will
+	// panic if an invalid status code is passed (i.e. not in the range 1XX-5XX).
+	//
+	// If SetCode was called before NoContent, Redirect or WriteError, the status
+	// code set by the latter will be the actual response status.
+	SetCode(code StatusCode)
+}
+
+type responseWriter struct {
 	d  Dispatcher
 	rw http.ResponseWriter
 
@@ -42,9 +80,13 @@ type ResponseWriter struct {
 // The IncomingRequest will only be used by the commit phase, which only runs when
 // the ServeMux is used, and can be passed as nil in tests.
 // TODO: remove the IncomingRequest parameter.
-func NewResponseWriter(d Dispatcher, rw http.ResponseWriter, req *IncomingRequest) *ResponseWriter {
+func NewResponseWriter(d Dispatcher, rw http.ResponseWriter, req *IncomingRequest) ResponseWriter {
+	return newResponseWriter(d, rw, req)
+}
+
+func newResponseWriter(d Dispatcher, rw http.ResponseWriter, req *IncomingRequest) *responseWriter {
 	header := newHeader(rw.Header())
-	return &ResponseWriter{
+	return &responseWriter{
 		d:      d,
 		rw:     rw,
 		header: header,
@@ -71,7 +113,7 @@ func NotWritten() Result {
 // underlying http.ResponseWriter if the Dispatcher decides it's safe to do so.
 //
 // TODO: replace panics with proper error handling when writing the response fails.
-func (w *ResponseWriter) Write(resp Response) Result {
+func (w *responseWriter) Write(resp Response) Result {
 	if w.written {
 		panic("ResponseWriter was already written to")
 	}
@@ -103,7 +145,7 @@ func (w *ResponseWriter) Write(resp Response) Result {
 // NoContent responds with a 204 No Content response.
 //
 // If the ResponseWriter has already been written to, then this method will panic.
-func (w *ResponseWriter) NoContent() Result {
+func (w *responseWriter) NoContent() Result {
 	if w.written {
 		panic("ResponseWriter was already written to")
 	}
@@ -120,7 +162,7 @@ func (w *ResponseWriter) NoContent() Result {
 // status code.
 //
 // If the ResponseWriter has already been written to, then this method will panic.
-func (w *ResponseWriter) WriteError(code StatusCode) Result {
+func (w *responseWriter) WriteError(code StatusCode) Result {
 	w.markWritten()
 	resp := &ErrorResponse{Code: code}
 	w.handler.errorPhase(w, resp)
@@ -131,7 +173,7 @@ func (w *ResponseWriter) WriteError(code StatusCode) Result {
 // Redirect responds with a redirect to the given url, using code as the status code.
 //
 // If the ResponseWriter has already been written to, then this method will panic.
-func (w *ResponseWriter) Redirect(r *IncomingRequest, url string, code StatusCode) Result {
+func (w *responseWriter) Redirect(r *IncomingRequest, url string, code StatusCode) Result {
 	if code < 300 || code >= 400 {
 		panic("wrong method called")
 	}
@@ -142,7 +184,7 @@ func (w *ResponseWriter) Redirect(r *IncomingRequest, url string, code StatusCod
 
 // markWritten ensures that the ResponseWriter is only written to once by panicking
 // if it is written more than once.
-func (w *ResponseWriter) markWritten() {
+func (w *responseWriter) markWritten() {
 	if w.written {
 		panic("ResponseWriter was already written to")
 	}
@@ -152,14 +194,14 @@ func (w *ResponseWriter) markWritten() {
 // Header returns the collection of headers that will be set
 // on the response. Headers must be set before writing a
 // response (e.g. Write, WriteTemplate).
-func (w ResponseWriter) Header() Header {
+func (w responseWriter) Header() Header {
 	return w.header
 }
 
 // SetCookie adds a Set-Cookie header to the provided ResponseWriter's headers.
 // The provided cookie must have a valid Name, otherwise an error will be
 // returned.
-func (w *ResponseWriter) SetCookie(c *Cookie) error {
+func (w *responseWriter) SetCookie(c *Cookie) error {
 	return w.header.addCookie(c)
 }
 
@@ -172,7 +214,7 @@ func (w *ResponseWriter) SetCookie(c *Cookie) error {
 //
 // TODO(empijei@, kele@, maramihali@): decide what should be done if the
 // code passed is either 3XX (redirect) or 4XX-5XX (client/server error).
-func (w *ResponseWriter) SetCode(code StatusCode) {
+func (w *responseWriter) SetCode(code StatusCode) {
 	if w.written {
 		return
 	}

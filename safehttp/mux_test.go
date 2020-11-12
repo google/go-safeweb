@@ -61,7 +61,7 @@ func TestMuxOneHandlerOneRequest(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mb := &safehttp.ServeMuxConfig{}
 
-			h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+			h := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 			})
 			mb.Handle("/", safehttp.MethodGet, h)
@@ -99,7 +99,7 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 		{
 			name: "GET Handler",
 			req:  httptest.NewRequest(safehttp.MethodGet, "http://foo.com/bar", nil),
-			hf: safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+			hf: safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World! GET</h1>"))
 			}),
 			wantStatus: safehttp.StatusOK,
@@ -111,7 +111,7 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 		{
 			name: "POST Handler",
 			req:  httptest.NewRequest(safehttp.MethodPost, "http://foo.com/bar", nil),
-			hf: safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+			hf: safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World! POST</h1>"))
 			}),
 			wantStatus: safehttp.StatusOK,
@@ -148,7 +148,7 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 func TestMuxHandleSameMethodTwice(t *testing.T) {
 	mb := &safehttp.ServeMuxConfig{}
 
-	registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+	registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 	})
 	mb.Handle("/bar", safehttp.MethodGet, registeredHandler)
@@ -169,31 +169,31 @@ type setHeaderInterceptor struct {
 	value string
 }
 
-func (p setHeaderInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (p setHeaderInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
 	w.Header().Set(p.name, p.value)
 	return safehttp.NotWritten()
 }
 
-func (p setHeaderInterceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (p setHeaderInterceptor) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
 
-func (p setHeaderInterceptor) OnError(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (p setHeaderInterceptor) OnError(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
 
 type internalErrorInterceptor struct{}
 
-func (internalErrorInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (internalErrorInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
 	return w.WriteError(safehttp.StatusInternalServerError)
 }
 
-func (internalErrorInterceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (internalErrorInterceptor) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	w.Header().Set("Foo", "this should not be reached")
 	return safehttp.NotWritten()
 }
 
-func (internalErrorInterceptor) OnError(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (internalErrorInterceptor) OnError(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
 
@@ -203,66 +203,66 @@ type claimHeaderInterceptor struct {
 
 type claimCtxKey struct{}
 
-func (p *claimHeaderInterceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (p *claimHeaderInterceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
 	f := w.Header().Claim(p.headerToClaim)
 	r.SetContext(context.WithValue(r.Context(), claimCtxKey{}, f))
 	return safehttp.NotWritten()
 }
 
-func (p *claimHeaderInterceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (p *claimHeaderInterceptor) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
 
-func (p *claimHeaderInterceptor) OnError(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (p *claimHeaderInterceptor) OnError(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
 
-func claimInterceptorSetHeader(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, value string) {
+func claimInterceptorSetHeader(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, value string) {
 	f := r.Context().Value(claimCtxKey{}).(func([]string))
 	f([]string{value})
 }
 
 type panickingInterceptor struct{}
 
-func (panickingInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (panickingInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
 	panic("bad")
 }
 
-func (panickingInterceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (panickingInterceptor) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
 
-func (panickingInterceptor) OnError(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (panickingInterceptor) OnError(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
 
 type committerInterceptor struct{}
 
-func (committerInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (committerInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
 
-func (committerInterceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (committerInterceptor) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	w.Header().Set("foo", "bar")
 	return safehttp.NotWritten()
 }
 
-func (committerInterceptor) OnError(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, _ safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (committerInterceptor) OnError(w safehttp.ResponseWriter, _ *safehttp.IncomingRequest, _ safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
 
 type setHeaderErroringInterceptor struct{}
 
-func (setHeaderErroringInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (setHeaderErroringInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
 	return w.WriteError(safehttp.StatusForbidden)
 }
 
-func (setHeaderErroringInterceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (setHeaderErroringInterceptor) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	w.Header().Set("name", "foo")
 	return safehttp.Result{}
 }
 
-func (setHeaderErroringInterceptor) OnError(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (setHeaderErroringInterceptor) OnError(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	w.Header().Set("name", "bar")
 	return safehttp.Result{}
 }
@@ -284,7 +284,7 @@ func TestMuxInterceptors(t *testing.T) {
 					value: "bar",
 				})
 
-				registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+				registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 				})
 				mb.Handle("/bar", safehttp.MethodGet, registeredHandler)
@@ -303,7 +303,7 @@ func TestMuxInterceptors(t *testing.T) {
 				mb := &safehttp.ServeMuxConfig{}
 				mb.Intercept(internalErrorInterceptor{})
 
-				registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+				registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 				})
 				mb.Handle("/bar", safehttp.MethodGet, registeredHandler)
@@ -323,7 +323,7 @@ func TestMuxInterceptors(t *testing.T) {
 				mb := &safehttp.ServeMuxConfig{}
 				mb.Intercept(&claimHeaderInterceptor{headerToClaim: "Foo"})
 
-				registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+				registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					claimInterceptorSetHeader(w, r, "bar")
 					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 				})
@@ -344,7 +344,7 @@ func TestMuxInterceptors(t *testing.T) {
 				mb := &safehttp.ServeMuxConfig{}
 				mb.Intercept(panickingInterceptor{})
 
-				registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+				registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 				})
 				mb.Handle("/bar", safehttp.MethodGet, registeredHandler)
@@ -364,7 +364,7 @@ func TestMuxInterceptors(t *testing.T) {
 				mb := &safehttp.ServeMuxConfig{}
 				mb.Intercept(committerInterceptor{})
 
-				registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+				registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 				})
 				mb.Handle("/bar", safehttp.MethodGet, registeredHandler)
@@ -384,7 +384,7 @@ func TestMuxInterceptors(t *testing.T) {
 				mb := &safehttp.ServeMuxConfig{}
 				mb.Intercept(setHeaderErroringInterceptor{})
 
-				registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+				registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 				})
 				mb.Handle("/bar", safehttp.MethodGet, registeredHandler)
@@ -437,7 +437,7 @@ func (setHeaderConfig) Match(i safehttp.Interceptor) bool {
 
 type setHeaderConfigInterceptor struct{}
 
-func (p setHeaderConfigInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (p setHeaderConfigInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
 	name := "Pizza"
 	value := "Hawaii"
 	if c, ok := cfg.(setHeaderConfig); ok {
@@ -448,7 +448,7 @@ func (p setHeaderConfigInterceptor) Before(w *safehttp.ResponseWriter, _ *safeht
 	return safehttp.NotWritten()
 }
 
-func (p setHeaderConfigInterceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (p setHeaderConfigInterceptor) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	name := "Commit-Pizza"
 	value := "Hawaii"
 	if c, ok := cfg.(setHeaderConfig); ok {
@@ -459,7 +459,7 @@ func (p setHeaderConfigInterceptor) Commit(w *safehttp.ResponseWriter, r *safeht
 	return safehttp.NotWritten()
 }
 
-func (p setHeaderConfigInterceptor) OnError(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (p setHeaderConfigInterceptor) OnError(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
 
@@ -506,7 +506,7 @@ func TestMuxInterceptorConfigs(t *testing.T) {
 			mb := &safehttp.ServeMuxConfig{}
 			mb.Intercept(setHeaderConfigInterceptor{})
 
-			registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+			registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 			})
 			mb.Handle("/bar", safehttp.MethodGet, registeredHandler, tt.config)
@@ -536,12 +536,12 @@ func TestMuxInterceptorConfigs(t *testing.T) {
 
 type interceptorOne struct{}
 
-func (interceptorOne) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (interceptorOne) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
 	w.Header().Set("pizza", "diavola")
 	return safehttp.NotWritten()
 }
 
-func (interceptorOne) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (interceptorOne) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	if w.Header().Get("Commit2") != "b" {
 		w.WriteError(safehttp.StatusInternalServerError)
 	}
@@ -549,13 +549,13 @@ func (interceptorOne) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 	return safehttp.NotWritten()
 }
 
-func (interceptorOne) OnError(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (interceptorOne) OnError(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
 
 type interceptorTwo struct{}
 
-func (interceptorTwo) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (interceptorTwo) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
 	if w.Header().Get("pizza") != "diavola" {
 		w.WriteError(safehttp.StatusInternalServerError)
 	}
@@ -563,7 +563,7 @@ func (interceptorTwo) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 	return safehttp.NotWritten()
 }
 
-func (interceptorTwo) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (interceptorTwo) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	if w.Header().Get("Commit3") != "c" {
 		w.WriteError(safehttp.StatusInternalServerError)
 	}
@@ -571,13 +571,13 @@ func (interceptorTwo) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 	return safehttp.NotWritten()
 }
 
-func (interceptorTwo) OnError(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (interceptorTwo) OnError(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
 
 type interceptorThree struct{}
 
-func (interceptorThree) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (interceptorThree) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
 	if w.Header().Get("spaghetti") != "bolognese" {
 		w.WriteError(safehttp.StatusInternalServerError)
 	}
@@ -585,7 +585,7 @@ func (interceptorThree) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingR
 	return safehttp.NotWritten()
 }
 
-func (interceptorThree) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (interceptorThree) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	if w.Header().Get("Dessert") != "tiramisu" {
 		w.WriteError(safehttp.StatusInternalServerError)
 	}
@@ -593,7 +593,7 @@ func (interceptorThree) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingR
 	return safehttp.NotWritten()
 }
 
-func (interceptorThree) OnError(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (interceptorThree) OnError(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
 
@@ -603,7 +603,7 @@ func TestMuxDeterministicInterceptorOrder(t *testing.T) {
 	mb.Intercept(interceptorTwo{})
 	mb.Intercept(interceptorThree{})
 
-	registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+	registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 	})
 	mb.Handle("/bar", safehttp.MethodGet, registeredHandler)
@@ -638,7 +638,7 @@ func TestMuxDeterministicInterceptorOrder(t *testing.T) {
 
 func TestMuxHandlerReturnsNotWritten(t *testing.T) {
 	mb := &safehttp.ServeMuxConfig{}
-	h := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+	h := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return safehttp.NotWritten()
 	})
 	mb.Handle("/bar", safehttp.MethodGet, h)
@@ -663,15 +663,15 @@ func TestMuxHandlerReturnsNotWritten(t *testing.T) {
 
 type onErrorWriteInterceptor struct{}
 
-func (onErrorWriteInterceptor) Before(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
+func (onErrorWriteInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
 	return w.WriteError(safehttp.StatusBadRequest)
 }
 
-func (onErrorWriteInterceptor) Commit(_ *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, _ safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+func (onErrorWriteInterceptor) Commit(_ safehttp.ResponseWriter, _ *safehttp.IncomingRequest, _ safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.Result{}
 }
 
-func (onErrorWriteInterceptor) OnError(w *safehttp.ResponseWriter, _ *safehttp.IncomingRequest, _ safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+func (onErrorWriteInterceptor) OnError(w safehttp.ResponseWriter, _ *safehttp.IncomingRequest, _ safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	w.Header().Set("header", "bad")
 	return w.WriteError(safehttp.StatusInsufficientStorage)
 }
@@ -685,7 +685,7 @@ func TestMuxInterceptorWriteInOnError(t *testing.T) {
 	mb := &safehttp.ServeMuxConfig{}
 	mb.Intercept(onErrorWriteInterceptor{})
 
-	registeredHandler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+	registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 	})
 	mb.Handle("/bar", safehttp.MethodGet, registeredHandler)

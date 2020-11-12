@@ -21,13 +21,13 @@ type Handler interface {
 	// Except for reading the body, handlers should not modify the provided Request.
 	//
 	// TODO: Add documentation about error handling when properly implemented.
-	ServeHTTP(*ResponseWriter, *IncomingRequest) Result
+	ServeHTTP(ResponseWriter, *IncomingRequest) Result
 }
 
 // HandlerFunc is used to convert a function into a Handler.
-type HandlerFunc func(*ResponseWriter, *IncomingRequest) Result
+type HandlerFunc func(ResponseWriter, *IncomingRequest) Result
 
 // ServeHTTP calls f(w, r).
-func (f HandlerFunc) ServeHTTP(w *ResponseWriter, r *IncomingRequest) Result {
+func (f HandlerFunc) ServeHTTP(w ResponseWriter, r *IncomingRequest) Result {
 	return f(w, r)
 }

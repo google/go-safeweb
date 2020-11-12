@@ -33,7 +33,7 @@ func TestServeMuxInstallCSP(t *testing.T) {
 
 	var nonce string
 	var err error
-	handler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+	handler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		fns := map[string]interface{}{
 			"CSPNonce": func() string { return "WrongNonce" },
 		}
