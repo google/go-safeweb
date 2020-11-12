@@ -97,7 +97,7 @@ func (m *ServeMux) handle(pattern string, method string, h Handler, cfgs ...Inte
 				break
 			}
 		}
-		interceps = append(interceps, ConfiguredInterceptor{Interceptor: it, Config: cfg})
+		interceps = append(interceps, ConfiguredInterceptor{interceptor: it, config: cfg})
 	}
 	hi := handler{
 		handler:   h,
@@ -259,7 +259,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	for _, it := range h.interceps {
-		it.Interceptor.Before(rw, ir, it.Config)
+		it.Before(rw, ir)
 		if rw.written {
 			return
 		}
@@ -283,7 +283,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (h handler) commitPhase(w *ResponseWriter, resp Response) {
 	for i := len(h.interceps) - 1; i >= 0; i-- {
 		it := h.interceps[i]
-		it.Interceptor.Commit(w, w.req, resp, it.Config)
+		it.Commit(w, w.req, resp)
 		if w.written {
 			return
 		}
@@ -299,6 +299,6 @@ func (h handler) commitPhase(w *ResponseWriter, resp Response) {
 func (h handler) errorPhase(w *ResponseWriter, resp Response) {
 	for i := len(h.interceps) - 1; i >= 0; i-- {
 		it := h.interceps[i]
-		it.Interceptor.OnError(w, w.req, resp, it.Config)
+		it.OnError(w, w.req, resp)
 	}
 }

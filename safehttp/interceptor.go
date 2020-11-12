@@ -46,6 +46,28 @@ type InterceptorConfig interface {
 
 // ConfiguredInterceptor holds an interceptor together with its configuration.
 type ConfiguredInterceptor struct {
-	Interceptor Interceptor
-	Config      InterceptorConfig
+	interceptor Interceptor
+	config      InterceptorConfig
+}
+
+// Before runs before the IncomingRequest is sent to the handler. If a
+// response is written to the ResponseWriter, then the remaining
+// interceptors and the handler won't execute. If Before panics, it will be
+// recovered and the ServeMux will respond with 500 Internal Server Error.
+func (ci *ConfiguredInterceptor) Before(w *ResponseWriter, r *IncomingRequest) Result {
+	return ci.interceptor.Before(w, r, ci.config)
+}
+
+// Commit runs before the response is written by the Dispatcher. If an error
+// is written to the ResponseWriter, then the Commit phases from the
+// remaining interceptors won't execute.
+func (ci *ConfiguredInterceptor) Commit(w *ResponseWriter, r *IncomingRequest, resp Response) Result {
+	return ci.interceptor.Commit(w, r, resp, ci.config)
+}
+
+// OnError runs when ResponseWriter.WriteError is called, before the
+// actual error response is written. An attempt to write to the
+// ResponseWriter in this phase will result in an irrecoverable error.
+func (ci *ConfiguredInterceptor) OnError(w *ResponseWriter, r *IncomingRequest, resp Response) Result {
+	return ci.interceptor.OnError(w, r, resp, ci.config)
 }
