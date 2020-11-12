@@ -43,7 +43,7 @@ func New(hosts ...string) Interceptor {
 
 // Before checks whether the request's Host header is in the list of allowed
 // hosts. If it's not, it responds with 404 Not Found.
-func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
+func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
 	if !it.hosts[r.Host()] {
 		return w.WriteError(safehttp.StatusNotFound)
 	}
@@ -51,11 +51,11 @@ func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 }
 
 // Commit is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+func (Interceptor) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
 
 // OnError is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (Interceptor) OnError(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+func (Interceptor) OnError(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }

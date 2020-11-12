@@ -40,7 +40,7 @@ type Interceptor struct {
 
 var _ safehttp.Interceptor = &Interceptor{}
 
-func addCookieID(w *safehttp.ResponseWriter) (*safehttp.Cookie, error) {
+func addCookieID(w safehttp.ResponseWriter) (*safehttp.Cookie, error) {
 	buf := make([]byte, 20)
 	if _, err := rand.Read(buf); err != nil {
 		return nil, fmt.Errorf("crypto/rand.Read: %v", err)
@@ -56,7 +56,7 @@ func addCookieID(w *safehttp.ResponseWriter) (*safehttp.Cookie, error) {
 
 // Before checks for the presence of a XSRF token in the body of state changing
 // requests (all except GET, HEAD and OPTIONS) and validates it.
-func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
+func (it *Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
 	if xsrf.StatePreserving(r) {
 		return safehttp.NotWritten()
 	}
@@ -103,7 +103,7 @@ func (it *Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 // For every authorized request, the interceptor also generates a
 // cryptographically-safe XSRF token using the appKey, the cookie and the path
 // visited. This is then injected as a hidden input field in HTML forms.
-func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+func (it *Interceptor) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	cookieID, err := r.Cookie(cookieIDKey)
 	if err != nil {
 		if !xsrf.StatePreserving(r) {
@@ -130,6 +130,6 @@ func (it *Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRe
 }
 
 // OnError is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (it *Interceptor) OnError(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+func (it *Interceptor) OnError(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }

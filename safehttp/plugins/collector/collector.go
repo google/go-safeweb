@@ -89,7 +89,7 @@ type CSPReport struct {
 // requests. If the handler recieves anything other than POST requests it will
 // respond with a 405 Method Not Allowed.
 func Handler(handler func(Report), cspHandler func(CSPReport)) safehttp.Handler {
-	return safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+	return safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		if r.Method() != safehttp.MethodPost {
 			return w.WriteError(safehttp.StatusMethodNotAllowed)
 		}
@@ -110,7 +110,7 @@ func Handler(handler func(Report), cspHandler func(CSPReport)) safehttp.Handler 
 	})
 }
 
-func handleDeprecatedCSPReports(h func(CSPReport), w *safehttp.ResponseWriter, b []byte) safehttp.Result {
+func handleDeprecatedCSPReports(h func(CSPReport), w safehttp.ResponseWriter, b []byte) safehttp.Result {
 	// In CSP2 it is clearly stated that a report has a single key 'csp-report'
 	// which holds the report object. Like this:
 	// {
@@ -187,7 +187,7 @@ var reportHandlers = map[string]func(json.RawMessage) (body interface{}, ok bool
 	"csp-violation": cspViolationHandler,
 }
 
-func handleReport(h func(Report), w *safehttp.ResponseWriter, b []byte) safehttp.Result {
+func handleReport(h func(Report), w safehttp.ResponseWriter, b []byte) safehttp.Result {
 	var rList []struct {
 		Type      string          `json:"type"`
 		Age       uint64          `json:"age"`

@@ -80,7 +80,7 @@ func Default(reportGroup string) Interceptor {
 type Interceptor serializedPolicies
 
 // Before claims and sets the Report-Only and Enforcement headers for COOP.
-func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
 	if cfg != nil {
 		// We got an override, run its Before phase instead.
 		return Interceptor(cfg.(Overrider)).Before(w, r, nil)
@@ -91,7 +91,7 @@ func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 }
 
 // Commit is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (it Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+func (it Interceptor) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
 
@@ -99,7 +99,7 @@ func (it Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 //
 // TODO: should OnError take as argument something that notifies it the commit
 // phase was already called?
-func (it Interceptor) OnError(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+func (it Interceptor) OnError(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
 

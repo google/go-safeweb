@@ -245,12 +245,12 @@ func TestMissingCookieInGetRequest(t *testing.T) {
 func TestMissingCookieInPostRequest(t *testing.T) {
 	tests := []struct {
 		name       string
-		stage      func(it *Interceptor, rw *safehttp.ResponseWriter, req *safehttp.IncomingRequest)
+		stage      func(it *Interceptor, rw safehttp.ResponseWriter, req *safehttp.IncomingRequest)
 		wantStatus safehttp.StatusCode
 	}{
 		{
 			name: "In Before stage",
-			stage: func(it *Interceptor, rw *safehttp.ResponseWriter, req *safehttp.IncomingRequest) {
+			stage: func(it *Interceptor, rw safehttp.ResponseWriter, req *safehttp.IncomingRequest) {
 
 				it.Before(rw, req, nil)
 			},
@@ -258,7 +258,7 @@ func TestMissingCookieInPostRequest(t *testing.T) {
 		},
 		{
 			name: "In Commit stage",
-			stage: func(it *Interceptor, rw *safehttp.ResponseWriter, req *safehttp.IncomingRequest) {
+			stage: func(it *Interceptor, rw safehttp.ResponseWriter, req *safehttp.IncomingRequest) {
 				it.Commit(rw, req, nil, nil)
 			},
 			wantStatus: safehttp.StatusInternalServerError,

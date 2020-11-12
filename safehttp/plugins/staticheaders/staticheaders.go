@@ -40,7 +40,7 @@ var _ safehttp.Interceptor = Interceptor{}
 // Before claims and sets the following headers:
 //  - X-Content-Type-Options: nosniff
 //  - X-XSS-Protection: 0
-func (Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
+func (Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
 	h := w.Header()
 	setXCTO := h.Claim("X-Content-Type-Options")
 	setXXP := h.Claim("X-XSS-Protection")
@@ -51,11 +51,11 @@ func (Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReques
 }
 
 // Commit is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+func (Interceptor) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
 
 // OnError is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (Interceptor) OnError(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+func (Interceptor) OnError(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }

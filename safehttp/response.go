@@ -32,7 +32,7 @@ type JSONResponse struct {
 // WriteJSON creates a JSONResponse from the data object and calls the Write
 // function of the ResponseWriter, passing the response. The data object should
 // be valid JSON, otherwise an error will occur.
-func WriteJSON(w *ResponseWriter, data interface{}) Result {
+func WriteJSON(w ResponseWriter, data interface{}) Result {
 	return w.Write(JSONResponse{data})
 }
 
@@ -58,14 +58,14 @@ type TemplateResponse struct {
 // ExecuteTemplate creates a TemplateResponse from the provided Template and its
 // data and calls the Write function of the ResponseWriter, passing the
 // response.
-func ExecuteTemplate(w *ResponseWriter, t Template, data interface{}) Result {
+func ExecuteTemplate(w ResponseWriter, t Template, data interface{}) Result {
 	return w.Write(TemplateResponse{t, data, nil})
 }
 
 // ExecuteTemplateWithFuncs creates a TemplateResponse from the provided
 // Template, its data and the name to function mappings and calls the Write
 // function of the ResponseWriter, passing the response.
-func ExecuteTemplateWithFuncs(w *ResponseWriter, t Template, data interface{}, fm map[string]interface{}) Result {
+func ExecuteTemplateWithFuncs(w ResponseWriter, t Template, data interface{}, fm map[string]interface{}) Result {
 	return w.Write(TemplateResponse{t, data, fm})
 }
 

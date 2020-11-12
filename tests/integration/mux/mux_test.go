@@ -37,7 +37,7 @@ func TestMuxDefaultDispatcher(t *testing.T) {
 	}{
 		{
 			name: "Safe HTML Response",
-			handler: safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+			handler: safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 			}),
 			wantHeaders: map[string][]string{
@@ -47,7 +47,7 @@ func TestMuxDefaultDispatcher(t *testing.T) {
 		},
 		{
 			name: "Safe HTML Template Response",
-			handler: safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+			handler: safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return safehttp.ExecuteTemplate(w, safetemplate.
 					Must(safetemplate.New("name").
 						Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
@@ -59,7 +59,7 @@ func TestMuxDefaultDispatcher(t *testing.T) {
 		},
 		{
 			name: "Valid JSON Response",
-			handler: safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+			handler: safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				data := struct {
 					Field string `json:"field"`
 				}{Field: "myField"}
@@ -103,13 +103,13 @@ func TestMuxDefaultDispatcherUnsafeResponses(t *testing.T) {
 	}{
 		{
 			name: "Unsafe HTML Response",
-			handler: safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+			handler: safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write("<h1>Hello World!</h1>")
 			}),
 		},
 		{
 			name: "Unsafe Template Response",
-			handler: safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+			handler: safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return safehttp.ExecuteTemplate(w, template.
 					Must(template.New("name").
 						Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
@@ -117,7 +117,7 @@ func TestMuxDefaultDispatcherUnsafeResponses(t *testing.T) {
 		},
 		{
 			name: "Invalid JSON Response",
-			handler: safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+			handler: safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return safehttp.WriteJSON(w, math.Inf(1))
 			}),
 		},

@@ -26,7 +26,7 @@ import (
 // mutations for later inspection in tests. The safehttp.ResponseWriter
 // should be passed as part of the handler function in tests.
 type ResponseRecorder struct {
-	*safehttp.ResponseWriter
+	safehttp.ResponseWriter
 	rw *TestResponseWriter
 	b  *strings.Builder
 }

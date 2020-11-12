@@ -58,32 +58,32 @@ func TestResponseWriterSetInvalidCookie(t *testing.T) {
 func TestResponseWriterWriteTwicePanic(t *testing.T) {
 	tests := []struct {
 		name  string
-		write func(w *safehttp.ResponseWriter)
+		write func(w safehttp.ResponseWriter)
 	}{
 		{
 			name: "Call Write twice",
-			write: func(w *safehttp.ResponseWriter) {
+			write: func(w safehttp.ResponseWriter) {
 				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
 				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
 			},
 		},
 		{
 			name: "Call NoContent twice",
-			write: func(w *safehttp.ResponseWriter) {
+			write: func(w safehttp.ResponseWriter) {
 				w.NoContent()
 				w.NoContent()
 			},
 		},
 		{
 			name: "Call WriteError twice",
-			write: func(w *safehttp.ResponseWriter) {
+			write: func(w safehttp.ResponseWriter) {
 				w.WriteError(safehttp.StatusInternalServerError)
 				w.WriteError(safehttp.StatusInternalServerError)
 			},
 		},
 		{
 			name: "Call Redirect twice",
-			write: func(w *safehttp.ResponseWriter) {
+			write: func(w safehttp.ResponseWriter) {
 				ir := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
 				w.Redirect(ir, "/asdf", safehttp.StatusMovedPermanently)
 				w.Redirect(ir, "/asdf", safehttp.StatusMovedPermanently)
@@ -108,23 +108,23 @@ func TestResponseWriterWriteTwicePanic(t *testing.T) {
 func TestResponseWriterUnsafeResponse(t *testing.T) {
 	tests := []struct {
 		name  string
-		write func(w *safehttp.ResponseWriter)
+		write func(w safehttp.ResponseWriter)
 	}{
 		{
 			name: "Unsafe HTML Response",
-			write: func(w *safehttp.ResponseWriter) {
+			write: func(w safehttp.ResponseWriter) {
 				w.Write("<h1>Hello World!</h1>")
 			},
 		},
 		{
 			name: "Invalid JSON Response",
-			write: func(w *safehttp.ResponseWriter) {
+			write: func(w safehttp.ResponseWriter) {
 				safehttp.WriteJSON(w, math.Inf(1))
 			},
 		},
 		{
 			name: "Unsafe Template Response",
-			write: func(w *safehttp.ResponseWriter) {
+			write: func(w safehttp.ResponseWriter) {
 				safehttp.ExecuteTemplate(w, template.
 					Must(template.New("name").
 						Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
@@ -148,19 +148,19 @@ func TestResponseWriterUnsafeResponse(t *testing.T) {
 func TestResponseWriterStatusCode(t *testing.T) {
 	tests := []struct {
 		name       string
-		write      func(w *safehttp.ResponseWriter)
+		write      func(w safehttp.ResponseWriter)
 		wantStatus safehttp.StatusCode
 	}{
 		{
 			name: "Default status code",
-			write: func(w *safehttp.ResponseWriter) {
+			write: func(w safehttp.ResponseWriter) {
 				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
 			},
 			wantStatus: safehttp.StatusOK,
 		},
 		{
 			name: "Custom status code",
-			write: func(w *safehttp.ResponseWriter) {
+			write: func(w safehttp.ResponseWriter) {
 				w.SetCode(safehttp.StatusPartialContent)
 				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
 			},
@@ -168,7 +168,7 @@ func TestResponseWriterStatusCode(t *testing.T) {
 		},
 		{
 			name: "Status code set after Write",
-			write: func(w *safehttp.ResponseWriter) {
+			write: func(w safehttp.ResponseWriter) {
 				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
 				w.SetCode(safehttp.StatusPartialContent)
 			},
@@ -176,7 +176,7 @@ func TestResponseWriterStatusCode(t *testing.T) {
 		},
 		{
 			name: "SetCode then NoContent",
-			write: func(w *safehttp.ResponseWriter) {
+			write: func(w safehttp.ResponseWriter) {
 				w.SetCode(safehttp.StatusPartialContent)
 				w.NoContent()
 			},
@@ -184,7 +184,7 @@ func TestResponseWriterStatusCode(t *testing.T) {
 		},
 		{
 			name: "SetCode then Redirect",
-			write: func(w *safehttp.ResponseWriter) {
+			write: func(w safehttp.ResponseWriter) {
 				w.SetCode(safehttp.StatusPartialContent)
 				w.Redirect(safehttptest.NewRequest(safehttp.MethodGet, "/", nil), "", safehttp.StatusTemporaryRedirect)
 			},
@@ -192,7 +192,7 @@ func TestResponseWriterStatusCode(t *testing.T) {
 		},
 		{
 			name: "SetCode then WriteError",
-			write: func(w *safehttp.ResponseWriter) {
+			write: func(w safehttp.ResponseWriter) {
 				w.SetCode(safehttp.StatusPartialContent)
 				w.WriteError(safehttp.StatusInsufficientStorage)
 			},
@@ -214,18 +214,18 @@ func TestResponseWriterStatusCode(t *testing.T) {
 func TestResponseWriterInvalidStatusCode(t *testing.T) {
 	tests := []struct {
 		name  string
-		write func(w *safehttp.ResponseWriter)
+		write func(w safehttp.ResponseWriter)
 	}{
 		{
 			name: "Status code smaller than 100",
-			write: func(w *safehttp.ResponseWriter) {
+			write: func(w safehttp.ResponseWriter) {
 				w.SetCode(50)
 				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
 			},
 		},
 		{
 			name: "Status code bigger than 599",
-			write: func(w *safehttp.ResponseWriter) {
+			write: func(w safehttp.ResponseWriter) {
 				w.SetCode(1000)
 				w.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
 			},

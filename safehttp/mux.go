@@ -246,7 +246,7 @@ type handler struct {
 // Error response is sent.
 func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ir := NewIncomingRequest(r)
-	rw := NewResponseWriter(h.disp, w, ir)
+	rw := newResponseWriter(h.disp, w, ir)
 	rw.handler = h
 
 	// The `net/http` package recovers handler panics, but we cannot rely on that behavior here.
@@ -280,7 +280,7 @@ func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // are called in Commit then this will recurse. CommitResponseWriter was an
 // attempt to prevent this by not giving access to Write and WriteTemplate in
 // the Commit phase.
-func (h handler) commitPhase(w *ResponseWriter, resp Response) {
+func (h handler) commitPhase(w *responseWriter, resp Response) {
 	for i := len(h.interceps) - 1; i >= 0; i-- {
 		it := h.interceps[i]
 		it.Commit(w, w.req, resp)
@@ -296,7 +296,7 @@ func (h handler) commitPhase(w *ResponseWriter, resp Response) {
 //
 // TODO: BIG WARNING, if an interceptor attempts to write to the ResponseWriter
 // in the OnError phase will result in an irrecoverable error.
-func (h handler) errorPhase(w *ResponseWriter, resp Response) {
+func (h handler) errorPhase(w *responseWriter, resp Response) {
 	for i := len(h.interceps) - 1; i >= 0; i-- {
 		it := h.interceps[i]
 		it.OnError(w, w.req, resp)

@@ -193,7 +193,7 @@ func Default(reportURI string) Interceptor {
 
 // Before claims and sets the Content-Security-Policy header and the
 // Content-Security-Policy-Report-Only header.
-func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
+func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
 	nonce := generateNonce()
 	r.SetContext(context.WithValue(r.Context(), ctxKey{}, nonce))
 
@@ -219,7 +219,7 @@ func (it Interceptor) Before(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 // Commit adds the nonce to the safehttp.TemplateResponse which is going to be
 // injected as the value of the nonce attribute in <script> and <link> tags. The
 // nonce is going to be unique for each safehttp.IncomingRequest.
-func (it Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (it Interceptor) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	tmplResp, ok := resp.(safehttp.TemplateResponse)
 	if !ok {
 		return safehttp.NotWritten()
@@ -241,6 +241,6 @@ func (it Interceptor) Commit(w *safehttp.ResponseWriter, r *safehttp.IncomingReq
 }
 
 // OnError is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (it Interceptor) OnError(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+func (it Interceptor) OnError(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }

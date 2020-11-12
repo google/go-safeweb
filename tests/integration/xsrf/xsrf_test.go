@@ -30,7 +30,7 @@ func TestServeMuxInstallXSRF(t *testing.T) {
 	it := xsrfhtml.Interceptor{SecretAppKey: "testSecretAppKey"}
 	mb.Intercept(&it)
 
-	handler := safehttp.HandlerFunc(func(w *safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+	handler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		fns := map[string]interface{}{
 			"XSRFToken": func() string { return "WrongToken" },
 		}
