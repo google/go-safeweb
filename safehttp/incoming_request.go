@@ -44,6 +44,9 @@ type IncomingRequest struct {
 // NewIncomingRequest creates an IncomingRequest
 // from the underlying http.Request.
 func NewIncomingRequest(req *http.Request) *IncomingRequest {
+	if req == nil {
+		return nil
+	}
 	return &IncomingRequest{
 		req:    req,
 		Header: newHeader(req.Header),

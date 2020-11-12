@@ -16,6 +16,7 @@ package safehttp_test
 
 import (
 	"math"
+	"net/http"
 	"strings"
 	"testing"
 	"text/template"
@@ -26,9 +27,16 @@ import (
 	"github.com/google/safehtml"
 )
 
-func TestResponseWriterSetCookie(t *testing.T) {
+func stubResponseWriter(dispatcher safehttp.Dispatcher, rw http.ResponseWriter) safehttp.ResponseWriter {
+	if dispatcher == nil {
+		dispatcher = safehttp.DefaultDispatcher{}
+	}
+	return safehttp.DeprecatedNewResponseWriter(rw, dispatcher)
+}
+
+func TestTaskSetCookie(t *testing.T) {
 	testRw := safehttptest.NewTestResponseWriter(&strings.Builder{})
-	rw := safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, testRw, nil)
+	rw := stubResponseWriter(safehttp.DefaultDispatcher{}, testRw)
 
 	c := safehttp.NewCookie("foo", "bar")
 	err := rw.SetCookie(c)
@@ -44,9 +52,9 @@ func TestResponseWriterSetCookie(t *testing.T) {
 	}
 }
 
-func TestResponseWriterSetInvalidCookie(t *testing.T) {
+func TestTaskSetInvalidCookie(t *testing.T) {
 	testRw := safehttptest.NewTestResponseWriter(&strings.Builder{})
-	rw := safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, testRw, nil)
+	rw := stubResponseWriter(safehttp.DefaultDispatcher{}, testRw)
 
 	c := safehttp.NewCookie("f=oo", "bar")
 	err := rw.SetCookie(c)
@@ -55,7 +63,7 @@ func TestResponseWriterSetInvalidCookie(t *testing.T) {
 	}
 }
 
-func TestResponseWriterWriteTwicePanic(t *testing.T) {
+func TestTaskWriteTwicePanic(t *testing.T) {
 	tests := []struct {
 		name  string
 		write func(w safehttp.ResponseWriter)
@@ -93,7 +101,7 @@ func TestResponseWriterWriteTwicePanic(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			w := safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, safehttptest.NewTestResponseWriter(&strings.Builder{}), nil)
+			w := stubResponseWriter(safehttp.DefaultDispatcher{}, safehttptest.NewTestResponseWriter(&strings.Builder{}))
 			defer func() {
 				if r := recover(); r != nil {
 					return
@@ -105,7 +113,7 @@ func TestResponseWriterWriteTwicePanic(t *testing.T) {
 	}
 }
 
-func TestResponseWriterUnsafeResponse(t *testing.T) {
+func TestTaskUnsafeResponse(t *testing.T) {
 	tests := []struct {
 		name  string
 		write func(w safehttp.ResponseWriter)
@@ -133,7 +141,7 @@ func TestResponseWriterUnsafeResponse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			w := safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, safehttptest.NewTestResponseWriter(&strings.Builder{}), nil)
+			w := stubResponseWriter(safehttp.DefaultDispatcher{}, safehttptest.NewTestResponseWriter(&strings.Builder{}))
 			defer func() {
 				if r := recover(); r != nil {
 					return
@@ -145,7 +153,7 @@ func TestResponseWriterUnsafeResponse(t *testing.T) {
 	}
 }
 
-func TestResponseWriterStatusCode(t *testing.T) {
+func TestTaskStatusCode(t *testing.T) {
 	tests := []struct {
 		name       string
 		write      func(w safehttp.ResponseWriter)
@@ -202,7 +210,7 @@ func TestResponseWriterStatusCode(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			testRw := safehttptest.NewTestResponseWriter(&strings.Builder{})
-			w := safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, testRw, nil)
+			w := stubResponseWriter(safehttp.DefaultDispatcher{}, testRw)
 			tt.write(w)
 			if gotStatus := testRw.Status(); gotStatus != tt.wantStatus {
 				t.Errorf("tt.write(w): got %v, want %v", gotStatus, tt.wantStatus)
@@ -211,7 +219,7 @@ func TestResponseWriterStatusCode(t *testing.T) {
 	}
 }
 
-func TestResponseWriterInvalidStatusCode(t *testing.T) {
+func TestTaskInvalidStatusCode(t *testing.T) {
 	tests := []struct {
 		name  string
 		write func(w safehttp.ResponseWriter)
@@ -233,7 +241,7 @@ func TestResponseWriterInvalidStatusCode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			w := safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, safehttptest.NewTestResponseWriter(&strings.Builder{}), nil)
+			w := stubResponseWriter(safehttp.DefaultDispatcher{}, safehttptest.NewTestResponseWriter(&strings.Builder{}))
 			defer func() {
 				if r := recover(); r != nil {
 					return

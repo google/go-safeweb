@@ -31,26 +31,25 @@ type ResponseRecorder struct {
 	b  *strings.Builder
 }
 
-// NewResponseRecorder creates a ResponseRecorder from the safehttp.DefaultDispatcher.
+// NewResponseRecorder creates a ResponseRecorder.
 func NewResponseRecorder() *ResponseRecorder {
 	var b strings.Builder
 	rw := NewTestResponseWriter(&b)
 	return &ResponseRecorder{
 		rw:             rw,
 		b:              &b,
-		ResponseWriter: safehttp.NewResponseWriter(safehttp.DefaultDispatcher{}, rw, nil),
+		ResponseWriter: safehttp.DeprecatedNewResponseWriter(rw, nil),
 	}
 }
 
-// NewResponseRecorderFromDispatcher creates a ResponseRecorder from a
-// provided safehttp.Dispatcher.
+// NewResponseRecorderFromDispatcher creates a ResponseRecorder.
 func NewResponseRecorderFromDispatcher(d safehttp.Dispatcher) *ResponseRecorder {
 	var b strings.Builder
 	rw := NewTestResponseWriter(&b)
 	return &ResponseRecorder{
 		rw:             rw,
 		b:              &b,
-		ResponseWriter: safehttp.NewResponseWriter(d, rw, nil),
+		ResponseWriter: safehttp.DeprecatedNewResponseWriter(rw, d),
 	}
 }
 

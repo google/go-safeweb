@@ -70,17 +70,15 @@ type ServeMux struct {
 	mux *http.ServeMux
 }
 
-func registerHandlers(mux *http.ServeMux, handlers map[string]map[string]handler) {
+func registerHandlers(mux *http.ServeMux, handlers map[string]map[string]HandlerConfig) {
 	for pattern, handlersPerMethod := range handlers {
-		pattern := pattern
-		handlersPerMethod := handlersPerMethod
 		mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
-			h, ok := handlersPerMethod[r.Method]
+			cfg, ok := handlersPerMethod[r.Method]
 			if !ok {
 				http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 				return
 			}
-			h.ServeHTTP(w, r)
+			processRequest(cfg, w, r)
 		})
 	}
 }
@@ -153,20 +151,22 @@ func (s *ServeMuxConfig) Mux() *ServeMux {
 	if dispatcher == nil {
 		dispatcher = DefaultDispatcher{}
 	}
-	// pattern -> method -> handler
-	handlers := map[string]map[string]handler{}
+	// pattern -> method -> HandlerConfig
+	handlers := map[string]map[string]HandlerConfig{}
 	for _, hr := range s.handlers {
 		if handlers[hr.pattern] == nil {
-			handlers[hr.pattern] = map[string]handler{}
+			handlers[hr.pattern] = map[string]HandlerConfig{}
 		}
 		if _, ok := handlers[hr.pattern][hr.method]; ok {
+			// TODO: this should be done in ServeMuxConfig.Handle, not here.
 			panic(fmt.Sprintf("double registration of (pattern = %q, method = %q)", hr.pattern, hr.method))
 		}
-		handlers[hr.pattern][hr.method] = handler{
-			handler:   hr.handler,
-			interceps: configureInterceptors(s.interceptors, hr.cfgs),
-			disp:      dispatcher,
-		}
+		handlers[hr.pattern][hr.method] =
+			HandlerConfig{
+				Dispatcher:   dispatcher,
+				Handler:      hr.handler,
+				Interceptors: configureInterceptors(s.interceptors, hr.cfgs),
+			}
 	}
 	m := http.NewServeMux()
 	registerHandlers(m, handlers)
@@ -179,6 +179,8 @@ func configureInterceptors(interceptors []Interceptor, cfgs []InterceptorConfig)
 		var cfg InterceptorConfig
 		for _, c := range cfgs {
 			if c.Match(it) {
+				// TODO: there should be a validation check that there is at
+				// most one config per interceptor.
 				cfg = c
 				break
 			}
@@ -200,75 +202,4 @@ func (s *ServeMuxConfig) Clone() *ServeMuxConfig {
 	copy(c.handlers, s.handlers)
 	copy(c.interceptors, s.interceptors)
 	return c
-}
-
-// handler encapsulates a handler and its corresponding
-// interceptors.
-type handler struct {
-	handler   Handler
-	interceps []ConfiguredInterceptor
-	disp      Dispatcher
-}
-
-// ServeHTTP calls the Before method of all the interceptors and then calls the
-// underlying handler. Any panics that occur during the Before phase, during handler
-// execution or during the Commit phase are recovered here and a 500 Internal Server
-// Error response is sent.
-func (h handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	ir := NewIncomingRequest(r)
-	rw := newResponseWriter(h.disp, w, ir)
-	rw.handler = h
-
-	// The `net/http` package recovers handler panics, but we cannot rely on that behavior here.
-	// The reason is, we might need to run After/Commit stages of the interceptors before we
-	// respond with a 500 Internal Server Error.
-	defer func() {
-		if r := recover(); r != nil {
-			rw.WriteError(StatusInternalServerError)
-		}
-	}()
-
-	for _, it := range h.interceps {
-		it.Before(rw, ir)
-		if rw.written {
-			return
-		}
-	}
-
-	h.handler.ServeHTTP(rw, ir)
-	if !rw.written {
-		rw.NoContent()
-	}
-}
-
-// commitPhase calls the Commit phases of all the interceptors. This stage will
-// run before a response is written to the ResponseWriter. If a response is
-// written to the ResponseWriter in a Commit phase then the Commit phases of the
-// remaining interceptors won't execute.
-//
-// TODO: BIG WARNING, if ResponseWriter.Write and ResponseWriter.WriteTemplate
-// are called in Commit then this will recurse. CommitResponseWriter was an
-// attempt to prevent this by not giving access to Write and WriteTemplate in
-// the Commit phase.
-func (h handler) commitPhase(w *responseWriter, resp Response) {
-	for i := len(h.interceps) - 1; i >= 0; i-- {
-		it := h.interceps[i]
-		it.Commit(w, w.req, resp)
-		if w.written {
-			return
-		}
-	}
-}
-
-// errorPhase calls the OnError phases of all the interceptors associated with
-// a handler. This stage runs before an error response is written to the
-// ResponseWriter.
-//
-// TODO: BIG WARNING, if an interceptor attempts to write to the ResponseWriter
-// in the OnError phase will result in an irrecoverable error.
-func (h handler) errorPhase(w *responseWriter, resp Response) {
-	for i := len(h.interceps) - 1; i >= 0; i-- {
-		it := h.interceps[i]
-		it.OnError(w, w.req, resp)
-	}
 }
