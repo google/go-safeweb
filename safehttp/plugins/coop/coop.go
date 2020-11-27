@@ -91,7 +91,7 @@ func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 }
 
 // Commit is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (it Interceptor) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+func (it Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
 
@@ -99,7 +99,7 @@ func (it Interceptor) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 //
 // TODO: should OnError take as argument something that notifies it the commit
 // phase was already called?
-func (it Interceptor) OnError(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+func (it Interceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
 

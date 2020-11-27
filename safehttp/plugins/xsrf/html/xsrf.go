@@ -103,7 +103,7 @@ func (it *Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingReq
 // For every authorized request, the interceptor also generates a
 // cryptographically-safe XSRF token using the appKey, the cookie and the path
 // visited. This is then injected as a hidden input field in HTML forms.
-func (it *Interceptor) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+func (it *Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	cookieID, err := r.Cookie(cookieIDKey)
 	if err != nil {
 		if !xsrf.StatePreserving(r) {
@@ -130,6 +130,6 @@ func (it *Interceptor) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingReq
 }
 
 // OnError is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (it *Interceptor) OnError(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+func (it *Interceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
