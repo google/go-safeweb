@@ -26,8 +26,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/google/go-safeweb/safehttp/plugins/htmlinject"
 	"strings"
+
+	"github.com/google/go-safeweb/safehttp/plugins/htmlinject"
 
 	"github.com/google/go-safeweb/safehttp"
 )
@@ -219,17 +220,17 @@ func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 // Commit adds the nonce to the safehttp.TemplateResponse which is going to be
 // injected as the value of the nonce attribute in <script> and <link> tags. The
 // nonce is going to be unique for each safehttp.IncomingRequest.
-func (it Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (it Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 	tmplResp, ok := resp.(safehttp.TemplateResponse)
 	if !ok {
-		return safehttp.NotWritten()
+		return
 	}
 
 	nonce, err := Nonce(r.Context())
 	if err != nil {
 		// The nonce should have been added in the Before stage and, if that is
 		// not the case, a server misconfiguration occured.
-		return w.WriteError(safehttp.StatusInternalServerError)
+		panic("no CSP nonce")
 	}
 
 	// TODO(maramihali@): Change the key when function names are exported by
@@ -237,10 +238,9 @@ func (it Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.Incom
 	// TODO: What should happen if the CSPNonce is not present in the
 	// tr.FuncMap?
 	tmplResp.FuncMap[htmlinject.CSPNoncesDefaultFuncName] = func() string { return nonce }
-	return safehttp.NotWritten()
 }
 
 // OnError is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (it Interceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
-	return safehttp.NotWritten()
+func (it Interceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) {
+	return
 }

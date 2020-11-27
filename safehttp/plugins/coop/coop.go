@@ -91,16 +91,14 @@ func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 }
 
 // Commit is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (it Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
-	return safehttp.NotWritten()
+func (it Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) {
 }
 
 // OnError is a no-op, required to satisfy the safehttp.Interceptor interface.
 //
 // TODO: should OnError take as argument something that notifies it the commit
 // phase was already called?
-func (it Interceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
-	return safehttp.NotWritten()
+func (it Interceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) {
 }
 
 // Overrider is a safehttp.InterceptorConfig that allows to override COOP for a specific handler.
