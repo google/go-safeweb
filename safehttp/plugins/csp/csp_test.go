@@ -278,26 +278,13 @@ func TestCommitMissingNonce(t *testing.T) {
 
 	it := Interceptor{}
 	tr := safehttp.TemplateResponse{FuncMap: map[string]interface{}{}}
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic")
+		}
+	}()
 	it.Commit(rec.ResponseWriter, req, tr, nil)
-
-	wantFuncMap := map[string]interface{}{}
-	if diff := cmp.Diff(wantFuncMap, tr.FuncMap); diff != "" {
-		t.Errorf("tr.FuncMap: mismatch (-want +got):\n%s", diff)
-	}
-
-	if got, want := rec.Status(), safehttp.StatusInternalServerError; got != want {
-		t.Errorf("rec.Status(): got %v, want %v", got, want)
-	}
-	wantHeaders := map[string][]string{
-		"Content-Type":           {"text/plain; charset=utf-8"},
-		"X-Content-Type-Options": {"nosniff"},
-	}
-	if diff := cmp.Diff(wantHeaders, map[string][]string(rec.Header())); diff != "" {
-		t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
-	}
-	if got, want := rec.Body(), "Internal Server Error\n"; got != want {
-		t.Errorf("rec.Body(): got %q want %q", got, want)
-	}
 }
 
 func TestCommitNotTemplateResponse(t *testing.T) {

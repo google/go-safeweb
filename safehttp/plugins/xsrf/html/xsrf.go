@@ -18,6 +18,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/plugins/htmlinject"
 	"github.com/google/go-safeweb/safehttp/plugins/xsrf"
@@ -40,7 +41,7 @@ type Interceptor struct {
 
 var _ safehttp.Interceptor = &Interceptor{}
 
-func addCookieID(w safehttp.ResponseWriter) (*safehttp.Cookie, error) {
+func addCookieID(w safehttp.ResponseHeadersWriter) (*safehttp.Cookie, error) {
 	buf := make([]byte, 20)
 	if _, err := rand.Read(buf); err != nil {
 		return nil, fmt.Errorf("crypto/rand.Read: %v", err)
@@ -103,33 +104,33 @@ func (it *Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingReq
 // For every authorized request, the interceptor also generates a
 // cryptographically-safe XSRF token using the appKey, the cookie and the path
 // visited. This is then injected as a hidden input field in HTML forms.
-func (it *Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+func (it *Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) {
 	cookieID, err := r.Cookie(cookieIDKey)
 	if err != nil {
 		if !xsrf.StatePreserving(r) {
 			// This should never happen as, if this is a state-changing request and it lacks the cookie, it would've been already rejected by Before.
-			return w.WriteError(safehttp.StatusInternalServerError)
+			panic("not state preserving and no cookie in Commit")
 		}
 		cookieID, err = addCookieID(w)
 		if err != nil {
 			// This is a server misconfiguration.
-			return w.WriteError(safehttp.StatusInternalServerError)
+			panic("cannot add cookie ID")
 		}
 	}
 
 	tmplResp, ok := resp.(safehttp.TemplateResponse)
 	if !ok {
-		return safehttp.NotWritten()
+		// If it's not a template response, we cannot inject the token.
+		// TODO: should this be an error?
+		return
 	}
 
 	tok := xsrftoken.Generate(it.SecretAppKey, cookieID.Value(), r.URL.Path())
 	// TODO: what should happen if the XSRFToken key is not present in the
 	// tr.FuncMap?
 	tmplResp.FuncMap[htmlinject.XSRFTokensDefaultFuncName] = func() string { return tok }
-	return safehttp.NotWritten()
 }
 
 // OnError is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (it *Interceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
-	return safehttp.NotWritten()
+func (it *Interceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) {
 }

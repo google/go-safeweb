@@ -170,11 +170,9 @@ func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, 
 }
 
 // Commit is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (p *Plugin) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
-	return safehttp.NotWritten()
+func (p *Plugin) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) {
 }
 
 // OnError is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (p *Plugin) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
-	return safehttp.NotWritten()
+func (p *Plugin) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) {
 }
