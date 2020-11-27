@@ -174,12 +174,10 @@ func (p setHeaderInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.Inco
 	return safehttp.NotWritten()
 }
 
-func (p setHeaderInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
-	return safehttp.NotWritten()
+func (p setHeaderInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 }
 
-func (p setHeaderInterceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
-	return safehttp.NotWritten()
+func (p setHeaderInterceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 }
 
 type internalErrorInterceptor struct{}
@@ -188,13 +186,11 @@ func (internalErrorInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.In
 	return w.WriteError(safehttp.StatusInternalServerError)
 }
 
-func (internalErrorInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (internalErrorInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 	w.Header().Set("Foo", "this should not be reached")
-	return safehttp.NotWritten()
 }
 
-func (internalErrorInterceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
-	return safehttp.NotWritten()
+func (internalErrorInterceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 }
 
 type claimHeaderInterceptor struct {
@@ -209,12 +205,10 @@ func (p *claimHeaderInterceptor) Before(w safehttp.ResponseWriter, r *safehttp.I
 	return safehttp.NotWritten()
 }
 
-func (p *claimHeaderInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
-	return safehttp.NotWritten()
+func (p *claimHeaderInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 }
 
-func (p *claimHeaderInterceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
-	return safehttp.NotWritten()
+func (p *claimHeaderInterceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 }
 
 func claimInterceptorSetHeader(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, value string) {
@@ -228,12 +222,10 @@ func (panickingInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.Incomi
 	panic("bad")
 }
 
-func (panickingInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
-	return safehttp.NotWritten()
+func (panickingInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 }
 
-func (panickingInterceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
-	return safehttp.NotWritten()
+func (panickingInterceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 }
 
 type committerInterceptor struct{}
@@ -242,13 +234,11 @@ func (committerInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.Incomi
 	return safehttp.NotWritten()
 }
 
-func (committerInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (committerInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 	w.Header().Set("foo", "bar")
-	return safehttp.NotWritten()
 }
 
-func (committerInterceptor) OnError(w safehttp.ResponseHeadersWriter, _ *safehttp.IncomingRequest, _ safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
-	return safehttp.NotWritten()
+func (committerInterceptor) OnError(w safehttp.ResponseHeadersWriter, _ *safehttp.IncomingRequest, _ safehttp.Response, cfg safehttp.InterceptorConfig) {
 }
 
 type setHeaderErroringInterceptor struct{}
@@ -257,14 +247,12 @@ func (setHeaderErroringInterceptor) Before(w safehttp.ResponseWriter, _ *safehtt
 	return w.WriteError(safehttp.StatusForbidden)
 }
 
-func (setHeaderErroringInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (setHeaderErroringInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 	w.Header().Set("name", "foo")
-	return safehttp.Result{}
 }
 
-func (setHeaderErroringInterceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (setHeaderErroringInterceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 	w.Header().Set("name", "bar")
-	return safehttp.Result{}
 }
 
 func TestMuxInterceptors(t *testing.T) {
@@ -448,7 +436,7 @@ func (p setHeaderConfigInterceptor) Before(w safehttp.ResponseWriter, _ *safehtt
 	return safehttp.NotWritten()
 }
 
-func (p setHeaderConfigInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (p setHeaderConfigInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 	name := "Commit-Pizza"
 	value := "Hawaii"
 	if c, ok := cfg.(setHeaderConfig); ok {
@@ -456,11 +444,9 @@ func (p setHeaderConfigInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *
 		value = c.value
 	}
 	w.Header().Set(name, value)
-	return safehttp.NotWritten()
 }
 
-func (p setHeaderConfigInterceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
-	return safehttp.NotWritten()
+func (p setHeaderConfigInterceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 }
 
 type noInterceptorConfig struct{}
@@ -541,16 +527,14 @@ func (interceptorOne) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 	return safehttp.NotWritten()
 }
 
-func (interceptorOne) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (interceptorOne) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 	if w.Header().Get("Commit2") != "b" {
 		panic("server bug")
 	}
 	w.Header().Set("Commit1", "a")
-	return safehttp.NotWritten()
 }
 
-func (interceptorOne) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
-	return safehttp.NotWritten()
+func (interceptorOne) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 }
 
 type interceptorTwo struct{}
@@ -563,16 +547,14 @@ func (interceptorTwo) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 	return safehttp.NotWritten()
 }
 
-func (interceptorTwo) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (interceptorTwo) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 	if w.Header().Get("Commit3") != "c" {
 		panic("server bug")
 	}
 	w.Header().Set("Commit2", "b")
-	return safehttp.NotWritten()
 }
 
-func (interceptorTwo) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
-	return safehttp.NotWritten()
+func (interceptorTwo) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 }
 
 type interceptorThree struct{}
@@ -585,16 +567,14 @@ func (interceptorThree) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRe
 	return safehttp.NotWritten()
 }
 
-func (interceptorThree) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (interceptorThree) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 	if w.Header().Get("Dessert") != "tiramisu" {
 		panic("server bug")
 	}
 	w.Header().Set("Commit3", "c")
-	return safehttp.NotWritten()
 }
 
-func (interceptorThree) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
-	return safehttp.NotWritten()
+func (interceptorThree) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 }
 
 func TestMuxDeterministicInterceptorOrder(t *testing.T) {
@@ -667,11 +647,10 @@ func (onErrorWriteInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.Inc
 	return w.WriteError(safehttp.StatusBadRequest)
 }
 
-func (onErrorWriteInterceptor) Commit(_ safehttp.ResponseHeadersWriter, _ *safehttp.IncomingRequest, _ safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
-	return safehttp.Result{}
+func (onErrorWriteInterceptor) Commit(_ safehttp.ResponseHeadersWriter, _ *safehttp.IncomingRequest, _ safehttp.Response, _ safehttp.InterceptorConfig) {
 }
 
-func (onErrorWriteInterceptor) OnError(w safehttp.ResponseHeadersWriter, _ *safehttp.IncomingRequest, _ safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+func (onErrorWriteInterceptor) OnError(w safehttp.ResponseHeadersWriter, _ *safehttp.IncomingRequest, _ safehttp.Response, _ safehttp.InterceptorConfig) {
 	panic("panic during onError")
 }
 

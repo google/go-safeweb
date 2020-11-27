@@ -104,7 +104,7 @@ func (it *Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingReq
 // For every authorized request, the interceptor also generates a
 // cryptographically-safe XSRF token using the appKey, the cookie and the path
 // visited. This is then injected as a hidden input field in HTML forms.
-func (it *Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+func (it *Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) {
 	cookieID, err := r.Cookie(cookieIDKey)
 	if err != nil {
 		if !xsrf.StatePreserving(r) {
@@ -120,17 +120,17 @@ func (it *Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.Inco
 
 	tmplResp, ok := resp.(safehttp.TemplateResponse)
 	if !ok {
-		return safehttp.NotWritten()
+		// If it's not a template response, we cannot inject the token.
+		// TODO: should this be an error?
+		return
 	}
 
 	tok := xsrftoken.Generate(it.SecretAppKey, cookieID.Value(), r.URL.Path())
 	// TODO: what should happen if the XSRFToken key is not present in the
 	// tr.FuncMap?
 	tmplResp.FuncMap[htmlinject.XSRFTokensDefaultFuncName] = func() string { return tok }
-	return safehttp.NotWritten()
 }
 
 // OnError is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (it *Interceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
-	return safehttp.NotWritten()
+func (it *Interceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) {
 }

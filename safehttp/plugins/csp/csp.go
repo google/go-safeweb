@@ -220,10 +220,10 @@ func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 // Commit adds the nonce to the safehttp.TemplateResponse which is going to be
 // injected as the value of the nonce attribute in <script> and <link> tags. The
 // nonce is going to be unique for each safehttp.IncomingRequest.
-func (it Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (it Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 	tmplResp, ok := resp.(safehttp.TemplateResponse)
 	if !ok {
-		return safehttp.NotWritten()
+		return
 	}
 
 	nonce, err := Nonce(r.Context())
@@ -238,10 +238,9 @@ func (it Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.Incom
 	// TODO: What should happen if the CSPNonce is not present in the
 	// tr.FuncMap?
 	tmplResp.FuncMap[htmlinject.CSPNoncesDefaultFuncName] = func() string { return nonce }
-	return safehttp.NotWritten()
 }
 
 // OnError is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (it Interceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
-	return safehttp.NotWritten()
+func (it Interceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) {
+	return
 }
