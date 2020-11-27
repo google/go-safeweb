@@ -21,6 +21,8 @@ package safehttp
 //
 // A ResponseWriter may not be used after the Handler.ServeHTTP method has returned.
 type ResponseWriter interface {
+	ResponseHeadersWriter
+
 	// Write writes a safe response.
 	Write(resp Response) Result
 
@@ -38,7 +40,12 @@ type ResponseWriter interface {
 	//
 	// If the ResponseWriter has already been written to, then this method panics.
 	Redirect(r *IncomingRequest, url string, code StatusCode) Result
+}
 
+// ResponseHeadersWriter is used to alter the HTTP response headers.
+//
+// A ResponseHeadersWriter may not be used after the Handler.ServeHTTP method has returned.
+type ResponseHeadersWriter interface {
 	// Header returns the collection of headers that will be set
 	// on the response. Headers must be set before writing a
 	// response (e.g. Write, WriteTemplate).

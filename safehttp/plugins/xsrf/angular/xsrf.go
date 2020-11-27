@@ -95,7 +95,7 @@ func (it *Interceptor) addTokenCookie(w safehttp.ResponseWriter) error {
 // preserving request (GET, HEAD or OPTION) and sets it in the response. On
 // every subsequent request the cookie is expected alongside a header that
 // matches its value.
-func (it *Interceptor) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+func (it *Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	if c, err := r.Cookie(it.TokenCookieName); err == nil && c.Value() != "" {
 		// The XSRF cookie is there so we don't need to do anything else.
 		return safehttp.NotWritten()
@@ -115,6 +115,6 @@ func (it *Interceptor) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingReq
 }
 
 // OnError is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (it *Interceptor) OnError(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+func (it *Interceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
