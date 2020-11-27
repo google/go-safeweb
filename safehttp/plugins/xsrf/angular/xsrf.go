@@ -18,9 +18,10 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"time"
+
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/plugins/xsrf"
-	"time"
 )
 
 // Interceptor provides protection against Cross-Site Request Forgery attacks
@@ -73,7 +74,7 @@ func (it *Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingReq
 	return safehttp.NotWritten()
 }
 
-func (it *Interceptor) addTokenCookie(w safehttp.ResponseWriter) error {
+func (it *Interceptor) addTokenCookie(w safehttp.ResponseHeadersWriter) error {
 	tok := make([]byte, 20)
 	if _, err := rand.Read(tok); err != nil {
 		return fmt.Errorf("crypto/rand.Read: %v", err)
@@ -104,12 +105,12 @@ func (it *Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.Inco
 	if !xsrf.StatePreserving(r) {
 		// This should never happen as, if this is a state-changing request and
 		// it lacks the cookie, it would've been already rejected by Before.
-		return w.WriteError(safehttp.StatusInternalServerError)
+		panic("not state preserving and no cookie in Commit")
 	}
 
 	if err := it.addTokenCookie(w); err != nil {
 		// This is a server misconfiguration.
-		return w.WriteError(safehttp.StatusInternalServerError)
+		panic("cannot add token cookie")
 	}
 	return safehttp.NotWritten()
 }

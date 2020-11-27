@@ -26,8 +26,9 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/google/go-safeweb/safehttp/plugins/htmlinject"
 	"strings"
+
+	"github.com/google/go-safeweb/safehttp/plugins/htmlinject"
 
 	"github.com/google/go-safeweb/safehttp"
 )
@@ -229,7 +230,7 @@ func (it Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.Incom
 	if err != nil {
 		// The nonce should have been added in the Before stage and, if that is
 		// not the case, a server misconfiguration occured.
-		return w.WriteError(safehttp.StatusInternalServerError)
+		panic("no CSP nonce")
 	}
 
 	// TODO(maramihali@): Change the key when function names are exported by

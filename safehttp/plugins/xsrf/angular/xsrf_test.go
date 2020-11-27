@@ -15,11 +15,12 @@
 package xsrfangular
 
 import (
+	"strings"
+	"testing"
+
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/safehttptest"
-	"strings"
-	"testing"
 )
 
 const (
@@ -78,23 +79,13 @@ func TestAddCookieFail(t *testing.T) {
 	req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
 	rec := safehttptest.NewResponseRecorder()
 	it := &Interceptor{}
+
+	defer func() {
+		if r := recover(); r == nil {
+			t.Fatal("expected panic")
+		}
+	}()
 	it.Commit(rec.ResponseWriter, req, nil, nil)
-
-	if wantStatus := safehttp.StatusInternalServerError; rec.Status() != wantStatus {
-		t.Errorf("rec.Status(): got %v want %v", rec.Status(), wantStatus)
-	}
-
-	wantHeaders := map[string][]string{
-		"Content-Type":           {"text/plain; charset=utf-8"},
-		"X-Content-Type-Options": {"nosniff"},
-	}
-	if diff := cmp.Diff(wantHeaders, map[string][]string(rec.Header())); diff != "" {
-		t.Errorf("rec.Header(): mismatch (-want +got):\n%s", diff)
-	}
-
-	if wantBody, gotBody := "Internal Server Error\n", rec.Body(); wantBody != gotBody {
-		t.Errorf("response body: got %v, want %v", gotBody, wantBody)
-	}
 }
 
 func TestPostProtection(t *testing.T) {

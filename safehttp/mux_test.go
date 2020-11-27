@@ -543,7 +543,7 @@ func (interceptorOne) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 
 func (interceptorOne) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	if w.Header().Get("Commit2") != "b" {
-		w.WriteError(safehttp.StatusInternalServerError)
+		panic("server bug")
 	}
 	w.Header().Set("Commit1", "a")
 	return safehttp.NotWritten()
@@ -557,7 +557,7 @@ type interceptorTwo struct{}
 
 func (interceptorTwo) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
 	if w.Header().Get("pizza") != "diavola" {
-		w.WriteError(safehttp.StatusInternalServerError)
+		panic("server bug")
 	}
 	w.Header().Set("spaghetti", "bolognese")
 	return safehttp.NotWritten()
@@ -565,7 +565,7 @@ func (interceptorTwo) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 
 func (interceptorTwo) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	if w.Header().Get("Commit3") != "c" {
-		w.WriteError(safehttp.StatusInternalServerError)
+		panic("server bug")
 	}
 	w.Header().Set("Commit2", "b")
 	return safehttp.NotWritten()
@@ -579,7 +579,7 @@ type interceptorThree struct{}
 
 func (interceptorThree) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
 	if w.Header().Get("spaghetti") != "bolognese" {
-		w.WriteError(safehttp.StatusInternalServerError)
+		panic("server bug")
 	}
 	w.Header().Set("dessert", "tiramisu")
 	return safehttp.NotWritten()
@@ -587,7 +587,7 @@ func (interceptorThree) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRe
 
 func (interceptorThree) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	if w.Header().Get("Dessert") != "tiramisu" {
-		w.WriteError(safehttp.StatusInternalServerError)
+		panic("server bug")
 	}
 	w.Header().Set("Commit3", "c")
 	return safehttp.NotWritten()
@@ -672,8 +672,7 @@ func (onErrorWriteInterceptor) Commit(_ safehttp.ResponseHeadersWriter, _ *safeh
 }
 
 func (onErrorWriteInterceptor) OnError(w safehttp.ResponseHeadersWriter, _ *safehttp.IncomingRequest, _ safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
-	w.Header().Set("header", "bad")
-	return w.WriteError(safehttp.StatusInsufficientStorage)
+	panic("panic during onError")
 }
 
 func TestMuxInterceptorWriteInOnError(t *testing.T) {

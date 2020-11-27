@@ -18,6 +18,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/plugins/htmlinject"
 	"github.com/google/go-safeweb/safehttp/plugins/xsrf"
@@ -40,7 +41,7 @@ type Interceptor struct {
 
 var _ safehttp.Interceptor = &Interceptor{}
 
-func addCookieID(w safehttp.ResponseWriter) (*safehttp.Cookie, error) {
+func addCookieID(w safehttp.ResponseHeadersWriter) (*safehttp.Cookie, error) {
 	buf := make([]byte, 20)
 	if _, err := rand.Read(buf); err != nil {
 		return nil, fmt.Errorf("crypto/rand.Read: %v", err)
@@ -108,12 +109,12 @@ func (it *Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.Inco
 	if err != nil {
 		if !xsrf.StatePreserving(r) {
 			// This should never happen as, if this is a state-changing request and it lacks the cookie, it would've been already rejected by Before.
-			return w.WriteError(safehttp.StatusInternalServerError)
+			panic("not state preserving and no cookie in Commit")
 		}
 		cookieID, err = addCookieID(w)
 		if err != nil {
 			// This is a server misconfiguration.
-			return w.WriteError(safehttp.StatusInternalServerError)
+			panic("cannot add cookie ID")
 		}
 	}
 
