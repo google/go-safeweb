@@ -19,8 +19,8 @@ import (
 	"net/http"
 )
 
-// TODO(kele): come up with a better name than this.
-type task struct {
+// A single request "flight".
+type flight struct {
 	rw  http.ResponseWriter
 	req *IncomingRequest
 
@@ -41,13 +41,13 @@ type task struct {
 //
 // The main problem with this is the implementation of the returned
 // ResponseWriter is incomplete, i.e. lacks the Handler and Interceptors fields
-// of the HandlerConfig needed by the task. For the existing tests that use it,
+// of the HandlerConfig needed by the flight. For the existing tests that use it,
 // it's fine, but they should be migrated.
 //
 // TODO(kele): remove this once we have a better option to provide a
 // ResponseWriter implementation for interceptor testing.
 func DeprecatedNewResponseWriter(rw http.ResponseWriter, dispatcher Dispatcher) ResponseWriter {
-	return &task{
+	return &flight{
 		cfg:    HandlerConfig{Dispatcher: dispatcher},
 		rw:     rw,
 		header: newHeader(rw.Header()),
@@ -63,7 +63,7 @@ type HandlerConfig struct {
 }
 
 func processRequest(cfg HandlerConfig, rw http.ResponseWriter, req *http.Request) {
-	t := &task{
+	f := &flight{
 		cfg:    cfg,
 		rw:     rw,
 		header: newHeader(rw.Header()),
@@ -76,20 +76,20 @@ func processRequest(cfg HandlerConfig, rw http.ResponseWriter, req *http.Request
 	// Therefore we're calling WriteError.
 	defer func() {
 		if r := recover(); r != nil {
-			t.WriteError(StatusInternalServerError)
+			f.WriteError(StatusInternalServerError)
 		}
 	}()
 
-	for _, it := range t.cfg.Interceptors {
-		it.Before(t, t.req)
-		if t.written {
+	for _, it := range f.cfg.Interceptors {
+		it.Before(f, f.req)
+		if f.written {
 			return
 		}
 	}
 
-	t.cfg.Handler.ServeHTTP(t, t.req)
-	if !t.written {
-		t.NoContent()
+	f.cfg.Handler.ServeHTTP(f, f.req)
+	if !f.written {
+		f.NoContent()
 	}
 }
 
@@ -97,25 +97,25 @@ func processRequest(cfg HandlerConfig, rw http.ResponseWriter, req *http.Request
 // underlying http.ResponseWriter if the Dispatcher decides it's safe to do so.
 //
 // TODO: replace panics with proper error handling when writing the response fails.
-func (t *task) Write(resp Response) Result {
-	if t.written {
+func (f *flight) Write(resp Response) Result {
+	if f.written {
 		panic("ResponseWriter was already written to")
 	}
-	t.written = true
-	t.commitPhase(resp)
+	f.written = true
+	f.commitPhase(resp)
 
-	ct, err := t.cfg.Dispatcher.ContentType(resp)
+	ct, err := f.cfg.Dispatcher.ContentType(resp)
 	if err != nil {
 		panic(err)
 	}
-	t.rw.Header().Set("Content-Type", ct)
+	f.rw.Header().Set("Content-Type", ct)
 
-	if t.code == 0 {
-		t.code = StatusOK
+	if f.code == 0 {
+		f.code = StatusOK
 	}
-	t.rw.WriteHeader(int(t.code))
+	f.rw.WriteHeader(int(f.code))
 
-	if err := t.cfg.Dispatcher.Write(t.rw, resp); err != nil {
+	if err := f.cfg.Dispatcher.Write(f.rw, resp); err != nil {
 		panic(err)
 	}
 	return Result{}
@@ -124,15 +124,15 @@ func (t *task) Write(resp Response) Result {
 // NoContent responds with a 204 No Content response.
 //
 // If the ResponseWriter has already been written to, then this method will panic.
-func (t *task) NoContent() Result {
+func (f *flight) NoContent() Result {
 	// TODO: should NoContent call Write under the hood? Should the dispatcher
 	// handle this too?
-	if t.written {
+	if f.written {
 		panic("ResponseWriter was already written to")
 	}
-	t.written = true
-	t.commitPhase(NoContentResponse{})
-	t.rw.WriteHeader(int(StatusNoContent))
+	f.written = true
+	f.commitPhase(NoContentResponse{})
+	f.rw.WriteHeader(int(StatusNoContent))
 	return Result{}
 }
 
@@ -140,40 +140,40 @@ func (t *task) NoContent() Result {
 // status code.
 //
 // If the ResponseWriter has already been written to, then this method will panic.
-func (t *task) WriteError(code StatusCode) Result {
+func (f *flight) WriteError(code StatusCode) Result {
 	// TODO: accept custom error responses that need to go through the dispatcher.
-	if t.writtenError {
+	if f.writtenError {
 		panic("ResponseWriter.WriteError called twice")
 	}
-	t.written = true
-	t.writtenError = true
+	f.written = true
+	f.writtenError = true
 	// TODO: we cannot really write if the Dispatcher already started writing
 	// but panicked, resulting in a WriteError call.
 	resp := &ErrorResponse{Code: code}
-	t.errorPhase(resp)
-	http.Error(t.rw, http.StatusText(int(resp.Code)), int(resp.Code))
+	f.errorPhase(resp)
+	http.Error(f.rw, http.StatusText(int(resp.Code)), int(resp.Code))
 	return Result{}
 }
 
 // Redirect responds with a redirect to the given url, using code as the status code.
 //
 // If the ResponseWriter has already been written to, then this method will panic.
-func (t *task) Redirect(r *IncomingRequest, url string, code StatusCode) Result {
+func (f *flight) Redirect(r *IncomingRequest, url string, code StatusCode) Result {
 	if code < 300 || code >= 400 {
 		panic(fmt.Sprintf("wrong method called: redirect with status %d", code))
 	}
-	if t.written {
+	if f.written {
 		panic("ResponseWriter was already written to")
 	}
-	t.written = true
-	http.Redirect(t.rw, r.req, url, int(code))
+	f.written = true
+	http.Redirect(f.rw, r.req, url, int(code))
 	return Result{}
 }
 
 // Header returns the collection of headers that will be set on the response.
 // Headers must be set before writing a response.
-func (t *task) Header() Header {
-	return t.header
+func (f *flight) Header() Header {
+	return f.header
 }
 
 // SetCookie adds a Set-Cookie header to the provided ResponseWriter's headers.
@@ -181,8 +181,8 @@ func (t *task) Header() Header {
 // returned.
 //
 // TODO: should this be named AddCookie?
-func (t *task) SetCookie(c *Cookie) error {
-	return t.header.addCookie(c)
+func (f *flight) SetCookie(c *Cookie) error {
+	return f.header.addCookie(c)
 }
 
 // SetCode allows setting a response status. If the response was already
@@ -194,32 +194,32 @@ func (t *task) SetCookie(c *Cookie) error {
 //
 // TODO(empijei@, kele@, maramihali@): decide what should be done if the
 // code passed is either 3XX (redirect) or 4XX-5XX (client/server error).
-func (t *task) SetCode(code StatusCode) {
-	if t.written {
+func (f *flight) SetCode(code StatusCode) {
+	if f.written {
 		return
 	}
 	if code < 100 || code >= 600 {
 		panic("invalid status code")
 	}
-	t.code = code
+	f.code = code
 }
 
 // commitPhase calls the Commit phases of all the interceptors. This stage will
 // run before a response is written to the ResponseWriter. If a response is
 // written to the ResponseWriter in a Commit phase then the Commit phases of the
-// remaining interceptors won't execute.
-func (t *task) commitPhase(resp Response) {
-	for i := len(t.cfg.Interceptors) - 1; i >= 0; i-- {
-		t.cfg.Interceptors[i].Commit(t, t.req, resp)
+// remaining interceptors won'f execute.
+func (f *flight) commitPhase(resp Response) {
+	for i := len(f.cfg.Interceptors) - 1; i >= 0; i-- {
+		f.cfg.Interceptors[i].Commit(f, f.req, resp)
 	}
 }
 
 // errorPhase calls the OnError phases of all the interceptors associated with
 // a handler. This stage runs before an error response is written to the
 // ResponseWriter.
-func (t *task) errorPhase(resp Response) {
-	for i := len(t.cfg.Interceptors) - 1; i >= 0; i-- {
-		t.cfg.Interceptors[i].OnError(t, t.req, resp)
+func (f *flight) errorPhase(resp Response) {
+	for i := len(f.cfg.Interceptors) - 1; i >= 0; i-- {
+		f.cfg.Interceptors[i].OnError(f, f.req, resp)
 	}
 }
 
