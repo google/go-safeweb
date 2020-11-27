@@ -219,7 +219,7 @@ func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 // Commit adds the nonce to the safehttp.TemplateResponse which is going to be
 // injected as the value of the nonce attribute in <script> and <link> tags. The
 // nonce is going to be unique for each safehttp.IncomingRequest.
-func (it Interceptor) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
+func (it Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) safehttp.Result {
 	tmplResp, ok := resp.(safehttp.TemplateResponse)
 	if !ok {
 		return safehttp.NotWritten()
@@ -241,6 +241,6 @@ func (it Interceptor) Commit(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 }
 
 // OnError is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (it Interceptor) OnError(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
+func (it Interceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) safehttp.Result {
 	return safehttp.NotWritten()
 }
