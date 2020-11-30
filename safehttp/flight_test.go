@@ -15,6 +15,7 @@
 package safehttp_test
 
 import (
+	"fmt"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -131,4 +132,48 @@ func TestFlightHandlerPanic(t *testing.T) {
 		}
 	}()
 	mux.ServeHTTP(rw, req)
+}
+
+func TestFlightDoubleWritePanics(t *testing.T) {
+	writeFuncs := map[string]func(safehttp.ResponseWriter, *safehttp.IncomingRequest) safehttp.Result{
+		"Write": func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+			return w.Write(safehtml.HTMLEscaped("Hello"))
+		},
+		"NoContent": func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result { return w.NoContent() },
+		"WriteError": func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+			return w.WriteError(safehttp.StatusPreconditionFailed)
+		},
+		"Redirect": func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+			return w.Redirect(r, "google.com", safehttp.StatusPermanentRedirect)
+		},
+	}
+
+	for firstWriteName, firstWrite := range writeFuncs {
+		for secondWriteName, secondWrite := range writeFuncs {
+			t.Run(fmt.Sprintf("%s->%s", firstWriteName, secondWriteName), func(t *testing.T) {
+				mb := &safehttp.ServeMuxConfig{}
+				mb.Handle("/search", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+					firstWrite(w, r)
+					secondWrite(w, r) // this should panic
+					t.Fatal("should never reach this point")
+					return safehttp.Result{}
+				}))
+				mux := mb.Mux()
+
+				req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/search", nil)
+				b := &strings.Builder{}
+				rw := safehttptest.NewTestResponseWriter(b)
+				defer func() {
+					if r := recover(); r == nil {
+						t.Fatalf("expected panic")
+					}
+					// Good, the panic got propagated.
+					// Note: we are not testing the response headers here, as the first write might have already succeeded.
+				}()
+				mux.ServeHTTP(rw, req)
+			})
+
+		}
+	}
+
 }
