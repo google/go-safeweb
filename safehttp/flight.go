@@ -29,10 +29,8 @@ type flight struct {
 	code   StatusCode
 	header Header
 
-	// TODO(kele): we need to distinguish between calling Write and actually
-	// writing to the net/http.ResponseWriter.
-	written      bool
-	writtenError bool
+	written    bool
+	dispatched bool
 }
 
 // DeprecatedNewResponseWriter creates a ResponseWriter implementation that has
@@ -76,6 +74,17 @@ func processRequest(cfg HandlerConfig, rw http.ResponseWriter, req *http.Request
 	// Therefore we're calling WriteError.
 	defer func() {
 		if r := recover(); r != nil {
+			if f.dispatched {
+				// The response has been already dispatched, which means there's
+				// nothing we can do because as far as we know, the client might
+				// have got a part of the response already.
+				return
+			}
+			if f.written {
+				// A write operation has been started, but hasn't been
+				// dispatched yet.
+				panic("TODO")
+			}
 			f.WriteError(StatusInternalServerError)
 		}
 	}()
@@ -115,6 +124,7 @@ func (f *flight) Write(resp Response) Result {
 	}
 	f.rw.WriteHeader(int(f.code))
 
+	f.dispatched = true
 	if err := f.cfg.Dispatcher.Write(f.rw, resp); err != nil {
 		panic(err)
 	}
@@ -142,11 +152,10 @@ func (f *flight) NoContent() Result {
 // If the ResponseWriter has already been written to, then this method will panic.
 func (f *flight) WriteError(code StatusCode) Result {
 	// TODO: accept custom error responses that need to go through the dispatcher.
-	if f.writtenError {
-		panic("ResponseWriter.WriteError called twice")
+	if f.written {
+		panic("ResponseWriter was already written to")
 	}
 	f.written = true
-	f.writtenError = true
 	// TODO: we cannot really write if the Dispatcher already started writing
 	// but panicked, resulting in a WriteError call.
 	resp := &ErrorResponse{Code: code}
