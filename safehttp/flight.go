@@ -29,10 +29,7 @@ type flight struct {
 	code   StatusCode
 	header Header
 
-	// TODO(kele): we need to distinguish between calling Write and actually
-	// writing to the net/http.ResponseWriter.
-	written      bool
-	writtenError bool
+	written bool
 }
 
 // DeprecatedNewResponseWriter creates a ResponseWriter implementation that has
@@ -70,13 +67,18 @@ func processRequest(cfg HandlerConfig, rw http.ResponseWriter, req *http.Request
 		req:    NewIncomingRequest(req),
 	}
 
-	// The net/http package recovers handler panics, but we cannot rely on that
-	// behavior here. The reason is, we might need to run some interceptor
-	// stages interceptors before we respond with a 500 Internal Server Error.
-	// Therefore we're calling WriteError.
+	// The net/http package handles all panics. In the early days of the
+	// framework we were handling them ourselves and running interceptors after
+	// a panic happened, but this adds lots of complexity to the codebase and
+	// still isn't perfect (e.g. what if OnError panics?). Instead, we just make
+	// sure to clear all the headers and cookies.
 	defer func() {
 		if r := recover(); r != nil {
-			f.WriteError(StatusInternalServerError)
+			// Clear all headers.
+			for h := range f.rw.Header() {
+				delete(f.rw.Header(), h)
+			}
+			panic(r)
 		}
 	}()
 
@@ -86,7 +88,6 @@ func processRequest(cfg HandlerConfig, rw http.ResponseWriter, req *http.Request
 			return
 		}
 	}
-
 	f.cfg.Handler.ServeHTTP(f, f.req)
 	if !f.written {
 		f.NoContent()
@@ -95,8 +96,6 @@ func processRequest(cfg HandlerConfig, rw http.ResponseWriter, req *http.Request
 
 // Write dispatches the response to the Dispatcher. This will be written to the
 // underlying http.ResponseWriter if the Dispatcher decides it's safe to do so.
-//
-// TODO: replace panics with proper error handling when writing the response fails.
 func (f *flight) Write(resp Response) Result {
 	if f.written {
 		panic("ResponseWriter was already written to")
@@ -142,13 +141,10 @@ func (f *flight) NoContent() Result {
 // If the ResponseWriter has already been written to, then this method will panic.
 func (f *flight) WriteError(code StatusCode) Result {
 	// TODO: accept custom error responses that need to go through the dispatcher.
-	if f.writtenError {
-		panic("ResponseWriter.WriteError called twice")
+	if f.written {
+		panic("ResponseWriter was already written to")
 	}
 	f.written = true
-	f.writtenError = true
-	// TODO: we cannot really write if the Dispatcher already started writing
-	// but panicked, resulting in a WriteError call.
 	resp := &ErrorResponse{Code: code}
 	f.errorPhase(resp)
 	http.Error(f.rw, http.StatusText(int(resp.Code)), int(resp.Code))
