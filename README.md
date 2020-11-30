@@ -67,6 +67,13 @@ Existing open-source frameworks or the Go standard library need to support each
 developer scenario. This would have left us with limited options of creating
 safe-by-default HTTP servers.
 
+#### NG3: Features That Are Not Security Critical
+
+Go Safe Web aims to help you create a secure-by-default Go HTTP server and
+nothing more. Features that are not security critical will not be added.
+Focusing solely on security allows us to maintain high compatibility with the
+standard library and makes adoption easier.
+
 ## Security Vulnerabilities and Mitigations
 
 On a high level, we plan to address, or provide the needed infrastructure to
