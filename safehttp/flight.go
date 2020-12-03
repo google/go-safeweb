@@ -73,7 +73,7 @@ func processRequest(cfg HandlerConfig, rw http.ResponseWriter, req *http.Request
 	// The net/http package handles all panics. In the early days of the
 	// framework we were handling them ourselves and running interceptors after
 	// a panic happened, but this adds lots of complexity to the codebase and
-	// still isn't perfect (e.g. what if OnError panics?). Instead, we just make
+	// still isn't perfect (e.g. what if Commit panics?). Instead, we just make
 	// sure to clear all the headers and cookies.
 	defer func() {
 		if r := recover(); r != nil {
@@ -148,7 +148,7 @@ func (f *flight) WriteError(resp ErrorResponse) Result {
 		panic("ResponseWriter was already written to")
 	}
 	f.written = true
-	f.errorPhase(resp)
+	f.commitPhase(resp)
 	if err := f.cfg.Dispatcher.Error(f.rw, resp); err != nil {
 		panic(err)
 	}
@@ -211,15 +211,6 @@ func (f *flight) SetCode(code StatusCode) {
 func (f *flight) commitPhase(resp Response) {
 	for i := len(f.cfg.Interceptors) - 1; i >= 0; i-- {
 		f.cfg.Interceptors[i].Commit(f, f.req, resp)
-	}
-}
-
-// errorPhase calls the OnError phases of all the interceptors associated with
-// a handler. This stage runs before an error response is written to the
-// ResponseWriter.
-func (f *flight) errorPhase(resp Response) {
-	for i := len(f.cfg.Interceptors) - 1; i >= 0; i-- {
-		f.cfg.Interceptors[i].OnError(f, f.req, resp)
 	}
 }
 

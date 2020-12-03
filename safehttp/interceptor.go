@@ -30,11 +30,6 @@ type Interceptor interface {
 	// is written to the ResponseWriter, then the Commit phases from the
 	// remaining interceptors won't execute.
 	Commit(w ResponseHeadersWriter, r *IncomingRequest, resp Response, cfg InterceptorConfig)
-
-	// OnError runs when ResponseWriter.WriteError is called, before the
-	// actual error response is written. An attempt to write to the
-	// ResponseWriter in this phase will result in an irrecoverable error.
-	OnError(w ResponseHeadersWriter, r *IncomingRequest, resp Response, cfg InterceptorConfig)
 }
 
 // InterceptorConfig is a configuration of an interceptor.
@@ -63,11 +58,4 @@ func (ci *ConfiguredInterceptor) Before(w ResponseWriter, r *IncomingRequest) Re
 // remaining interceptors won't execute.
 func (ci *ConfiguredInterceptor) Commit(w ResponseHeadersWriter, r *IncomingRequest, resp Response) {
 	ci.interceptor.Commit(w, r, resp, ci.config)
-}
-
-// OnError runs when ResponseWriter.WriteError is called, before the
-// actual error response is written. An attempt to write to the
-// ResponseWriter in this phase will result in an irrecoverable error.
-func (ci *ConfiguredInterceptor) OnError(w ResponseHeadersWriter, r *IncomingRequest, resp Response) {
-	ci.interceptor.OnError(w, r, resp, ci.config)
 }
