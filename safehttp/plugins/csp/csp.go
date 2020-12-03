@@ -235,8 +235,3 @@ func (it Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.Incom
 
 	tmplResp.FuncMap[htmlinject.CSPNoncesDefaultFuncName] = func() string { return nonce }
 }
-
-// OnError is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (it Interceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) {
-	return
-}

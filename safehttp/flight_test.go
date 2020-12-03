@@ -42,12 +42,6 @@ func (p panickingInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safeht
 	}
 }
 
-func (p panickingInterceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
-	if p.onError {
-		panic("onError")
-	}
-}
-
 func TestFlightInterceptorPanic(t *testing.T) {
 	tests := []struct {
 		desc        string
@@ -63,11 +57,6 @@ func TestFlightInterceptorPanic(t *testing.T) {
 			desc:        "panic in Commit",
 			interceptor: panickingInterceptor{commit: true},
 			wantPanic:   true,
-		},
-		{
-			desc:        "panic in OnError, but handler finishes successfully, so it doesn't happen",
-			interceptor: panickingInterceptor{onError: true},
-			wantPanic:   false,
 		},
 	}
 	for _, tc := range tests {

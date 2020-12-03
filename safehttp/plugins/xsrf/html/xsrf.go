@@ -130,7 +130,3 @@ func (it *Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.Inco
 	// tr.FuncMap?
 	tmplResp.FuncMap[htmlinject.XSRFTokensDefaultFuncName] = func() string { return tok }
 }
-
-// OnError is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (it *Interceptor) OnError(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) {
-}
