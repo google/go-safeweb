@@ -20,7 +20,7 @@ import (
 	"testing"
 
 	"github.com/google/go-safeweb/safehttp"
-	"github.com/google/go-safeweb/safehttp/plugins/xsrf/html"
+	"github.com/google/go-safeweb/safehttp/plugins/xsrf/xsrfhtml"
 	"github.com/google/go-safeweb/safehttp/safehttptest"
 	"github.com/google/safehtml/template"
 )
