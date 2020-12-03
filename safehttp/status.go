@@ -88,3 +88,8 @@ const (
 	StatusNotExtended                   StatusCode = 510 // RFC 2774, 7
 	StatusNetworkAuthenticationRequired StatusCode = 511 // RFC 6585, 6
 )
+
+// Code implements ErrorResponse.
+func (c StatusCode) Code() StatusCode {
+	return c
+}
