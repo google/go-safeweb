@@ -184,7 +184,6 @@ func (internalErrorInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.In
 }
 
 func (internalErrorInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
-	w.Header().Set("Foo", "this should not be reached")
 }
 
 type claimHeaderInterceptor struct {
