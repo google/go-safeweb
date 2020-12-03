@@ -44,6 +44,9 @@ type flight struct {
 // TODO(kele): remove this once we have a better option to provide a
 // ResponseWriter implementation for interceptor testing.
 func DeprecatedNewResponseWriter(rw http.ResponseWriter, dispatcher Dispatcher) ResponseWriter {
+	if dispatcher == nil {
+		dispatcher = DefaultDispatcher{}
+	}
 	return &flight{
 		cfg:    HandlerConfig{Dispatcher: dispatcher},
 		rw:     rw,
@@ -146,7 +149,9 @@ func (f *flight) WriteError(resp ErrorResponse) Result {
 	}
 	f.written = true
 	f.errorPhase(resp)
-	http.Error(f.rw, http.StatusText(int(resp.Code())), int(resp.Code()))
+	if err := f.cfg.Dispatcher.Error(f.rw, resp); err != nil {
+		panic(err)
+	}
 	return Result{}
 }
 
