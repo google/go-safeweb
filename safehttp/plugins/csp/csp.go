@@ -233,10 +233,6 @@ func (it Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.Incom
 		panic("no CSP nonce")
 	}
 
-	// TODO(maramihali@): Change the key when function names are exported by
-	// htmlinject
-	// TODO: What should happen if the CSPNonce is not present in the
-	// tr.FuncMap?
 	tmplResp.FuncMap[htmlinject.CSPNoncesDefaultFuncName] = func() string { return nonce }
 }
 
