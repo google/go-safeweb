@@ -23,6 +23,12 @@ import (
 // supported by the Dispatcher.
 type Response interface{}
 
+// ErrorResponse is an HTTP error response. The Dispatcher is responsible for
+// determining whether it is safe.
+type ErrorResponse interface {
+	Code() StatusCode
+}
+
 // JSONResponse should encapsulate a valid JSON object that will be serialised
 // and written to the http.ResponseWriter using a JSON encoder.
 type JSONResponse struct {
@@ -72,10 +78,3 @@ func ExecuteTemplateWithFuncs(w ResponseWriter, t Template, data interface{}, fm
 // NoContentResponse is sent to the commit phase when it's initiated from
 // ResponseWriter.NoContent.
 type NoContentResponse struct{}
-
-// ErrorResponse is sent to the on error phase when initiated from
-// ResponseWriter.WriteError, encapsulating the status code with which the
-// method was called.
-type ErrorResponse struct {
-	Code StatusCode
-}

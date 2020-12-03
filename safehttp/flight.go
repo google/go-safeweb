@@ -139,15 +139,14 @@ func (f *flight) NoContent() Result {
 // status code.
 //
 // If the ResponseWriter has already been written to, then this method will panic.
-func (f *flight) WriteError(code StatusCode) Result {
+func (f *flight) WriteError(resp ErrorResponse) Result {
 	// TODO: accept custom error responses that need to go through the dispatcher.
 	if f.written {
 		panic("ResponseWriter was already written to")
 	}
 	f.written = true
-	resp := &ErrorResponse{Code: code}
 	f.errorPhase(resp)
-	http.Error(f.rw, http.StatusText(int(resp.Code)), int(resp.Code))
+	http.Error(f.rw, http.StatusText(int(resp.Code())), int(resp.Code()))
 	return Result{}
 }
 
