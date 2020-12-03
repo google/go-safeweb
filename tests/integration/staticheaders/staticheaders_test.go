@@ -61,3 +61,34 @@ func TestServeMuxInstallStaticHeaders(t *testing.T) {
 		t.Errorf("b.String() got: %v want: %v", got, want)
 	}
 }
+
+func TestStaticHeadersOnError(t *testing.T) {
+	mb := &safehttp.ServeMuxConfig{}
+
+	mb.Intercept(staticheaders.Interceptor{})
+	handler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+		return w.WriteError(safehttp.StatusNotFound)
+	})
+	mb.Handle("/asdf", safehttp.MethodGet, handler)
+
+	b := strings.Builder{}
+	rw := safehttptest.NewTestResponseWriter(&b)
+
+	req := httptest.NewRequest(http.MethodGet, "https://foo.com/asdf", nil)
+
+	mb.Mux().ServeHTTP(rw, req)
+
+	if want := safehttp.StatusNotFound; rw.Status() != want {
+		t.Errorf("rw.Status() got: %v want: %v", rw.Status(), want)
+	}
+
+	wantHeaders := map[string][]string{
+		"X-Content-Type-Options": {"nosniff"},
+		"X-Xss-Protection":       {"0"},
+	}
+	for h, want := range wantHeaders {
+		if got := rw.Header()[h]; !cmp.Equal(got, want) {
+			t.Errorf("rw.Header()[%q] got %q, want %q", h, got, want)
+		}
+	}
+}
