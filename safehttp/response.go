@@ -59,14 +59,14 @@ type TemplateResponse struct {
 // data and calls the Write function of the ResponseWriter, passing the
 // response.
 func ExecuteTemplate(w ResponseWriter, t Template, data interface{}) Result {
-	return w.Write(TemplateResponse{t, data, nil})
+	return w.Write(&TemplateResponse{t, data, nil})
 }
 
 // ExecuteTemplateWithFuncs creates a TemplateResponse from the provided
 // Template, its data and the name to function mappings and calls the Write
 // function of the ResponseWriter, passing the response.
 func ExecuteTemplateWithFuncs(w ResponseWriter, t Template, data interface{}, fm map[string]interface{}) Result {
-	return w.Write(TemplateResponse{t, data, fm})
+	return w.Write(&TemplateResponse{t, data, fm})
 }
 
 // NoContentResponse is sent to the commit phase when it's initiated from

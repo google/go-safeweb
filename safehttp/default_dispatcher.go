@@ -17,10 +17,11 @@ package safehttp
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/google/safehtml"
-	"github.com/google/safehtml/template"
 	"io"
 	"net/http"
+
+	"github.com/google/safehtml"
+	"github.com/google/safehtml/template"
 )
 
 // DefaultDispatcher is responsible for writing safe responses.
@@ -32,7 +33,7 @@ func (DefaultDispatcher) ContentType(resp Response) (string, error) {
 	switch x := resp.(type) {
 	case safehtml.HTML:
 		return "text/html; charset=utf-8", nil
-	case TemplateResponse:
+	case *TemplateResponse:
 		_, ok := (x.Template).(*template.Template)
 		if !ok {
 			return "", fmt.Errorf("%T is not a safe response type, a Content-Type cannot be provided", resp)
@@ -61,7 +62,7 @@ func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 	case JSONResponse:
 		io.WriteString(rw, ")]}',\n") // Break parsing of JavaScript in order to prevent XSSI.
 		return json.NewEncoder(rw).Encode(x.Data)
-	case TemplateResponse:
+	case *TemplateResponse:
 		t, ok := (x.Template).(*template.Template)
 		if !ok {
 			return fmt.Errorf("%T is not a safe template and it cannot be parsed and written", t)
