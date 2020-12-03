@@ -221,7 +221,7 @@ func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 // injected as the value of the nonce attribute in <script> and <link> tags. The
 // nonce is going to be unique for each safehttp.IncomingRequest.
 func (it Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
-	tmplResp, ok := resp.(safehttp.TemplateResponse)
+	tmplResp, ok := resp.(*safehttp.TemplateResponse)
 	if !ok {
 		return
 	}

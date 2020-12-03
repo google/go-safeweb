@@ -118,7 +118,7 @@ func (it *Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.Inco
 		}
 	}
 
-	tmplResp, ok := resp.(safehttp.TemplateResponse)
+	tmplResp, ok := resp.(*safehttp.TemplateResponse)
 	if !ok {
 		// If it's not a template response, we cannot inject the token.
 		// TODO: should this be an error?

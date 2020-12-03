@@ -15,15 +15,16 @@
 package safehttp_test
 
 import (
-	"github.com/google/go-safeweb/safehttp"
-	"github.com/google/go-safeweb/safehttp/safehttptest"
-	"github.com/google/safehtml"
-	safetemplate "github.com/google/safehtml/template"
 	"html/template"
 	"math"
 	"net/http"
 	"strings"
 	"testing"
+
+	"github.com/google/go-safeweb/safehttp"
+	"github.com/google/go-safeweb/safehttp/safehttptest"
+	"github.com/google/safehtml"
+	safetemplate "github.com/google/safehtml/template"
 )
 
 func TestDefaultDispatcherValidResponse(t *testing.T) {
@@ -51,7 +52,7 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 						Parse("<h1>{{ . }}</h1>")))
 				var data interface{}
 				data = "This is an actual heading, though."
-				return d.Write(w, safehttp.TemplateResponse{t, data, nil})
+				return d.Write(w, &safehttp.TemplateResponse{t, data, nil})
 			},
 			wantBody: "<h1>This is an actual heading, though.</h1>",
 		},
@@ -69,7 +70,7 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 				fm := map[string]interface{}{
 					"Token": func() string { return "Token-secret" },
 				}
-				return d.Write(w, safehttp.TemplateResponse{t, data, fm})
+				return d.Write(w, &safehttp.TemplateResponse{t, data, fm})
 			},
 			wantBody: `<form><input type="hidden" name="token" value="Token-secret">Content</form>`,
 		},
@@ -87,7 +88,7 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 				fm := map[string]interface{}{
 					"Nonce": func() string { return "Nonce-secret" },
 				}
-				return d.Write(w, safehttp.TemplateResponse{t, data, fm})
+				return d.Write(w, &safehttp.TemplateResponse{t, data, fm})
 			},
 			wantBody: `<script nonce="Nonce-secret" type="application/javascript">alert("script")</script><h1>Content</h1>`,
 		},
