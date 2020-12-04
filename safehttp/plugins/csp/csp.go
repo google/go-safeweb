@@ -233,6 +233,9 @@ func (it Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.Incom
 		panic("no CSP nonce")
 	}
 
+	if tmplResp.FuncMap == nil {
+		tmplResp.FuncMap = map[string]interface{}{}
+	}
 	tmplResp.FuncMap[htmlinject.CSPNoncesDefaultFuncName] = func() string { return nonce }
 }
 

@@ -126,8 +126,9 @@ func (it *Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.Inco
 	}
 
 	tok := xsrftoken.Generate(it.SecretAppKey, cookieID.Value(), r.URL.Path())
-	// TODO: what should happen if the XSRFToken key is not present in the
-	// tr.FuncMap?
+	if tmplResp.FuncMap == nil {
+		tmplResp.FuncMap = map[string]interface{}{}
+	}
 	tmplResp.FuncMap[htmlinject.XSRFTokensDefaultFuncName] = func() string { return tok }
 }
 
