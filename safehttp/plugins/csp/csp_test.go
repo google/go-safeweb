@@ -242,7 +242,7 @@ func TestCommitNonce(t *testing.T) {
 	req.SetContext(context.WithValue(req.Context(), ctxKey{}, "pizza"))
 
 	it := Interceptor{}
-	tr := &safehttp.TemplateResponse{FuncMap: map[string]interface{}{}}
+	tr := &safehttp.TemplateResponse{}
 	it.Commit(rec.ResponseWriter, req, tr, nil)
 
 	nonce, ok := tr.FuncMap["CSPNonce"]
@@ -277,7 +277,7 @@ func TestCommitMissingNonce(t *testing.T) {
 	req.SetContext(context.Background())
 
 	it := Interceptor{}
-	tr := &safehttp.TemplateResponse{FuncMap: map[string]interface{}{}}
+	tr := &safehttp.TemplateResponse{}
 
 	defer func() {
 		if r := recover(); r == nil {

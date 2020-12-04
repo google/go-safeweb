@@ -300,7 +300,7 @@ func TestCommitTokenInResponse(t *testing.T) {
 	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
 
 	i := Interceptor{SecretAppKey: "testSecretAppKey"}
-	tr := &safehttp.TemplateResponse{FuncMap: map[string]interface{}{}}
+	tr := &safehttp.TemplateResponse{}
 	i.Commit(rec.ResponseWriter, req, tr, nil)
 
 	tok, ok := tr.FuncMap["XSRFToken"]
