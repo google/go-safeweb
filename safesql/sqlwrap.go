@@ -99,8 +99,9 @@ func (c Conn) Close() error {
 }
 
 // ExecContext is a tiny wrapper for https://pkg.go.dev/sql#Conn.ExecContext
-func (c Conn) ExecContext(ctx context.Context, query TrustedSQLString, args ...interface{}) (Result, error) {
-	return c.c.ExecContext(ctx, query.s, args)
+func (c Conn) ExecContext(ctx context.Context, query TrustedSQLString, 
+			  ...interface{}) (Result, error) {
+	return c.c.ExecContext(ctx, query.s, args...)
 }
 
 // PingContext is a tiny wrapper for https://pkg.go.dev/sql#Conn.PingContext
@@ -115,12 +116,12 @@ func (c Conn) PrepareContext(ctx context.Context, query TrustedSQLString) (*Stmt
 
 // QueryContext is a tiny wrapper for https://pkg.go.dev/sql#Conn.QueryContext
 func (c Conn) QueryContext(ctx context.Context, query TrustedSQLString, args ...interface{}) (*Rows, error) {
-	return c.c.QueryContext(ctx, query.s, args)
+	return c.c.QueryContext(ctx, query.s, args...)
 }
 
 // QueryRowContext is a tiny wrapper for https://pkg.go.dev/sql#Conn.QueryRowContext
 func (c Conn) QueryRowContext(ctx context.Context, query TrustedSQLString, args ...interface{}) *Row {
-	return c.c.QueryRowContext(ctx, query.s, args)
+	return c.c.QueryRowContext(ctx, query.s, args...)
 }
 
 // DB behaves as the standard SQL package one, with the exception that it does not implement the `Driver` method for security reasons.
@@ -163,12 +164,12 @@ func (db DB) Conn(ctx context.Context) (Conn, error) {
 
 // Exec is a tiny wrapper for https://pkg.go.dev/sql#DB.Exec
 func (db DB) Exec(query TrustedSQLString, args ...interface{}) (Result, error) {
-	return db.db.Exec(query.s, args)
+	return db.db.Exec(query.s, args...)
 }
 
 // ExecContext is a tiny wrapper for https://pkg.go.dev/sql#DB.ExecContext
 func (db DB) ExecContext(ctx context.Context, query TrustedSQLString, args ...interface{}) (Result, error) {
-	return db.db.ExecContext(ctx, query.s, args)
+	return db.db.ExecContext(ctx, query.s, args...)
 }
 
 // Ping is a tiny wrapper for https://pkg.go.dev/sql#DB.Ping
@@ -193,22 +194,22 @@ func (db DB) PrepareContext(ctx context.Context, query TrustedSQLString) (*Stmt,
 
 // Query is a tiny wrapper for https://pkg.go.dev/sql#DB.Query
 func (db DB) Query(query TrustedSQLString, args ...interface{}) (*Rows, error) {
-	return db.db.Query(query.s, args)
+	return db.db.Query(query.s, args...)
 }
 
 // QueryContext is a tiny wrapper for https://pkg.go.dev/sql#DB.QueryContext
 func (db DB) QueryContext(ctx context.Context, query TrustedSQLString, args ...interface{}) (*Rows, error) {
-	return db.db.QueryContext(ctx, query.s, args)
+	return db.db.QueryContext(ctx, query.s, args...)
 }
 
 // QueryRow is a tiny wrapper for https://pkg.go.dev/sql#DB.QueryRow
 func (db DB) QueryRow(query TrustedSQLString, args ...interface{}) *Row {
-	return db.db.QueryRow(query.s, args)
+	return db.db.QueryRow(query.s, args...)
 }
 
 // QueryRowContext is a tiny wrapper for https://pkg.go.dev/sql#DB.QueryRowContext
 func (db DB) QueryRowContext(ctx context.Context, query TrustedSQLString, args ...interface{}) *Row {
-	return db.db.QueryRowContext(ctx, query.s, args)
+	return db.db.QueryRowContext(ctx, query.s, args...)
 }
 
 // SetConnMaxLifetime is a tiny wrapper for https://pkg.go.dev/sql#DB.SetConnMaxLifetime
@@ -241,12 +242,12 @@ func (tx Tx) Commit() error { return tx.tx.Commit() }
 
 // Exec is a tiny wrapper for https://pkg.go.dev/sql#Tx.Exec
 func (tx Tx) Exec(query TrustedSQLString, args ...interface{}) (Result, error) {
-	return tx.tx.Exec(query.s, args)
+	return tx.tx.Exec(query.s, args...)
 }
 
 // ExecContext is a tiny wrapper for https://pkg.go.dev/sql#Tx.ExecContext
 func (tx Tx) ExecContext(ctx context.Context, query TrustedSQLString, args ...interface{}) (Result, error) {
-	return tx.tx.ExecContext(ctx, query.s, args)
+	return tx.tx.ExecContext(ctx, query.s, args...)
 }
 
 // Prepare is a tiny wrapper for https://pkg.go.dev/sql#Tx.Prepare
@@ -259,22 +260,22 @@ func (tx Tx) PrepareContext(ctx context.Context, query TrustedSQLString) (*Stmt,
 
 // Query is a tiny wrapper for https://pkg.go.dev/sql#Tx.Query
 func (tx Tx) Query(query TrustedSQLString, args ...interface{}) (*Rows, error) {
-	return tx.tx.Query(query.s, args)
+	return tx.tx.Query(query.s, args...)
 }
 
 // QueryContext is a tiny wrapper for https://pkg.go.dev/sql#Tx.QueryContext
 func (tx Tx) QueryContext(ctx context.Context, query TrustedSQLString, args ...interface{}) (*Rows, error) {
-	return tx.tx.QueryContext(ctx, query.s, args)
+	return tx.tx.QueryContext(ctx, query.s, args...)
 }
 
 // QueryRow is a tiny wrapper for https://pkg.go.dev/sql#Tx.QueryRow
 func (tx Tx) QueryRow(query TrustedSQLString, args ...interface{}) *Row {
-	return tx.tx.QueryRow(query.s, args)
+	return tx.tx.QueryRow(query.s, args...)
 }
 
 // QueryRowContext is a tiny wrapper for https://pkg.go.dev/sql#Tx.QueryRowContext
 func (tx Tx) QueryRowContext(ctx context.Context, query TrustedSQLString, args ...interface{}) *Row {
-	return tx.tx.QueryRowContext(ctx, query.s, args)
+	return tx.tx.QueryRowContext(ctx, query.s, args...)
 }
 
 // Rollback is a tiny wrapper for https://pkg.go.dev/sql#Tx.Rollback
