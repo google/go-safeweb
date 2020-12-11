@@ -99,8 +99,7 @@ func (c Conn) Close() error {
 }
 
 // ExecContext is a tiny wrapper for https://pkg.go.dev/sql#Conn.ExecContext
-func (c Conn) ExecContext(ctx context.Context, query TrustedSQLString, 
-			  ...interface{}) (Result, error) {
+func (c Conn) ExecContext(ctx context.Context, query TrustedSQLString, args ...interface{}) (Result, error) {
 	return c.c.ExecContext(ctx, query.s, args...)
 }
 
