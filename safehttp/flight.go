@@ -149,6 +149,7 @@ func (f *flight) WriteError(resp ErrorResponse) Result {
 	}
 	f.written = true
 	f.commitPhase(resp)
+	f.rw.WriteHeader(int(resp.Code()))
 	if err := f.cfg.Dispatcher.Error(f.rw, resp); err != nil {
 		panic(err)
 	}
