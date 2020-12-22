@@ -248,7 +248,6 @@ func TestMissingCookieInPostRequest(t *testing.T) {
 		name       string
 		stage      func(it *Interceptor, rw safehttp.ResponseWriter, req *safehttp.IncomingRequest)
 		wantStatus safehttp.StatusCode
-		wantPanic  bool
 	}{
 		{
 			name: "In Before stage",
@@ -263,7 +262,7 @@ func TestMissingCookieInPostRequest(t *testing.T) {
 			stage: func(it *Interceptor, rw safehttp.ResponseWriter, req *safehttp.IncomingRequest) {
 				it.Commit(rw, req, nil, nil)
 			},
-			wantPanic: true,
+			wantStatus: safehttp.StatusOK,
 		},
 	}
 
@@ -273,19 +272,7 @@ func TestMissingCookieInPostRequest(t *testing.T) {
 			req := safehttptest.NewRequest(safehttp.MethodPost, "/", strings.NewReader("foo=bar"))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-			if test.wantPanic {
-				defer func() {
-					if r := recover(); r == nil {
-						t.Fatal("expected panic")
-					}
-				}()
-			}
-
 			test.stage(&Interceptor{SecretAppKey: "testSecretAppKey"}, rec.ResponseWriter, req)
-
-			if test.wantPanic {
-				t.Fatal("this piece of the test should never be reached")
-			}
 
 			if gotStatus := rec.Status(); gotStatus != test.wantStatus {
 				t.Errorf("rec.Status(): got %v, want %v", gotStatus, test.wantStatus)

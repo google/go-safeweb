@@ -103,9 +103,8 @@ func (it *Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.Inco
 	}
 
 	if !xsrf.StatePreserving(r) {
-		// This should never happen as, if this is a state-changing request and
-		// it lacks the cookie, it would've been already rejected by Before.
-		panic("not state preserving and no cookie in Commit")
+		// Not a state preserving request, so we won't be adding the cookie.
+		return
 	}
 
 	if err := it.addTokenCookie(w); err != nil {
