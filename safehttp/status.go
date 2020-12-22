@@ -14,6 +14,8 @@
 
 package safehttp
 
+import "net/http"
+
 // StatusCode contains HTTP status codes as registered with IANA.
 // See: https://www.iana.org/assignments/http-status-codes/http-status-codes.xhtml
 type StatusCode int
@@ -92,4 +94,8 @@ const (
 // Code implements ErrorResponse.
 func (c StatusCode) Code() StatusCode {
 	return c
+}
+
+func (c StatusCode) String() string {
+	return http.StatusText(int(c))
 }
