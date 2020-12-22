@@ -109,7 +109,7 @@ func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // ServeMuxConfig is a builder for ServeMux.
 type ServeMuxConfig struct {
-	dispatcher   Dispatcher
+	Dispatcher   Dispatcher
 	handlers     []handlerRegistration
 	interceptors []Interceptor
 }
@@ -147,7 +147,7 @@ func (s *ServeMuxConfig) Intercept(i Interceptor) {
 
 // Mux returns the ServeMux with a copy of the current configuration.
 func (s *ServeMuxConfig) Mux() *ServeMux {
-	dispatcher := s.dispatcher
+	dispatcher := s.Dispatcher
 	if dispatcher == nil {
 		dispatcher = DefaultDispatcher{}
 	}
@@ -195,7 +195,7 @@ func configureInterceptors(interceptors []Interceptor, cfgs []InterceptorConfig)
 // plugins and some common handlers.
 func (s *ServeMuxConfig) Clone() *ServeMuxConfig {
 	c := &ServeMuxConfig{
-		dispatcher:   s.dispatcher,
+		Dispatcher:   s.Dispatcher,
 		handlers:     make([]handlerRegistration, len(s.handlers)),
 		interceptors: make([]Interceptor, len(s.interceptors)),
 	}
