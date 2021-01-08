@@ -39,6 +39,8 @@ func (DefaultDispatcher) ContentType(resp Response) (string, error) {
 		}
 		return "text/html; charset=utf-8", nil
 	case JSONResponse:
+		return "application/json; charset=utf-8", nil
+	case FileResponse:
 		return x.ContentType(), nil
 	default:
 		return "", fmt.Errorf("%T is not a safe response type, a Content-Type cannot be provided", resp)
@@ -56,6 +58,8 @@ func (DefaultDispatcher) ContentType(resp Response) (string, error) {
 // object. If the funcMap is non-nil, its elements override the  existing names
 // to functions mappings in the template. An attempt to define a new name to
 // function mapping that is not already in the template will result  in a panic.
+//
+// For FileResponses, a response is generated using http.FileServer.
 func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 	switch x := resp.(type) {
 	case JSONResponse:
@@ -76,6 +80,9 @@ func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 	case safehtml.HTML:
 		_, err := io.WriteString(rw, x.String())
 		return err
+	case FileResponse:
+		x.Write(rw)
+		return nil
 	default:
 		return fmt.Errorf("%T is not a safe response type and it cannot be written", resp)
 	}

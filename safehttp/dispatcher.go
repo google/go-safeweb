@@ -38,6 +38,10 @@ type Dispatcher interface {
 	// It should return an error if the writing operation fails or if the
 	// provided Response should not be written to the http.ResponseWriter
 	// because it's unsafe.
+	//
+	// The framework calls Write after setting the Content-Type header using the
+	// ContentType method call's result. Write should override the Content-Type
+	// header only in exceptional circumstances (e.g. errors).
 	Write(rw http.ResponseWriter, resp Response) error
 
 	// Error writes an ErrorResponse to the underlying http.ResponseWriter.
