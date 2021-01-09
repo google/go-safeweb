@@ -15,7 +15,9 @@
 package safehttp
 
 import (
+	"encoding/json"
 	"io"
+	"net/http"
 )
 
 // Response should encapsulate the data passed to the ResponseWriter to be
@@ -33,6 +35,16 @@ type ErrorResponse interface {
 // and written to the http.ResponseWriter using a JSON encoder.
 type JSONResponse struct {
 	Data interface{}
+}
+
+// ContentType returns the Content-Type for a JSON response.
+func (*JSONResponse) ContentType() string {
+	return "application/json; charset=utf-8"
+}
+
+func (resp *JSONResponse) Write(rw http.ResponseWriter) error {
+	io.WriteString(rw, ")]}',\n") // Break parsing of JavaScript in order to prevent XSSI.
+	return json.NewEncoder(rw).Encode(resp.Data)
 }
 
 // WriteJSON creates a JSONResponse from the data object and calls the Write

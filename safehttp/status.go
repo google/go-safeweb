@@ -96,6 +96,12 @@ func (c StatusCode) Code() StatusCode {
 	return c
 }
 
+// String returns the status text.
 func (c StatusCode) String() string {
 	return http.StatusText(int(c))
+}
+
+// Write writes the error response.
+func (c StatusCode) Write(rw http.ResponseWriter) {
+	http.Error(rw, c.String(), int(c.Code()))
 }

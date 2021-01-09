@@ -15,7 +15,6 @@
 package safehttp
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -40,7 +39,7 @@ func (DefaultDispatcher) ContentType(resp Response) (string, error) {
 		}
 		return "text/html; charset=utf-8", nil
 	case JSONResponse:
-		return "application/json; charset=utf-8", nil
+		return x.ContentType(), nil
 	default:
 		return "", fmt.Errorf("%T is not a safe response type, a Content-Type cannot be provided", resp)
 	}
@@ -60,8 +59,7 @@ func (DefaultDispatcher) ContentType(resp Response) (string, error) {
 func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 	switch x := resp.(type) {
 	case JSONResponse:
-		io.WriteString(rw, ")]}',\n") // Break parsing of JavaScript in order to prevent XSSI.
-		return json.NewEncoder(rw).Encode(x.Data)
+		return x.Write(rw)
 	case *TemplateResponse:
 		t, ok := (x.Template).(*template.Template)
 		if !ok {
@@ -89,7 +87,7 @@ func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 func (DefaultDispatcher) Error(rw http.ResponseWriter, resp ErrorResponse) error {
 	switch x := resp.(type) {
 	case StatusCode:
-		http.Error(rw, http.StatusText(int(x.Code())), int(x.Code()))
+		x.Write(rw)
 		return nil
 	default:
 		return fmt.Errorf("%T is not a safe response type and it cannot be written", resp)
