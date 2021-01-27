@@ -29,6 +29,8 @@ be achieved by an approach known at Google as _safe coding_. Learn more at
 or
 [Preventing Security Bugs through Software Design (Christoph Kern, 2016)](https://www.youtube.com/watch?v=ccfEu-Jj0as).
 
+The high-level design is described [here](docs/design.md).
+
 ## Goals and Non-Goals
 
 ### Goals
