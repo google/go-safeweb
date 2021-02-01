@@ -143,7 +143,6 @@ func (f *flight) NoContent() Result {
 //
 // If the ResponseWriter has already been written to, then this method will panic.
 func (f *flight) WriteError(resp ErrorResponse) Result {
-	// TODO: accept custom error responses that need to go through the dispatcher.
 	if f.written {
 		panic("ResponseWriter was already written to")
 	}
