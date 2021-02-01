@@ -72,6 +72,7 @@ type ServeMux struct {
 
 func registerHandlers(mux *http.ServeMux, handlers map[string]map[string]HandlerConfig) {
 	for pattern, handlersPerMethod := range handlers {
+		handlersPerMethod := handlersPerMethod
 		mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 			cfg, ok := handlersPerMethod[r.Method]
 			if !ok {

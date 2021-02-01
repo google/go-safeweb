@@ -145,6 +145,47 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 	}
 }
 
+func TestMuxRegisterCorrectHandlerAllPaths(t *testing.T) {
+	var tests = []struct {
+		name     string
+		req      *http.Request
+		hf       safehttp.Handler
+		wantBody string
+	}{
+		{
+			name: "GET Handler",
+			req:  httptest.NewRequest(safehttp.MethodGet, "http://foo.com/get", nil),
+			hf: safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+				return w.Write(safehtml.HTMLEscaped("GET handler for /get"))
+			}),
+			wantBody: "GET handler for /get",
+		},
+		{
+			name: "GET Handler #2",
+			req:  httptest.NewRequest(safehttp.MethodGet, "http://foo.com/get2", nil),
+			hf: safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+				return w.Write(safehtml.HTMLEscaped("GET handler for /get2"))
+			}),
+			wantBody: "GET handler for /get2",
+		},
+	}
+
+	mb := &safehttp.ServeMuxConfig{}
+	mb.Handle("/get", safehttp.MethodGet, tests[0].hf)
+	mb.Handle("/get2", safehttp.MethodGet, tests[1].hf)
+	mux := mb.Mux()
+
+	for _, test := range tests {
+		b := &strings.Builder{}
+		rw := safehttptest.NewTestResponseWriter(b)
+		mux.ServeHTTP(rw, test.req)
+
+		if got, want := b.String(), test.wantBody; got != want {
+			t.Errorf("response body: got %q want %q", got, want)
+		}
+	}
+}
+
 func TestMuxHandleSameMethodTwice(t *testing.T) {
 	mb := &safehttp.ServeMuxConfig{}
 
