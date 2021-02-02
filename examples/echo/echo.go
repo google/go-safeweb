@@ -12,7 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// echo implements a simple echo server. Visit /echo?message=YourMessage.
+// echo implements a simple echo server which listents on localhost:8080.
+//
+// Endpoints:
+//  - /echo?message=YourMessage
+//  - /uptime
 package main
 
 import (
