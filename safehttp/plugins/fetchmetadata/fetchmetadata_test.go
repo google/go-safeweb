@@ -19,7 +19,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
-	"github.com/google/go-safeweb/safehttp/plugins/fetch_metadata"
+	"github.com/google/go-safeweb/safehttp/plugins/fetchmetadata"
 	"github.com/google/go-safeweb/safehttp/safehttptest"
 )
 

@@ -26,7 +26,7 @@ import (
 	"github.com/google/go-safeweb/safehttp/plugins/coop"
 	"github.com/google/go-safeweb/safehttp/plugins/cors"
 	"github.com/google/go-safeweb/safehttp/plugins/csp"
-	fetchmetadata "github.com/google/go-safeweb/safehttp/plugins/fetch_metadata"
+	"github.com/google/go-safeweb/safehttp/plugins/fetchmetadata"
 	"github.com/google/go-safeweb/safehttp/plugins/hostcheck"
 	"github.com/google/go-safeweb/safehttp/plugins/hsts"
 	"github.com/google/go-safeweb/safehttp/plugins/staticheaders"
