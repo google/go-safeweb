@@ -33,6 +33,7 @@ import (
 )
 
 // Interceptor claims and sets static headers on responses.
+// The zero value is valid and ready to use.
 type Interceptor struct{}
 
 var _ safehttp.Interceptor = Interceptor{}
