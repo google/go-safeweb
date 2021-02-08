@@ -168,7 +168,7 @@ func TestAllowedResourceIsolationEnforceMode(t *testing.T) {
 			req.Header.Add("Sec-Fetch-Dest", test.dest)
 			rec := safehttptest.NewResponseRecorder()
 
-			p := fetchmetadata.NewPlugin()
+			p := fetchmetadata.NewInterceptor()
 			p.Before(rec.ResponseWriter, req, nil)
 
 			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); got != want {
@@ -194,7 +194,7 @@ func TestRejectedResourceIsolationEnforceMode(t *testing.T) {
 			req.Header.Add("Sec-Fetch-Dest", test.dest)
 			rec := safehttptest.NewResponseRecorder()
 
-			p := fetchmetadata.NewPlugin()
+			p := fetchmetadata.NewInterceptor()
 			p.Before(rec.ResponseWriter, req, nil)
 
 			if want, got := safehttp.StatusForbidden, safehttp.StatusCode(rec.Status()); want != got {
@@ -246,7 +246,7 @@ func TestRejectedResourceIsolationEnforceModeWithLogger(t *testing.T) {
 			req.Header.Add("Sec-Fetch-Dest", test.dest)
 			rec := safehttptest.NewResponseRecorder()
 
-			p := fetchmetadata.NewPlugin()
+			p := fetchmetadata.NewInterceptor()
 			logger := &methodLogger{}
 			p.Logger = logger
 			p.Before(rec.ResponseWriter, req, nil)
@@ -301,7 +301,7 @@ func TestResourceIsolationReportMode(t *testing.T) {
 			req.Header.Add("Sec-Fetch-Dest", test.dest)
 			rec := safehttptest.NewResponseRecorder()
 
-			p := fetchmetadata.NewPlugin()
+			p := fetchmetadata.NewInterceptor()
 			logger := &methodLogger{}
 			p.Logger = logger
 			p.SetReportOnly()
@@ -324,7 +324,7 @@ func TestResourceIsolationReportMode(t *testing.T) {
 }
 
 func TestReportModeMissingLogger(t *testing.T) {
-	p := fetchmetadata.NewPlugin()
+	p := fetchmetadata.NewInterceptor()
 	defer func() {
 		if r := recover(); r != nil {
 			return
@@ -344,7 +344,7 @@ func TestNavIsolationEnforceMode(t *testing.T) {
 			req.Header.Add("Sec-Fetch-Dest", test.dest)
 			rec := safehttptest.NewResponseRecorder()
 
-			p := fetchmetadata.NewPlugin()
+			p := fetchmetadata.NewInterceptor()
 			p.NavIsolation = true
 			p.Before(rec.ResponseWriter, req, nil)
 
@@ -398,7 +398,7 @@ func TestNavIsolationReportMode(t *testing.T) {
 			req.Header.Add("Sec-Fetch-Dest", test.dest)
 			rec := safehttptest.NewResponseRecorder()
 
-			p := fetchmetadata.NewPlugin()
+			p := fetchmetadata.NewInterceptor()
 			logger := &methodLogger{}
 			p.Logger = logger
 			p.NavIsolation = true
@@ -431,7 +431,7 @@ func TestCORSEndpoint(t *testing.T) {
 			req.Header.Add("Sec-Fetch-Dest", test.dest)
 			rec := safehttptest.NewResponseRecorder()
 
-			p := fetchmetadata.NewPlugin("/carbonara")
+			p := fetchmetadata.NewInterceptor("/carbonara")
 			p.Before(rec.ResponseWriter, req, nil)
 
 			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); got != want {
@@ -497,7 +497,7 @@ func TestCORSAfterRedirect(t *testing.T) {
 			req.Header.Add("Sec-Fetch-Dest", test.dest)
 			rec := safehttptest.NewResponseRecorder()
 
-			p := fetchmetadata.NewPlugin("/carbonara")
+			p := fetchmetadata.NewInterceptor("/carbonara")
 			p.NavIsolation = true
 			p.RedirectURL, _ = safehttp.ParseURL("https://spaghetti.com/carbonara")
 			p.Before(rec.ResponseWriter, req, nil)
