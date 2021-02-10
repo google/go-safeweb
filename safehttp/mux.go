@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 )
 
 // The HTTP request methods defined by RFC.
@@ -217,4 +218,18 @@ func (s *ServeMuxConfig) Clone() *ServeMuxConfig {
 	copy(c.handlers, s.handlers)
 	copy(c.interceptors, s.interceptors)
 	return c
+}
+
+// Handler returns the handler to use for the given method and path.
+// TODO: add a host parameter?
+func (m *ServeMux) Handler(method, path string) http.Handler {
+	r := &http.Request{
+		Method: method,
+		Host:   "",
+		URL: &url.URL{
+			Path: path,
+		},
+	}
+	handler, _ := m.mux.Handler(r)
+	return handler
 }
