@@ -148,8 +148,10 @@ func (f *flight) WriteError(resp ErrorResponse) Result {
 	}
 	f.written = true
 	f.commitPhase(resp)
-	f.rw.WriteHeader(int(resp.Code()))
 	if err := f.cfg.Dispatcher.Error(f.rw, resp); err != nil {
+		f.rw.WriteHeader(int(resp.Code()))
+		// TODO: if this code path is hit (which might only happen rarely at runtime),
+		// the connection is terminated.
 		panic(err)
 	}
 	return Result{}
