@@ -27,7 +27,7 @@ import (
 func TestServeMuxConfig(t *testing.T) {
 	t.Run("can load", func(t *testing.T) {
 		const resp = "response"
-		cfg := ServeMuxConfig("test-xsrf-key", []string{"test.host.example"}, nil)
+		cfg, _ := ServeMuxConfig([]string{"test.host.example"}, "test-xsrf-key")
 		cfg.Handle("/test", "GET", safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 			form, err := r.URL.Query()
 			if err != nil {
@@ -37,8 +37,7 @@ func TestServeMuxConfig(t *testing.T) {
 			if !b {
 				t.Error("test parameter, got false, want true")
 			}
-			w.Write(safehtml.HTMLEscaped(resp))
-			return safehttp.Result{}
+			return w.Write(safehtml.HTMLEscaped(resp))
 		}))
 		mux := cfg.Mux()
 		w := httptest.NewRecorder()
