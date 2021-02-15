@@ -87,7 +87,7 @@ func (l *FakeListener) Addr() net.Addr {
 
 // SendRequest writes a request to the client endpoint connection. This will be passed to the server through the listener.
 // The function blocks until the server has finished reading the message.
-func (l *FakeListener) sendRequest(request []byte) error {
+func (l *FakeListener) SendRequest(request []byte) error {
 	n, err := l.clientEndpoint.Write(request)
 
 	if err != nil {
@@ -99,9 +99,9 @@ func (l *FakeListener) sendRequest(request []byte) error {
 	return nil
 }
 
-// readResponse reads the response from the clientEndpoint connection, sent by the listening server.
+// ReadResponse reads the response from the clientEndpoint connection, sent by the listening server.
 // It will block until the server has sent a response.
-func (l *FakeListener) readResponse(bytes []byte) (int, error) {
+func (l *FakeListener) ReadResponse(bytes []byte) (int, error) {
 	return l.clientEndpoint.Read(bytes)
 }
 
@@ -117,12 +117,12 @@ func MakeRequest(ctx context.Context, req []byte, callback func(*http.Request)) 
 	go server.Serve(listener)
 	defer server.Close()
 
-	if err := listener.sendRequest(req); err != nil {
+	if err := listener.SendRequest(req); err != nil {
 		return nil, err
 	}
 
 	resp := make([]byte, 4096)
-	n, err := listener.readResponse(resp)
+	n, err := listener.ReadResponse(resp)
 	if err != nil {
 		return nil, err
 	}
