@@ -62,6 +62,9 @@ type Server struct {
 	// by ServeTLS and ListenAndServeTLS. Note that this value is
 	// cloned on serving, so it's not possible to modify the
 	// configuration with methods like tls.Config.SetSessionTicketKeys.
+	//
+	// When the server is started the cloned configuration will be changed
+	// to set the minimum TLS version to 1.2 and to prefer Server Ciphers.
 	TLSConfig *tls.Config
 
 	// OnShutdown is a slice of functions to call on Shutdown.
