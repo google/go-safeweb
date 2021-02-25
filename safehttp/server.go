@@ -111,7 +111,7 @@ func (s *Server) buildStd() error {
 		srv.IdleTimeout = s.IdleTimeout
 	}
 	if s.MaxHeaderBytes != 0 {
-		srv.MaxHeaderBytes = 10 * 1024
+		srv.MaxHeaderBytes = s.MaxHeaderBytes
 	}
 	if s.TLSConfig != nil {
 		cfg := s.TLSConfig.Clone()
