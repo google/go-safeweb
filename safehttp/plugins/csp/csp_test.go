@@ -96,6 +96,26 @@ func TestSerialize(t *testing.T) {
 			policy:     FramingPolicy{ReportURI: "httsp://example.com/collector"},
 			wantString: "frame-ancestors 'self'; report-uri httsp://example.com/collector",
 		},
+		{
+			name:       "TrustedTypesCSP",
+			policy:     TrustedTypesPolicy{},
+			wantString: "require-trusted-types-for 'script'",
+		},
+		{
+			name:       "TrustedTypesCSP with report-uri",
+			policy:     TrustedTypesPolicy{ReportURI: "httsp://example.com/collector"},
+			wantString: "require-trusted-types-for 'script'; report-uri httsp://example.com/collector",
+		},
+		{
+			name:       "TrustedTypesCSP with policy names",
+			policy:     TrustedTypesPolicy{PolicyNames: []string{"one", "two"}},
+			wantString: "require-trusted-types-for 'script'; trusted-types one two",
+		},
+		{
+			name:       "TrustedTypesCSP with policy names and allowed duplicates",
+			policy:     TrustedTypesPolicy{PolicyNames: []string{"one", "two"}, AllowDuplicates: true},
+			wantString: "require-trusted-types-for 'script'; trusted-types one two 'allow-duplicates'",
+		},
 	}
 
 	for _, tt := range tests {
@@ -128,6 +148,7 @@ func TestBefore(t *testing.T) {
 			wantEnforcePolicy: []string{
 				"object-src 'none'; script-src 'unsafe-inline' 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk=' 'strict-dynamic' https: http:; base-uri 'none'",
 				"frame-ancestors 'self'",
+				"require-trusted-types-for 'script'",
 			},
 			wantNonce: "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
@@ -137,6 +158,7 @@ func TestBefore(t *testing.T) {
 			wantEnforcePolicy: []string{
 				"object-src 'none'; script-src 'unsafe-inline' 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk=' 'strict-dynamic' https: http:; base-uri 'none'; report-uri https://example.com/collector",
 				"frame-ancestors 'self'; report-uri https://example.com/collector",
+				"require-trusted-types-for 'script'; report-uri https://example.com/collector",
 			},
 			wantNonce: "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
