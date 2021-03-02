@@ -225,7 +225,7 @@ type Interceptor struct {
 var _ safehttp.Interceptor = Interceptor{}
 
 // Default creates a new CSP interceptor with a strict nonce-based policy, a framing policy
-// and a TrustedType policy. All in enforcement mode.
+// and a TrustedTypes policy. All in enforcement mode.
 func Default(reportURI string) Interceptor {
 	return Interceptor{
 		Enforce: []Policy{
