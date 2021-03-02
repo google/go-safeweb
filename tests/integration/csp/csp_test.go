@@ -72,7 +72,8 @@ func TestServeMuxInstallCSP(t *testing.T) {
 		"Content-Type": {"text/html; charset=utf-8"},
 		"Content-Security-Policy": {
 			"object-src 'none'; script-src 'unsafe-inline' 'nonce-" + nonce + "' 'strict-dynamic' https: http:; base-uri 'none'",
-			"frame-ancestors 'self'"},
+			"frame-ancestors 'self'",
+			"require-trusted-types-for 'script'"},
 	}
 	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
 		t.Errorf("rr.Header(): mismatch (-want +got):\n%s", diff)
