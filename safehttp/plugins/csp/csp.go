@@ -15,9 +15,10 @@
 // Package csp provides a safehttp.Interceptor which applies Content-Security Policies
 // to responses.
 //
-// Two default policies are provided:
+// Three default policies are provided:
 //  - A strict nonce based CSP
 //  - A framing policy which sets frame-ancestors to 'self'
+//  - A Trusted Types policy which makes usage of dangerous web API functions secure by default
 package csp
 
 import (
@@ -166,6 +167,48 @@ func (f FramingPolicy) Serialize(nonce string) string {
 	return b.String()
 }
 
+// TrustedTypesPolicy policy can be used to create a new CSP policy which makes
+// dangerous web API functions secure by default.
+//
+// See https://web.dev/trusted-types for more info.
+type TrustedTypesPolicy struct {
+	// ReportURI controls the report-uri directive. If ReportUri is empty, no report-uri
+	// directive will be set.
+	ReportURI string
+	// PolicyNames controls allowed names of policies that can be created.
+	PolicyNames []string
+	// AllowDuplicates allows creating policies with a name that was already used.
+	AllowDuplicates bool
+}
+
+// Serialize serializes this policy for use in a Content-Security-Policy header
+// or in a Content-Security-Policy-Report-Only header. A nonce will be provided
+// to Serialize which can be used in 'nonce-{random-nonce}' values in directives.
+func (t TrustedTypesPolicy) Serialize(nonce string) string {
+	var b strings.Builder
+	b.WriteString("require-trusted-types-for 'script'")
+
+	if len(t.PolicyNames) > 0 {
+		b.WriteString("; trusted-types")
+		for _, name := range t.PolicyNames {
+			b.WriteString(" ")
+			b.WriteString(name)
+		}
+
+		if t.AllowDuplicates {
+			b.WriteString(" ")
+			b.WriteString("'allow-duplicates'")
+		}
+	}
+
+	if t.ReportURI != "" {
+		b.WriteString("; report-uri ")
+		b.WriteString(t.ReportURI)
+	}
+
+	return b.String()
+}
+
 // Interceptor intercepts requests and applies CSP policies.
 type Interceptor struct {
 	// TODO: move it to a safehttp.InterceptorConfig implementation to enable
@@ -181,13 +224,14 @@ type Interceptor struct {
 
 var _ safehttp.Interceptor = Interceptor{}
 
-// Default creates a new CSP interceptor with a strict nonce-based policy and a
-// framing policy, both in enforcement mode.
+// Default creates a new CSP interceptor with a strict nonce-based policy, a framing policy
+// and a TrustedType policy. All in enforcement mode.
 func Default(reportURI string) Interceptor {
 	return Interceptor{
 		Enforce: []Policy{
 			StrictPolicy{ReportURI: reportURI},
 			FramingPolicy{ReportURI: reportURI},
+			TrustedTypesPolicy{ReportURI: reportURI},
 		},
 	}
 }
