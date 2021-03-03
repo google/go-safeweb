@@ -175,10 +175,6 @@ type TrustedTypesPolicy struct {
 	// ReportURI controls the report-uri directive. If ReportUri is empty, no report-uri
 	// directive will be set.
 	ReportURI string
-	// PolicyNames controls allowed names of policies that can be created.
-	PolicyNames []string
-	// AllowDuplicates allows creating policies with a name that was already used.
-	AllowDuplicates bool
 }
 
 // Serialize serializes this policy for use in a Content-Security-Policy header
@@ -187,19 +183,6 @@ type TrustedTypesPolicy struct {
 func (t TrustedTypesPolicy) Serialize(nonce string) string {
 	var b strings.Builder
 	b.WriteString("require-trusted-types-for 'script'")
-
-	if len(t.PolicyNames) > 0 {
-		b.WriteString("; trusted-types")
-		for _, name := range t.PolicyNames {
-			b.WriteString(" ")
-			b.WriteString(name)
-		}
-
-		if t.AllowDuplicates {
-			b.WriteString(" ")
-			b.WriteString("'allow-duplicates'")
-		}
-	}
 
 	if t.ReportURI != "" {
 		b.WriteString("; report-uri ")
