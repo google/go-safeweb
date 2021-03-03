@@ -106,16 +106,6 @@ func TestSerialize(t *testing.T) {
 			policy:     TrustedTypesPolicy{ReportURI: "httsp://example.com/collector"},
 			wantString: "require-trusted-types-for 'script'; report-uri httsp://example.com/collector",
 		},
-		{
-			name:       "TrustedTypesCSP with policy names",
-			policy:     TrustedTypesPolicy{PolicyNames: []string{"one", "two"}},
-			wantString: "require-trusted-types-for 'script'; trusted-types one two",
-		},
-		{
-			name:       "TrustedTypesCSP with policy names and allowed duplicates",
-			policy:     TrustedTypesPolicy{PolicyNames: []string{"one", "two"}, AllowDuplicates: true},
-			wantString: "require-trusted-types-for 'script'; trusted-types one two 'allow-duplicates'",
-		},
 	}
 
 	for _, tt := range tests {
