@@ -167,7 +167,7 @@ func (f FramingPolicy) Serialize(nonce string) string {
 	return b.String()
 }
 
-// TrustedTypesPolicy policy can be used to create a new CSP policy which makes
+// TrustedTypesPolicy policy can be used to create a new CSP which makes
 // dangerous web API functions secure by default.
 //
 // See https://web.dev/trusted-types for more info.
