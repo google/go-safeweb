@@ -65,11 +65,11 @@ type Plugin struct {
 
 var _ safehttp.Interceptor = &Plugin{}
 
-// NewPlugin creates a new Fetch Metadata plugin in enforce mode that will apply
+// NewInterceptor creates a new Fetch Metadata plugin in enforce mode that will apply
 // the Resource Isolation Policy by default. The user can provide a set of
-// endpoints that are CORS-protected. Any request targeted to those endpoints
+// endpoints that will not be protected. Any request targeted to those endpoints
 // will be allowed by default without the policies being applied.
-func NewPlugin(endpoints ...string) *Plugin {
+func NewInterceptor(endpoints ...string) *Plugin {
 	m := map[string]bool{}
 	for _, e := range endpoints {
 		m[e] = true
