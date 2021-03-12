@@ -19,6 +19,8 @@
 //  - A strict nonce based CSP
 //  - A framing policy which sets frame-ancestors to 'self'
 //  - A Trusted Types policy which makes usage of dangerous web API functions secure by default
+//
+// In case a framing policy is present, a relevant X-Frame-Options will be added as a fallback option.
 package csp
 
 import (
@@ -167,6 +169,12 @@ func (f FramingPolicy) Serialize(nonce string) string {
 	return b.String()
 }
 
+// toXFO returns a value of the X-Frame-Options header that reflects settings of the policy.
+func (f FramingPolicy) toXFO() string {
+	// TODO: allow relaxation on specific endpoints according to #77.
+	return "SAMEORIGIN"
+}
+
 // TrustedTypesPolicy policy can be used to create a new CSP which makes
 // dangerous web API functions secure by default.
 //
@@ -219,8 +227,8 @@ func Default(reportURI string) Interceptor {
 	}
 }
 
-// Before claims and sets the Content-Security-Policy header and the
-// Content-Security-Policy-Report-Only header.
+// Before claims and sets the Content-Security-Policy and Content-Security-Policy-Report-Only.
+// It also sets X-Frame-Options header as a fallback option for cases when CSP is not supported.
 func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
 	nonce := generateNonce()
 	r.SetContext(context.WithValue(r.Context(), ctxKey{}, nonce))
@@ -233,15 +241,32 @@ func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 	for _, p := range it.ReportOnly {
 		reportCSPs = append(reportCSPs, p.Serialize(nonce))
 	}
+	// X-Frame-Options works only in enforce mode.
+	var XFO = []string{getXFO(&it.Enforce)}
 
 	h := w.Header()
 	setCSP := h.Claim("Content-Security-Policy")
 	setCSPReportOnly := h.Claim("Content-Security-Policy-Report-Only")
+	setXFO := h.Claim("X-Frame-Options")
 
 	setCSP(CSPs)
 	setCSPReportOnly(reportCSPs)
+	setXFO(XFO)
 
 	return safehttp.NotWritten()
+}
+
+// getXFO returns X-Frame-Options header value that reflects configuration of the FramingPolicy.
+// If no FramingPolicy exists, defaults to DENY.
+func getXFO(p *[]Policy) string {
+	for _, p := range *p {
+		f, ok := p.(FramingPolicy)
+		if !ok {
+			continue
+		}
+		return f.toXFO()
+	}
+	return "DENY"
 }
 
 // Commit adds the nonce to the safehttp.TemplateResponse which is going to be

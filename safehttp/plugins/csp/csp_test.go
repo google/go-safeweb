@@ -126,11 +126,13 @@ func TestBefore(t *testing.T) {
 		wantEnforcePolicy    []string
 		wantReportOnlyPolicy []string
 		wantNonce            string
+		wantXFO              []string
 	}{
 		{
 			name:        "No policies",
 			interceptor: Interceptor{},
 			wantNonce:   "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
+			wantXFO:     []string{"DENY"},
 		},
 		{
 			name:        "Default policies",
@@ -141,6 +143,7 @@ func TestBefore(t *testing.T) {
 				"require-trusted-types-for 'script'",
 			},
 			wantNonce: "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
+			wantXFO:   []string{"SAMEORIGIN"},
 		},
 		{
 			name:        "Default policies with reporting URI",
@@ -151,6 +154,7 @@ func TestBefore(t *testing.T) {
 				"require-trusted-types-for 'script'; report-uri https://example.com/collector",
 			},
 			wantNonce: "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
+			wantXFO:   []string{"SAMEORIGIN"},
 		},
 		{
 			name: "StrictCSP Report Only",
@@ -163,6 +167,7 @@ func TestBefore(t *testing.T) {
 				"object-src 'none'; script-src 'unsafe-inline' 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk=' 'strict-dynamic' https: http:; base-uri 'none'; report-uri https://example.com/collector",
 			},
 			wantNonce: "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
+			wantXFO:   []string{"DENY"},
 		},
 		{
 			name: "FramingCSP Report Only",
@@ -173,6 +178,18 @@ func TestBefore(t *testing.T) {
 			},
 			wantReportOnlyPolicy: []string{"frame-ancestors 'self'; report-uri https://example.com/collector"},
 			wantNonce:            "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
+			wantXFO:              []string{"DENY"},
+		},
+		{
+			name: "FramingCSP Enforce",
+			interceptor: Interceptor{
+				Enforce: []Policy{
+					FramingPolicy{ReportURI: "https://example.com/collector"},
+				},
+			},
+			wantEnforcePolicy: []string{"frame-ancestors 'self'; report-uri https://example.com/collector"},
+			wantNonce:         "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
+			wantXFO:           []string{"SAMEORIGIN"},
 		},
 	}
 
@@ -190,6 +207,10 @@ func TestBefore(t *testing.T) {
 
 			if diff := cmp.Diff(tt.wantReportOnlyPolicy, h.Values("Content-Security-Policy-Report-Only"), cmpopts.EquateEmpty()); diff != "" {
 				t.Errorf("h.Values(\"Content-Security-Policy-Report-Only\") mismatch (-want +got):\n%s", diff)
+			}
+
+			if diff := cmp.Diff(tt.wantXFO, h.Values("X-Frame-Options"), cmpopts.EquateEmpty()); diff != "" {
+				t.Errorf("h.Values(\"X-Frame-Options\") mismatch (-want +got):\n%s", diff)
 			}
 
 			v := req.Context().Value(ctxKey{})

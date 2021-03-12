@@ -74,6 +74,7 @@ func TestServeMuxInstallCSP(t *testing.T) {
 			"object-src 'none'; script-src 'unsafe-inline' 'nonce-" + nonce + "' 'strict-dynamic' https: http:; base-uri 'none'",
 			"frame-ancestors 'self'",
 			"require-trusted-types-for 'script'"},
+		"X-Frame-Options": {"SAMEORIGIN"},
 	}
 	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
 		t.Errorf("rr.Header(): mismatch (-want +got):\n%s", diff)
