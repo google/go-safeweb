@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Trusted Types - example</title>
+    <!-- Install polyfill for browsers that do not support Trusted Types yet. -->
+    <script src="https://w3c.github.io/webappsec-trusted-types/dist/es5/trustedtypes.build.js"
+        data-csp="trusted-types foo bar; require-trusted-types-for 'script'"></script>
+</head>
+
+<body>
+    <p>This document installs the following script which introduces a DOM XSS vulnerability:</p>
+    <p>
+        <code>document.getElementById("hash").innerHTML = location.hash;</code>
+    </p>
+    With TrustedTypes protection enabled, the browser will reject execution of any JavaScript code on this page.
+    You can verify it by looking at the console output)
+    <p>location hash: <span id="hash"></span></p>
+    <script>
+        window.addEventListener('load', function () {
+            // This piece of code is vulnerable to DOM XSS.
+            document.getElementById("hash").innerHTML = location.hash;
+        })
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Trusted Types - example</title>
+    <!-- Install polyfill for browsers that do not support Trusted Types yet. -->
+    <script src="https://w3c.github.io/webappsec-trusted-types/dist/es5/trustedtypes.build.js"
+        data-csp="require-trusted-types-for 'script'"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.2.6/purify.min.js"
+        integrity="sha512-rXAHWSMciPq2KsOxTvUeYNBb45apbcEXUVSIexVPOBnKfD/xo99uUe5M2OOsC49hGdUrkRLYsATkQQHMzUo/ew=="
+        crossorigin="anonymous"></script>
+</head>
+
+<body>
+    <p>This document installs the following script which appends sanitized user input into the DOM:</p>
+    <code>
+            document.getElementById("hash").innerHTML = DOMPurify.sanitize(location.hash, {RETURN_TRUSTED_TYPE: true});
+        </code>
+    <p>location hash: <span id="hash"></span></p>
+    <script>
+        window.addEventListener('load', function () {
+            // This piece of code is safe from DOM XSS.
+            document.getElementById("hash").innerHTML = DOMPurify.sanitize(location.hash, { RETURN_TRUSTED_TYPE: true });
+        })
+    </script>
+</body>
+
+</html>
