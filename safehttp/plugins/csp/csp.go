@@ -257,7 +257,7 @@ func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 }
 
 // getXFO returns X-Frame-Options header value that reflects configuration of the FramingPolicy.
-// If no FramingPolicy exists, defaults to DENY.
+// If no FramingPolicy exists, defaults to SAMEORIGIN.
 func getXFO(p *[]Policy) string {
 	for _, p := range *p {
 		f, ok := p.(FramingPolicy)
@@ -266,7 +266,7 @@ func getXFO(p *[]Policy) string {
 		}
 		return f.toXFO()
 	}
-	return "DENY"
+	return "SAMEORIGIN"
 }
 
 // Commit adds the nonce to the safehttp.TemplateResponse which is going to be

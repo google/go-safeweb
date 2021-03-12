@@ -132,7 +132,7 @@ func TestBefore(t *testing.T) {
 			name:        "No policies",
 			interceptor: Interceptor{},
 			wantNonce:   "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
-			wantXFO:     []string{"DENY"},
+			wantXFO:     []string{"SAMEORIGIN"},
 		},
 		{
 			name:        "Default policies",
@@ -167,7 +167,7 @@ func TestBefore(t *testing.T) {
 				"object-src 'none'; script-src 'unsafe-inline' 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk=' 'strict-dynamic' https: http:; base-uri 'none'; report-uri https://example.com/collector",
 			},
 			wantNonce: "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
-			wantXFO:   []string{"DENY"},
+			wantXFO:   []string{"SAMEORIGIN"},
 		},
 		{
 			name: "FramingCSP Report Only",
@@ -178,7 +178,7 @@ func TestBefore(t *testing.T) {
 			},
 			wantReportOnlyPolicy: []string{"frame-ancestors 'self'; report-uri https://example.com/collector"},
 			wantNonce:            "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
-			wantXFO:              []string{"DENY"},
+			wantXFO:              []string{"SAMEORIGIN"},
 		},
 		{
 			name: "FramingCSP Enforce",
