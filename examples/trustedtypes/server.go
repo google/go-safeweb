@@ -20,42 +20,37 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"net"
 	"net/http"
 
 	"github.com/google/safehtml/template"
 
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/plugins/csp"
-	"github.com/google/go-safeweb/safehttp/plugins/hostcheck"
 	"github.com/google/go-safeweb/safehttp/plugins/htmlinject"
 )
 
 func main() {
 	host := "localhost"
-	port := 8080
-	addr := fmt.Sprintf("%s:%d", host, port)
+	port := "8080"
+	addr := net.JoinHostPort(host, port)
 	var mc safehttp.ServeMuxConfig
 	mc.Intercept(csp.Default(""))
-	mc.Intercept(hostcheck.New(addr))
 
-	mc.Handle("/safe", safehttp.MethodGet, safehttp.HandlerFunc(safe))
-	mc.Handle("/unsafe", safehttp.MethodGet, safehttp.HandlerFunc(unsafe))
+	safeTmplSrc, _ := template.TrustedSourceFromConstantDir("", template.TrustedSource{}, "safe.html")
+	unsafeTmplSrc, _ := template.TrustedSourceFromConstantDir("", template.TrustedSource{}, "unsafe.html")
+	mc.Handle("/safe", safehttp.MethodGet, safehttp.HandlerFunc(handleTemplate(safeTmplSrc)))
+	mc.Handle("/unsafe", safehttp.MethodGet, safehttp.HandlerFunc(handleTemplate(unsafeTmplSrc)))
 
-	log.Printf("Visit http://%s:%d\n", host, port)
-	log.Printf("Listening on %s:%d...\n", host, port)
+	log.Printf("Visit http://%s\n", addr)
+	log.Printf("Listening on %s...\n", addr)
 	log.Fatal(http.ListenAndServe(addr, mc.Mux()))
 }
 
-func safe(w safehttp.ResponseWriter, req *safehttp.IncomingRequest) safehttp.Result {
-	tmplSrc, _ := template.TrustedSourceFromConstantDir("", template.TrustedSource{}, "safe.html")
-	tmpl, _ := htmlinject.LoadFiles(nil, htmlinject.LoadConfig{}, tmplSrc)
-	return safehttp.ExecuteTemplate(w, tmpl, nil)
-}
-
-func unsafe(w safehttp.ResponseWriter, req *safehttp.IncomingRequest) safehttp.Result {
-	tmplSrc, _ := template.TrustedSourceFromConstantDir("", template.TrustedSource{}, "unsafe.html")
-	tmpl, _ := htmlinject.LoadFiles(nil, htmlinject.LoadConfig{}, tmplSrc)
-	return safehttp.ExecuteTemplate(w, tmpl, nil)
+func handleTemplate(tmplSrc template.TrustedSource) func(w safehttp.ResponseWriter, req *safehttp.IncomingRequest) safehttp.Result {
+	return func(w safehttp.ResponseWriter, req *safehttp.IncomingRequest) safehttp.Result {
+		tmpl := template.Must(htmlinject.LoadFiles(nil, htmlinject.LoadConfig{}, tmplSrc))
+		return safehttp.ExecuteTemplate(w, tmpl, nil)
+	}
 }
