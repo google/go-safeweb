@@ -40,17 +40,18 @@ func main() {
 
 	safeTmplSrc, _ := template.TrustedSourceFromConstantDir("", template.TrustedSource{}, "safe.html")
 	unsafeTmplSrc, _ := template.TrustedSourceFromConstantDir("", template.TrustedSource{}, "unsafe.html")
-	mc.Handle("/safe", safehttp.MethodGet, safehttp.HandlerFunc(handleTemplate(safeTmplSrc)))
-	mc.Handle("/unsafe", safehttp.MethodGet, safehttp.HandlerFunc(handleTemplate(unsafeTmplSrc)))
+	safeTmpl := template.Must(htmlinject.LoadFiles(nil, htmlinject.LoadConfig{}, safeTmplSrc))
+	unsafeTmpl := template.Must(htmlinject.LoadFiles(nil, htmlinject.LoadConfig{}, unsafeTmplSrc))
+	mc.Handle("/safe", safehttp.MethodGet, safehttp.HandlerFunc(handleTemplate(safeTmpl)))
+	mc.Handle("/unsafe", safehttp.MethodGet, safehttp.HandlerFunc(handleTemplate(unsafeTmpl)))
 
 	log.Printf("Visit http://%s\n", addr)
 	log.Printf("Listening on %s...\n", addr)
 	log.Fatal(http.ListenAndServe(addr, mc.Mux()))
 }
 
-func handleTemplate(tmplSrc template.TrustedSource) func(w safehttp.ResponseWriter, req *safehttp.IncomingRequest) safehttp.Result {
+func handleTemplate(tmpl safehttp.Template) func(w safehttp.ResponseWriter, req *safehttp.IncomingRequest) safehttp.Result {
 	return func(w safehttp.ResponseWriter, req *safehttp.IncomingRequest) safehttp.Result {
-		tmpl := template.Must(htmlinject.LoadFiles(nil, htmlinject.LoadConfig{}, tmplSrc))
 		return safehttp.ExecuteTemplate(w, tmpl, nil)
 	}
 }
