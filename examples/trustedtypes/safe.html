@@ -14,13 +14,25 @@
 <body>
     <p>This document installs the following script which appends sanitized user input into the DOM:</p>
     <code>
-            document.getElementById("hash").innerHTML = DOMPurify.sanitize(location.hash, {RETURN_TRUSTED_TYPE: true});
-        </code>
+        document.getElementById("hash").innerHTML = DOMPurify.sanitize(location.hash, {RETURN_TRUSTED_TYPE: true});
+    </code>
     <p>location hash: <span id="hash"></span></p>
     <script>
         window.addEventListener('load', function () {
             // This piece of code is safe from DOM XSS.
             document.getElementById("hash").innerHTML = DOMPurify.sanitize(location.hash, { RETURN_TRUSTED_TYPE: true });
+        })
+    </script>
+    <p>Unsafe usage of DOM APIs will be blocked. The code snippet below will not be executed and will
+        trigger a warning in the console:</p>
+    <code>
+        document.getElementById("unsafehash").innerHTML = location.hash;
+    </code>
+    <p>location hash (unsafe): <span id="unsafehash"></span></p>
+    <script>
+        window.addEventListener('load', function () {
+            // This piece of code is vulnerable to DOM XSS.
+            document.getElementById("unsafehash").innerHTML = location.hash;
         })
     </script>
 </body>
