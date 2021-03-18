@@ -228,7 +228,7 @@ func Default(reportURI string) Interceptor {
 }
 
 // Before claims and sets the Content-Security-Policy and Content-Security-Policy-Report-Only.
-// It also sets X-Frame-Options header as a fallback option for cases when CSP is not supported.
+// It also sets X-Frame-Options header as a fallback option for user agents that don't support CSP frame-ancestors.
 func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
 	nonce := generateNonce()
 	r.SetContext(context.WithValue(r.Context(), ctxKey{}, nonce))
