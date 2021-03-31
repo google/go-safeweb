@@ -97,6 +97,21 @@ func TestSerialize(t *testing.T) {
 			wantString: "frame-ancestors 'self'; report-uri httsp://example.com/collector",
 		},
 		{
+			name: "FramingCSP with one source",
+			policy: FramingPolicy{Sources: []string{
+				"https://www.example.org",
+			}},
+			wantString: "frame-ancestors 'self' https://www.example.org;",
+		},
+		{
+			name: "FramingCSP with multiple sources",
+			policy: FramingPolicy{Sources: []string{
+				"https://a.example.org",
+				"https://b.example.org",
+			}},
+			wantString: "frame-ancestors 'self' https://a.example.org https://b.example.org;",
+		},
+		{
 			name:       "TrustedTypesCSP",
 			policy:     TrustedTypesPolicy{},
 			wantString: "require-trusted-types-for 'script'",

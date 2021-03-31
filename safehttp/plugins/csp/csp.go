@@ -147,6 +147,9 @@ func (s StrictPolicy) Serialize(nonce string) string {
 //
 // TODO: allow relaxation on specific endpoints according to #77.
 type FramingPolicy struct {
+	// Specifies valid parents that may embed a page using: <frame>, <iframe>, <object>, <embed>, or <applet>.
+	// More details: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/frame-ancestors#sources
+	Sources []string
 	// ReportURI controls the report-uri directive. If ReportUri is empty, no report-uri
 	// directive will be set.
 	ReportURI string
@@ -158,6 +161,15 @@ type FramingPolicy struct {
 func (f FramingPolicy) Serialize(nonce string) string {
 	var b strings.Builder
 	b.WriteString("frame-ancestors 'self'")
+
+	for _, s := range f.Sources {
+		b.WriteString(" ")
+		b.WriteString(s)
+	}
+
+	if len(f.Sources) > 0 && f.ReportURI == "" {
+		b.WriteString(";")
+	}
 
 	if f.ReportURI != "" {
 		b.WriteString("; report-uri ")
