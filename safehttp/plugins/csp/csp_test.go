@@ -89,7 +89,7 @@ func TestSerialize(t *testing.T) {
 		{
 			name:       "FramingCSP",
 			policy:     FramingPolicy{},
-			wantString: "frame-ancestors 'self'",
+			wantString: "frame-ancestors 'self';",
 		},
 		{
 			name:       "FramingCSP with report-uri",
@@ -152,7 +152,7 @@ func TestBefore(t *testing.T) {
 			interceptor: Default(""),
 			wantEnforcePolicy: []string{
 				"object-src 'none'; script-src 'unsafe-inline' 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk=' 'strict-dynamic' https: http:; base-uri 'none'",
-				"frame-ancestors 'self'",
+				"frame-ancestors 'self';",
 				"require-trusted-types-for 'script'",
 			},
 			wantNonce: "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",

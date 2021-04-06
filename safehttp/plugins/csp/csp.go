@@ -162,18 +162,30 @@ func (f FramingPolicy) Serialize(nonce string) string {
 	var b strings.Builder
 	b.WriteString("frame-ancestors 'self'")
 
-	for _, s := range f.Sources {
+	ancestors := frameAncestors(f.Sources)
+	rep := report(f.ReportURI)
+	b.WriteString(strings.Join([]string{ancestors, rep}, "; "))
+
+	return strings.TrimSpace(b.String())
+}
+
+func frameAncestors(sources []string) string {
+	var b strings.Builder
+
+	for _, s := range sources {
 		b.WriteString(" ")
 		b.WriteString(s)
 	}
 
-	if len(f.Sources) > 0 && f.ReportURI == "" {
-		b.WriteString(";")
-	}
+	return b.String()
+}
 
-	if f.ReportURI != "" {
-		b.WriteString("; report-uri ")
-		b.WriteString(f.ReportURI)
+func report(reportURI string) string {
+	var b strings.Builder
+
+	if reportURI != "" {
+		b.WriteString("report-uri ")
+		b.WriteString(reportURI)
 	}
 
 	return b.String()
