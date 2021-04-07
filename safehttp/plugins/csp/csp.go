@@ -164,7 +164,7 @@ func (f FramingPolicy) Serialize(nonce string) string {
 	b.WriteString(frameAncestors(f.Sources))
 	b.WriteString(report(f.ReportURI))
 
-	return strings.TrimSpace(b.String())
+	return b.String()
 }
 
 func frameAncestors(sources []string) string {
