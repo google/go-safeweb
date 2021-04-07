@@ -187,6 +187,7 @@ func report(reportURI string) string {
 		b.WriteString("report-uri ")
 		b.WriteString(reportURI)
 	}
+	b.WriteString("; ")
 
 	return b.String()
 }
