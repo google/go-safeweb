@@ -94,7 +94,7 @@ func TestSerialize(t *testing.T) {
 		{
 			name:       "FramingCSP with report-uri",
 			policy:     FramingPolicy{ReportURI: "httsp://example.com/collector"},
-			wantString: "frame-ancestors 'self'; report-uri httsp://example.com/collector",
+			wantString: "frame-ancestors 'self'; report-uri httsp://example.com/collector;",
 		},
 		{
 			name: "FramingCSP with one source",
@@ -162,7 +162,7 @@ func TestBefore(t *testing.T) {
 			interceptor: Default("https://example.com/collector"),
 			wantEnforcePolicy: []string{
 				"object-src 'none'; script-src 'unsafe-inline' 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk=' 'strict-dynamic' https: http:; base-uri 'none'; report-uri https://example.com/collector",
-				"frame-ancestors 'self'; report-uri https://example.com/collector",
+				"frame-ancestors 'self'; report-uri https://example.com/collector;",
 				"require-trusted-types-for 'script'; report-uri https://example.com/collector",
 			},
 			wantNonce: "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
@@ -186,7 +186,7 @@ func TestBefore(t *testing.T) {
 					FramingPolicy{ReportURI: "https://example.com/collector"},
 				},
 			},
-			wantReportOnlyPolicy: []string{"frame-ancestors 'self'; report-uri https://example.com/collector"},
+			wantReportOnlyPolicy: []string{"frame-ancestors 'self'; report-uri https://example.com/collector;"},
 			wantNonce:            "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
 	}
