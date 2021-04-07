@@ -186,8 +186,8 @@ func report(reportURI string) string {
 	if reportURI != "" {
 		b.WriteString("report-uri ")
 		b.WriteString(reportURI)
+		b.WriteString("; ")
 	}
-	b.WriteString("; ")
 
 	return b.String()
 }
