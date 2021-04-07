@@ -160,17 +160,16 @@ type FramingPolicy struct {
 // to Serialize which can be used in 'nonce-{random-nonce}' values in directives.
 func (f FramingPolicy) Serialize(nonce string) string {
 	var b strings.Builder
-	b.WriteString("frame-ancestors 'self'")
 
-	ancestors := frameAncestors(f.Sources)
-	rep := report(f.ReportURI)
-	b.WriteString(strings.Join([]string{ancestors, rep}, "; "))
+	b.WriteString(frameAncestors(f.Sources))
+	b.WriteString(report(f.ReportURI))
 
 	return strings.TrimSpace(b.String())
 }
 
 func frameAncestors(sources []string) string {
 	var b strings.Builder
+	b.WriteString("frame-ancestors 'self'")
 
 	for _, s := range sources {
 		b.WriteString(" ")
@@ -184,7 +183,7 @@ func report(reportURI string) string {
 	var b strings.Builder
 
 	if reportURI != "" {
-		b.WriteString("report-uri ")
+		b.WriteString("; report-uri ")
 		b.WriteString(reportURI)
 	}
 
