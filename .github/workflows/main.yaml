@@ -99,3 +99,7 @@ jobs:
     - name: Copyright linter - HTML
       run: |
         ./.github/workflows/copyright_linter.sh ./.github/workflows/html-copyright-header.txt html
+
+    - name: Copyright linter - JavaScript
+      run: |
+        ./.github/workflows/copyright_linter.sh ./.github/workflows/js-copyright-header.txt js
