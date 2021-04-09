@@ -1,7 +1,8 @@
 #!/bin/bash
 status=0
 lines=$(cat $1 | wc -l)
-for f in $(find . -name "*.go")
+extension=$2
+for f in $(find . -name "*.$extension")
 do
     diff=$(head $f -n $lines | diff $1 -)
     if [ ! -z "$diff" ]

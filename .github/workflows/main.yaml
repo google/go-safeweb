@@ -92,6 +92,10 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
 
-    - name: Copyright linter
+    - name: Copyright linter - Go
       run: |
-        ./.github/workflows/copyright_linter.sh ./.github/workflows/source-code-copyright-header.txt
+        ./.github/workflows/copyright_linter.sh ./.github/workflows/go-copyright-header.txt go
+
+    - name: Copyright linter - HTML
+      run: |
+        ./.github/workflows/copyright_linter.sh ./.github/workflows/html-copyright-header.txt html
