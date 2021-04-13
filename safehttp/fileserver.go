@@ -25,9 +25,9 @@ func FileServer(root string) Handler {
 	fileServer := http.FileServer(http.Dir(root))
 
 	return HandlerFunc(func(rw ResponseWriter, req *IncomingRequest) Result {
-		fileServerRW := &fileServerResponseWriter{flight: rw.(*flight), header: http.Header{}}
-		fileServer.ServeHTTP(fileServerRW, req.req)
-		return fileServerRW.result
+		fsrw := &fileServerResponseWriter{flight: rw.(*flight), header: http.Header{}}
+		fileServer.ServeHTTP(fsrw, req.req)
+		return fsrw.result
 	})
 }
 
@@ -49,34 +49,39 @@ type fileServerResponseWriter struct {
 	errored bool
 }
 
-func (fileServerRW *fileServerResponseWriter) Header() http.Header {
-	return fileServerRW.header
+func (fsrw *fileServerResponseWriter) Header() http.Header {
+	return fsrw.header
 }
 
-func (fileServerRW *fileServerResponseWriter) Write(b []byte) (int, error) {
-	if !fileServerRW.committed {
-		fileServerRW.WriteHeader(int(StatusOK))
+func (fsrw *fileServerResponseWriter) Write(b []byte) (int, error) {
+	if !fsrw.committed {
+		fsrw.WriteHeader(int(StatusOK))
 	}
 
-	if fileServerRW.errored {
-		// Let the framework handle the error
+	if fsrw.errored {
+		// Let the framework handle the error.
 		return 0, errors.New("discarded")
 	}
-	return fileServerRW.flight.rw.Write(b)
+	return fsrw.flight.rw.Write(b)
 }
 
-func (fileServerRW *fileServerResponseWriter) WriteHeader(statusCode int) {
-	if fileServerRW.committed {
+func (fsrw *fileServerResponseWriter) WriteHeader(statusCode int) {
+	if fsrw.committed {
 		// We've already committed to a response. The headers and status code
 		// were written. Ignore this call.
 		return
 	}
-	fileServerRW.committed = true
+	fsrw.committed = true
 
+	headers := fsrw.flight.Header()
+	ct := "application/octet-stream; charset=utf-8"
+	if len(fsrw.header["Content-Type"]) > 0 {
+		ct = fsrw.header["Content-Type"][0]
+	}
+	// Content-Type should have been set by the http.FileServer.
 	// Note: Add or Set might panic if a header has been already claimed. This
 	// is intended behavior.
-	headers := fileServerRW.flight.Header()
-	for k, v := range fileServerRW.header {
+	for k, v := range fsrw.header {
 		if len(v) == 0 {
 			continue
 		}
@@ -91,16 +96,16 @@ func (fileServerRW *fileServerResponseWriter) WriteHeader(statusCode int) {
 	}
 
 	if statusCode != int(StatusOK) {
-		fileServerRW.errored = true
+		fsrw.errored = true
 		// We are writing 404 for every error to avoid leaking information about
 		// the filesystem.
-		fileServerRW.result = fileServerRW.flight.WriteError(StatusNotFound)
+		fsrw.result = fsrw.flight.WriteError(StatusNotFound)
 		return
 	}
 
-	fileServerRW.result = fileServerRW.flight.Write(FileServerResponse{
-		Path:        fileServerRW.flight.req.URL.Path(),
-		contentType: contentType(fileServerRW.header),
+	fsrw.result = fsrw.flight.Write(FileServerResponse{
+		Path:        fsrw.flight.req.URL.Path(),
+		contentType: ct,
 	})
 }
 
@@ -116,12 +121,4 @@ type FileServerResponse struct {
 // ContentType is the Content-Type of the response.
 func (resp FileServerResponse) ContentType() string {
 	return resp.contentType
-}
-
-func contentType(h http.Header) string {
-	if len(h["Content-Type"]) > 0 {
-		return h["Content-Type"][0]
-	}
-	// Content-Type should have been set by the http.FileServer.
-	return "application/octet-stream; charset=utf-8"
 }
