@@ -41,6 +41,8 @@ func (DefaultDispatcher) ContentType(resp Response) (string, error) {
 		return "text/html; charset=utf-8", nil
 	case JSONResponse:
 		return "application/json; charset=utf-8", nil
+	case FileServerResponse:
+		return x.ContentType(), nil
 	default:
 		return "", fmt.Errorf("%T is not a safe response type, a Content-Type cannot be provided", resp)
 	}
@@ -78,6 +80,9 @@ func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 	case safehtml.HTML:
 		_, err := io.WriteString(rw, x.String())
 		return err
+	case FileServerResponse:
+		// The http package will take care of writing the file body.
+		return nil
 	default:
 		return fmt.Errorf("%T is not a safe response type and it cannot be written", resp)
 	}
