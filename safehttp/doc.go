@@ -26,7 +26,7 @@
 // received by a modern, popular web browser. For example, we consider HTML
 // responses generated using a template system enforcing contextual autoescaping
 // to be safe, e.g. modern Angular or github.com/google/safehtml/template. Read
-// more about contextual autoescaping here
+// more about contextual autoescaping here:
 // https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/42934.pdf.
 //
 // The Go Safe Web ResponseWriter implementation only accepts Safe Responses
