@@ -38,7 +38,7 @@ func NewCookie(name, value string) *Cookie {
 		&http.Cookie{
 			Name:     name,
 			Value:    value,
-			Secure:   true,
+			Secure:   !isLocalDev,
 			HttpOnly: true,
 			SameSite: http.SameSiteLaxMode,
 		},
