@@ -546,6 +546,25 @@ func TestMultipartFormValidFileAndVals(t *testing.T) {
 	}
 }
 
+func TestMultipartFormFileWithPathInName(t *testing.T) {
+	fh := &multipart.FileHeader{Filename: "../tmp/myfile.txt"}
+	f := &MultipartForm{
+		mf: &multipart.Form{
+			File: map[string][]*multipart.FileHeader{
+				"foo": {fh},
+			},
+		},
+	}
+
+	filename := f.File("foo")[0].Filename
+	if want, got := "myfile.txt", filename; want != got {
+		t.Errorf(`f.File("foo").Filename: got %s, want %s`, got, want)
+	}
+	if err := f.Err(); err != nil {
+		t.Errorf(`f.Err(): got err %v`, err)
+	}
+}
+
 func TestMultipartFormMissingFile(t *testing.T) {
 	f := &MultipartForm{mf: &multipart.Form{}}
 	fhs := f.File("x")

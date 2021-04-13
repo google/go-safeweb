@@ -17,6 +17,7 @@ package safehttp
 import (
 	"fmt"
 	"mime/multipart"
+	"path/filepath"
 	"strconv"
 )
 
@@ -212,7 +213,17 @@ func (f *MultipartForm) File(param string) []*multipart.FileHeader {
 	if !ok {
 		return nil
 	}
+	sanitise(fh)
 	return fh
+}
+
+// sanitise removes trailing path separators from all file names.
+// This is to ensure that uploaded files are not stored outside of the
+// designated directory.
+func sanitise(fhs []*multipart.FileHeader) {
+	for _, fh := range fhs {
+		fh.Filename = filepath.Base(fh.Filename)
+	}
 }
 
 // RemoveFiles removes any temporary files associated with a Form and returns
