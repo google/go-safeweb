@@ -26,8 +26,11 @@ import (
 )
 
 func TestDevMode(t *testing.T) {
-	safehttp.UseLocalDev()
 	t.Run("can load in dev mode", func(t *testing.T) {
+		safehttp.UseLocalDev()
+		if !safehttp.IsLocalDev() {
+			t.Errorf("IsLocalDev(): got false, want true")
+		}
 		const resp = "response"
 		cfg, _ := defaults.ServeMuxConfig([]string{"test.host.example"}, "test-xsrf-key")
 		cfg.Handle("/test", "GET", safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
