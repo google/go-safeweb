@@ -88,6 +88,7 @@ func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 	if safehttp.IsLocalDev() {
 		return safehttp.NotWritten()
 	}
+
 	if it.MaxAge < 0 {
 		return w.WriteError(safehttp.StatusInternalServerError)
 	}
