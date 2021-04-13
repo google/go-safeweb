@@ -85,6 +85,9 @@ func Default() Interceptor {
 // is received the Strict-Transport-Security header is applied to the
 // response.
 func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
+	if safehttp.IsLocalDev() {
+		return safehttp.NotWritten()
+	}
 	if it.MaxAge < 0 {
 		return w.WriteError(safehttp.StatusInternalServerError)
 	}

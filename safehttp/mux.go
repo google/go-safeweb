@@ -16,6 +16,7 @@ package safehttp
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 )
 
@@ -148,6 +149,11 @@ func (s *ServeMuxConfig) Intercept(i Interceptor) {
 
 // Mux returns the ServeMux with a copy of the current configuration.
 func (s *ServeMuxConfig) Mux() *ServeMux {
+	freezeLocalDev = true
+	if IsLocalDev() {
+		log.Println("Warning: creating safehttp.Mux in dev mode. This configuration is not valid for production use")
+	}
+
 	dispatcher := s.Dispatcher
 	if dispatcher == nil {
 		dispatcher = DefaultDispatcher{}
