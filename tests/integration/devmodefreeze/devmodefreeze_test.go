@@ -26,7 +26,7 @@ import (
 )
 
 func TestDevMode(t *testing.T) {
-	t.Run("can load in prod mode", func(t *testing.T) {
+	t.Run("can load in prod mode and can't change afterwards", func(t *testing.T) {
 		const resp = "response"
 		cfg, _ := defaults.ServeMuxConfig([]string{"test.host.example"}, "test-xsrf-key")
 		cfg.Handle("/test", "GET", safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
@@ -64,8 +64,6 @@ func TestDevMode(t *testing.T) {
 				t.Errorf("got non-secure cookie %q, should have been secure", c.Raw)
 			}
 		}
-	})
-	t.Run("setting local dev after run panics", func(t *testing.T) {
 		defer func() {
 			if r := recover(); r == nil {
 				t.Errorf("got no panic, wanted panic due to setting dev mode after running the framework")

@@ -29,7 +29,7 @@ var (
 // This configuration is not valid for production use.
 func UseLocalDev() {
 	if freezeLocalDev {
-		panic("UseLocalDev should be called before any other part of the framework")
+		panic("UseLocalDev can only be called before any other part of the framework")
 	}
 	isLocalDev = true
 }

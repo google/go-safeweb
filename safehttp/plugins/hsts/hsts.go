@@ -17,7 +17,8 @@
 // HTTP Strict Transport Security informs browsers that a website
 // should only be accessed using HTTPS and not HTTP. This plugin enforces HSTS by
 // redirecting all HTTP traffic to HTTPS and by setting the
-// Strict-Transport-Security header on all HTTPS responses.
+// Strict-Transport-Security header on all HTTPS responses. Please note that this
+// only applies if the framework is not run in dev mode.
 //
 // More info:
 //  - MDN: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security

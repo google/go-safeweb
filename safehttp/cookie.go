@@ -28,7 +28,7 @@ type Cookie struct {
 
 // NewCookie creates a new Cookie with safe default settings.
 // Those safe defaults are:
-//  - Secure: true
+//  - Secure: true (if the framework is not in dev mode)
 //  - HttpOnly: true
 //  - SameSite: Lax
 // For more info about all the options, see:
