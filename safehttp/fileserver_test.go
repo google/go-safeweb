@@ -12,8 +12,6 @@ import (
 	"github.com/google/go-safeweb/safehttp/safehttptest"
 )
 
-// TODO test interceptors
-
 func TestFileServer(t *testing.T) {
 	tmpDir, err := ioutil.TempDir("", "go-safehttp-test")
 	if err != nil {
