@@ -38,15 +38,6 @@ func NewResponseRecorder() *ResponseRecorder {
 	}
 }
 
-// NewResponseRecorderFromDispatcher creates a ResponseRecorder.
-func NewResponseRecorderFromDispatcher(d safehttp.Dispatcher) *ResponseRecorder {
-	rw := httptest.NewRecorder()
-	return &ResponseRecorder{
-		rw:             rw,
-		ResponseWriter: safehttp.DeprecatedNewResponseWriter(rw, d),
-	}
-}
-
 // Header returns the recorded response headers.
 func (r *ResponseRecorder) Header() http.Header {
 	return r.rw.Header()
