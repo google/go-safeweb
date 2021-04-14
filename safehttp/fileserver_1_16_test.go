@@ -20,12 +20,10 @@ import (
 	"embed"
 	"io"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
-	"github.com/google/go-safeweb/safehttp/safehttptest"
 )
 
 //go:embed testdata
@@ -70,19 +68,22 @@ func TestFileServerEmbed(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var b strings.Builder
-			rr := safehttptest.NewTestResponseWriter(&b)
+			rr := httptest.NewRecorder()
 
 			req := httptest.NewRequest(safehttp.MethodGet, "https://test.science/"+tt.path, nil)
 			m.ServeHTTP(rr, req)
 
-			if got, want := rr.Status(), tt.wantCode; got != tt.wantCode {
+			if got, want := rr.Result().StatusCode, tt.wantCode; safehttp.StatusCode(got) != tt.wantCode {
 				t.Errorf("status code got: %v want: %v", got, want)
 			}
 			if got := rr.Header().Get("Content-Type"); tt.wantCT != got {
 				t.Errorf("Content-Type: got %q want %q", got, tt.wantCT)
 			}
-			if diff := cmp.Diff(tt.wantBody, b.String()); diff != "" {
+			body, err := io.ReadAll(rr.Result().Body)
+			if err != nil {
+				t.Errorf("Can't read response body: %v", err)
+			}
+			if diff := cmp.Diff(tt.wantBody, string(body)); diff != "" {
 				t.Errorf("Response body diff (-want,+got): \n%s", diff)
 			}
 		})
