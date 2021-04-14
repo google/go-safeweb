@@ -59,7 +59,7 @@ func DeprecatedNewResponseWriter(rw http.ResponseWriter, dispatcher Dispatcher) 
 type handlerConfig struct {
 	Handler      Handler
 	Dispatcher   Dispatcher
-	Interceptors []ConfiguredInterceptor
+	Interceptors []configuredInterceptor
 }
 
 func processRequest(cfg handlerConfig, rw http.ResponseWriter, req *http.Request) {

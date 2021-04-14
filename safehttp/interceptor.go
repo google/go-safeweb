@@ -39,8 +39,8 @@ type InterceptorConfig interface {
 	Match(Interceptor) bool
 }
 
-// ConfiguredInterceptor holds an interceptor together with its configuration.
-type ConfiguredInterceptor struct {
+// configuredInterceptor holds an interceptor together with its configuration.
+type configuredInterceptor struct {
 	interceptor Interceptor
 	config      InterceptorConfig
 }
@@ -49,13 +49,13 @@ type ConfiguredInterceptor struct {
 // response is written to the ResponseWriter, then the remaining
 // interceptors and the handler won't execute. If Before panics, it will be
 // recovered and the ServeMux will respond with 500 Internal Server Error.
-func (ci *ConfiguredInterceptor) Before(w ResponseWriter, r *IncomingRequest) Result {
+func (ci *configuredInterceptor) Before(w ResponseWriter, r *IncomingRequest) Result {
 	return ci.interceptor.Before(w, r, ci.config)
 }
 
 // Commit runs before the response is written by the Dispatcher. If an error
 // is written to the ResponseWriter, then the Commit phases from the
 // remaining interceptors won't execute.
-func (ci *ConfiguredInterceptor) Commit(w ResponseHeadersWriter, r *IncomingRequest, resp Response) {
+func (ci *configuredInterceptor) Commit(w ResponseHeadersWriter, r *IncomingRequest, resp Response) {
 	ci.interceptor.Commit(w, r, resp, ci.config)
 }

@@ -180,8 +180,8 @@ func (s *ServeMuxConfig) Mux() *ServeMux {
 	return &ServeMux{mux: m}
 }
 
-func configureInterceptors(interceptors []Interceptor, cfgs []InterceptorConfig) []ConfiguredInterceptor {
-	var its []ConfiguredInterceptor
+func configureInterceptors(interceptors []Interceptor, cfgs []InterceptorConfig) []configuredInterceptor {
+	var its []configuredInterceptor
 	for _, it := range interceptors {
 		var cfg InterceptorConfig
 		for _, c := range cfgs {
@@ -192,7 +192,7 @@ func configureInterceptors(interceptors []Interceptor, cfgs []InterceptorConfig)
 				break
 			}
 		}
-		its = append(its, ConfiguredInterceptor{interceptor: it, config: cfg})
+		its = append(its, configuredInterceptor{interceptor: it, config: cfg})
 	}
 	return its
 }
