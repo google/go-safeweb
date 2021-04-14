@@ -107,13 +107,21 @@ func (l *FakeListener) ReadResponse(bytes []byte) (int, error) {
 	return l.clientEndpoint.Read(bytes)
 }
 
-// MakeRequest instantiates a new http.Server, sends the request provided as argument and returns the response.
-// 'callback' will be called in the http.Handler with the http.Request that the handler receives.
-// The size of the response is limited to 4096 bytes. If the response received is larger, an error will be returned.
+// MakeRequest instantiates a new http.Server, sends the request provided as
+// argument and returns the response. callback will be called in the
+// http.Handler with the http.Request that the handler receives. The size of the
+// response is limited to 4096 bytes. If the response received is larger, an
+// error will be returned.
 func MakeRequest(ctx context.Context, req []byte, callback func(*http.Request)) ([]byte, error) {
 	listener := NewFakeListener()
 	defer listener.Close()
 
+	// WARNING: We cannot depend on httptest.Server here. The reason is that we
+	// want to send a request as a slice of bytes. Requests sent to
+	// httptest.Server can only be sent using http.Client, which already uses
+	// the http.Request type. Using this type will make us obvlivious to any
+	// kind of request parsing problems in the Go standard library - and we want
+	// to test for these.
 	handler := &AssertHandler{callback: callback}
 	server := &http.Server{Handler: handler}
 	go server.Serve(listener)
