@@ -71,7 +71,7 @@ func TestMuxDefaultDispatcher(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mb := &safehttp.ServeMuxConfig{}
+			mb := safehttp.NewServeMuxConfig(nil)
 			mb.Handle("/pizza", safehttp.MethodGet, tt.handler)
 
 			rw := httptest.NewRecorder()
@@ -127,7 +127,7 @@ func TestMuxDefaultDispatcherUnsafeResponses(t *testing.T) {
 			// error-handling in the ResponseWriter has been fixed.
 			t.Skip()
 
-			mb := &safehttp.ServeMuxConfig{}
+			mb := safehttp.NewServeMuxConfig(nil)
 			mb.Handle("/pizza", safehttp.MethodGet, tt.handler)
 			mux := mb.Mux()
 

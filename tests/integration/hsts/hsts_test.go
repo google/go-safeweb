@@ -26,7 +26,7 @@ import (
 )
 
 func TestHSTSServeMuxInstall(t *testing.T) {
-	mb := &safehttp.ServeMuxConfig{}
+	mb := safehttp.NewServeMuxConfig(nil)
 
 	mb.Intercept(hsts.Default())
 	handler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
@@ -58,7 +58,7 @@ func TestHSTSServeMuxInstall(t *testing.T) {
 }
 
 func TestHSTSOnErrors(t *testing.T) {
-	mb := &safehttp.ServeMuxConfig{}
+	mb := safehttp.NewServeMuxConfig(nil)
 
 	mb.Intercept(hsts.Default())
 	handler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {

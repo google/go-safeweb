@@ -52,7 +52,7 @@ func (m myDispatcher) Error(rw http.ResponseWriter, resp safehttp.ErrorResponse)
 // custom dispatcher implementation. XSRF interceptor is added to check that
 // error responses go through the commit phase.
 func TestCustomErrors(t *testing.T) {
-	mb := &safehttp.ServeMuxConfig{Dispatcher: myDispatcher{}}
+	mb := safehttp.NewServeMuxConfig(myDispatcher{})
 
 	mb.Handle("/compute", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		qs, err := r.URL.Query()
@@ -121,7 +121,7 @@ func (it interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.Incom
 }
 
 func TestCustomErrorsInBefore(t *testing.T) {
-	mb := &safehttp.ServeMuxConfig{Dispatcher: myDispatcher{}}
+	mb := safehttp.NewServeMuxConfig(myDispatcher{})
 	mb.Intercept(interceptor{errBefore: true})
 
 	mb.Handle("/compute", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {

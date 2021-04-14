@@ -26,7 +26,7 @@ import (
 )
 
 func TestServeMuxInstallStaticHeaders(t *testing.T) {
-	mb := &safehttp.ServeMuxConfig{}
+	mb := safehttp.NewServeMuxConfig(nil)
 
 	mb.Intercept(staticheaders.Interceptor{})
 	handler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
@@ -59,7 +59,7 @@ func TestServeMuxInstallStaticHeaders(t *testing.T) {
 }
 
 func TestStaticHeadersOnError(t *testing.T) {
-	mb := &safehttp.ServeMuxConfig{}
+	mb := safehttp.NewServeMuxConfig(nil)
 
 	mb.Intercept(staticheaders.Interceptor{})
 	handler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
