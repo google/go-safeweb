@@ -18,11 +18,10 @@ import (
 	"html/template"
 	"math"
 	"net/http"
-	"strings"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/google/go-safeweb/safehttp"
-	"github.com/google/go-safeweb/safehttp/safehttptest"
 	"github.com/google/safehtml"
 	safetemplate "github.com/google/safehtml/template"
 )
@@ -106,16 +105,14 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			b := &strings.Builder{}
-			rw := safehttptest.NewTestResponseWriter(b)
-
+			rw := httptest.NewRecorder()
 			err := tt.write(rw)
 
 			if err != nil {
 				t.Errorf("tt.write(rw): got error %v, want nil", err)
 			}
 
-			if gotBody := b.String(); tt.wantBody != gotBody {
+			if gotBody := rw.Body.String(); tt.wantBody != gotBody {
 				t.Errorf("response body: got %q, want %q", gotBody, tt.wantBody)
 			}
 		})
@@ -160,14 +157,13 @@ func TestDefaultDispatcherInvalidResponse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			b := &strings.Builder{}
-			rw := safehttptest.NewTestResponseWriter(b)
+			rw := httptest.NewRecorder()
 
 			if err := tt.write(rw); err == nil {
 				t.Error("tt.write(rw): got nil, want error")
 			}
 
-			if want, got := tt.want, b.String(); want != got {
+			if want, got := tt.want, rw.Body.String(); want != got {
 				t.Errorf("response body: got %q, want %q", got, want)
 			}
 		})
