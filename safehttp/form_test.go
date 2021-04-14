@@ -505,11 +505,11 @@ func TestFormClearSliceUnknownType(t *testing.T) {
 
 func TestMultipartFormValidFile(t *testing.T) {
 	fh := &multipart.FileHeader{Filename: "bar"}
-	f := &MultipartForm{mf: &multipart.Form{
+	mf := &multipart.Form{
 		File: map[string][]*multipart.FileHeader{
 			"foo": {fh},
-		},
-	}}
+		}}
+	f := newMulipartForm(mf)
 	fhs := f.File("foo")
 	if fhs == nil {
 		t.Errorf(`m.File("foo"): got nil, want file headers`)
@@ -521,14 +521,12 @@ func TestMultipartFormValidFile(t *testing.T) {
 
 func TestMultipartFormValidFileAndVals(t *testing.T) {
 	fh := &multipart.FileHeader{Filename: "bar"}
-	f := &MultipartForm{
-		Form: Form{values: map[string][]string{"number": {"1"}}},
-		mf: &multipart.Form{
-			File: map[string][]*multipart.FileHeader{
-				"foo": {fh},
-			},
-		},
-	}
+	mf := &multipart.Form{
+		Value: map[string][]string{"number": {"1"}},
+		File: map[string][]*multipart.FileHeader{
+			"foo": {fh},
+		}}
+	f := newMulipartForm(mf)
 
 	if want, got := int64(1), f.Int64("number", 0); want != got {
 		t.Errorf(`f.Int64("number"): got %d, want %d`, got, want)
@@ -548,13 +546,11 @@ func TestMultipartFormValidFileAndVals(t *testing.T) {
 
 func TestMultipartFormFileWithPathInName(t *testing.T) {
 	fh := &multipart.FileHeader{Filename: "../tmp/myfile.txt"}
-	f := &MultipartForm{
-		mf: &multipart.Form{
-			File: map[string][]*multipart.FileHeader{
-				"foo": {fh},
-			},
-		},
-	}
+	mf := &multipart.Form{
+		File: map[string][]*multipart.FileHeader{
+			"foo": {fh},
+		}}
+	f := newMulipartForm(mf)
 
 	filename := f.File("foo")[0].Filename
 	if want, got := "myfile.txt", filename; want != got {
@@ -566,7 +562,7 @@ func TestMultipartFormFileWithPathInName(t *testing.T) {
 }
 
 func TestMultipartFormMissingFile(t *testing.T) {
-	f := &MultipartForm{mf: &multipart.Form{}}
+	f := newMulipartForm(&multipart.Form{})
 	fhs := f.File("x")
 	if fhs != nil {
 		t.Errorf(`m.File("x"): got file headers, want nil`)

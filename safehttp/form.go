@@ -205,6 +205,28 @@ type MultipartForm struct {
 	mf *multipart.Form
 }
 
+// newMultipartForm constructs a new MultipartForm with sanitized values.
+func newMulipartForm(mf *multipart.Form) *MultipartForm {
+	return &MultipartForm{
+		Form: Form{
+			values: mf.Value,
+		},
+		mf: sanitizeFilenames(mf),
+	}
+}
+
+// sanitizeFilenames removes trailing path separators from all file names.
+// This is to ensure that uploaded files are not stored outside of the
+// designated directory.
+func sanitizeFilenames(f *multipart.Form) *multipart.Form {
+	for _, f := range f.File {
+		for _, fh := range f {
+			fh.Filename = filepath.Base(fh.Filename)
+		}
+	}
+	return f
+}
+
 // File returns the file parts associated with form key param or a nil
 // slice, if none. These can be then opened individually by calling
 // FileHeader.Open.
@@ -213,17 +235,7 @@ func (f *MultipartForm) File(param string) []*multipart.FileHeader {
 	if !ok {
 		return nil
 	}
-	sanitise(fh)
 	return fh
-}
-
-// sanitise removes trailing path separators from all file names.
-// This is to ensure that uploaded files are not stored outside of the
-// designated directory.
-func sanitise(fhs []*multipart.FileHeader) {
-	for _, fh := range fhs {
-		fh.Filename = filepath.Base(fh.Filename)
-	}
 }
 
 // RemoveFiles removes any temporary files associated with a Form and returns
