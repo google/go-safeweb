@@ -48,7 +48,7 @@ func addCookieID(w safehttp.ResponseHeadersWriter) (*safehttp.Cookie, error) {
 	}
 
 	c := safehttp.NewCookie(cookieIDKey, base64.StdEncoding.EncodeToString(buf))
-	c.SetSameSite(safehttp.SameSiteStrictMode)
+	c.SameSite(safehttp.SameSiteStrictMode)
 	if err := w.SetCookie(c); err != nil {
 		return nil, err
 	}

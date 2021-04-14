@@ -81,8 +81,8 @@ func (it *Interceptor) addTokenCookie(w safehttp.ResponseHeadersWriter) error {
 	}
 	c := safehttp.NewCookie(it.TokenCookieName, base64.StdEncoding.EncodeToString(tok))
 
-	c.SetSameSite(safehttp.SameSiteStrictMode)
-	c.SetPath("/")
+	c.SameSite(safehttp.SameSiteStrictMode)
+	c.Path("/")
 	day := 24 * time.Hour
 	c.SetMaxAge(int(day.Seconds()))
 	// Needed in order to make the cookie accessible by JavaScript

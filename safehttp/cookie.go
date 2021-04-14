@@ -64,8 +64,8 @@ const (
 	SameSiteNoneMode
 )
 
-// SetSameSite sets the SameSite attribute.
-func (c *Cookie) SetSameSite(s SameSite) {
+// SameSite sets the SameSite attribute.
+func (c *Cookie) SameSite(s SameSite) {
 	switch s {
 	case SameSiteLaxMode:
 		c.wrapped.SameSite = http.SameSiteLaxMode
@@ -85,13 +85,13 @@ func (c *Cookie) SetMaxAge(maxAge int) {
 	c.wrapped.MaxAge = maxAge
 }
 
-// SetPath sets the path attribute.
-func (c *Cookie) SetPath(path string) {
+// Path sets the path attribute.
+func (c *Cookie) Path(path string) {
 	c.wrapped.Path = path
 }
 
-// SetDomain sets the domain attribute.
-func (c *Cookie) SetDomain(domain string) {
+// Domain sets the domain attribute.
+func (c *Cookie) Domain(domain string) {
 	c.wrapped.Domain = domain
 }
 

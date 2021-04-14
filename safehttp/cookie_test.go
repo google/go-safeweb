@@ -31,8 +31,8 @@ func TestCookie(t *testing.T) {
 			name: "SameSite Lax",
 			cookie: func() *Cookie {
 				c := NewCookie("foo", "bar")
-				c.SetSameSite(SameSiteNoneMode)
-				c.SetSameSite(SameSiteLaxMode)
+				c.SameSite(SameSiteNoneMode)
+				c.SameSite(SameSiteLaxMode)
 				return c
 			}(),
 			want: "foo=bar; HttpOnly; Secure; SameSite=Lax",
@@ -41,7 +41,7 @@ func TestCookie(t *testing.T) {
 			name: "SameSite strict",
 			cookie: func() *Cookie {
 				c := NewCookie("foo", "bar")
-				c.SetSameSite(SameSiteStrictMode)
+				c.SameSite(SameSiteStrictMode)
 				return c
 			}(),
 			want: "foo=bar; HttpOnly; Secure; SameSite=Strict",
@@ -50,7 +50,7 @@ func TestCookie(t *testing.T) {
 			name: "SameSite none",
 			cookie: func() *Cookie {
 				c := NewCookie("foo", "bar")
-				c.SetSameSite(SameSiteNoneMode)
+				c.SameSite(SameSiteNoneMode)
 				return c
 			}(),
 			want: "foo=bar; HttpOnly; Secure; SameSite=None",
@@ -77,7 +77,7 @@ func TestCookie(t *testing.T) {
 			name: "Path",
 			cookie: func() *Cookie {
 				c := NewCookie("foo", "bar")
-				c.SetPath("/asdf")
+				c.Path("/asdf")
 				return c
 			}(),
 			want: "foo=bar; Path=/asdf; HttpOnly; Secure; SameSite=Lax",
@@ -86,7 +86,7 @@ func TestCookie(t *testing.T) {
 			name: "Domain",
 			cookie: func() *Cookie {
 				c := NewCookie("foo", "bar")
-				c.SetDomain("example.com")
+				c.Domain("example.com")
 				return c
 			}(),
 			want: "foo=bar; Domain=example.com; HttpOnly; Secure; SameSite=Lax",
