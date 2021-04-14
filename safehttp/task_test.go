@@ -135,7 +135,7 @@ func TestTaskUnsafeResponse(t *testing.T) {
 			write: func(w safehttp.ResponseWriter) {
 				safehttp.ExecuteTemplate(w, template.
 					Must(template.New("name").
-						Parse("<h1>{{ . }}</h1>")), "", "This is an actual heading, though.")
+						Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
 			},
 		},
 	}

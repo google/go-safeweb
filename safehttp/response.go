@@ -73,8 +73,15 @@ type TemplateResponse struct {
 // ExecuteTemplate creates a TemplateResponse from the provided Template and its
 // data and calls the Write function of the ResponseWriter, passing the
 // response.
+func ExecuteTemplate(w ResponseWriter, t Template, data interface{}) Result {
+	return ExecuteNamedTemplate(w, t, "", data)
+}
+
+// ExecuteNamedTemplate creates a TemplateResponse from the provided Template and its
+// data and calls the Write function of the ResponseWriter, passing the
+// response.
 // Leaving name empty is valid if the template does not have associated templates.
-func ExecuteTemplate(w ResponseWriter, t Template, name string, data interface{}) Result {
+func ExecuteNamedTemplate(w ResponseWriter, t Template, name string, data interface{}) Result {
 	return w.Write(&TemplateResponse{Template: t, Name: name, Data: data, FuncMap: nil})
 }
 
@@ -82,7 +89,15 @@ func ExecuteTemplate(w ResponseWriter, t Template, name string, data interface{}
 // Template, its data and the name to function mappings and calls the Write
 // function of the ResponseWriter, passing the response.
 // Leaving name empty is valid if the template does not have associated templates.
-func ExecuteTemplateWithFuncs(w ResponseWriter, t Template, name string, data interface{}, fm map[string]interface{}) Result {
+func ExecuteTemplateWithFuncs(w ResponseWriter, t Template, data interface{}, fm map[string]interface{}) Result {
+	return ExecuteNamedTemplateWithFuncs(w, t, "", data, fm)
+}
+
+// ExecuteTemplateWithFuncs creates a TemplateResponse from the provided
+// Template, its data and the name to function mappings and calls the Write
+// function of the ResponseWriter, passing the response.
+// Leaving name empty is valid if the template does not have associated templates.
+func ExecuteNamedTemplateWithFuncs(w ResponseWriter, t Template, name string, data interface{}, fm map[string]interface{}) Result {
 	return w.Write(&TemplateResponse{Template: t, Name: name, Data: data, FuncMap: fm})
 }
 
