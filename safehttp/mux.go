@@ -71,7 +71,7 @@ type ServeMux struct {
 	mux *http.ServeMux
 }
 
-func registerHandlers(mux *http.ServeMux, handlers map[string]map[string]HandlerConfig) {
+func registerHandlers(mux *http.ServeMux, handlers map[string]map[string]handlerConfig) {
 	for pattern, handlersPerMethod := range handlers {
 		handlersPerMethod := handlersPerMethod
 		mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
@@ -158,18 +158,18 @@ func (s *ServeMuxConfig) Mux() *ServeMux {
 	if dispatcher == nil {
 		dispatcher = DefaultDispatcher{}
 	}
-	// pattern -> method -> HandlerConfig
-	handlers := map[string]map[string]HandlerConfig{}
+	// pattern -> method -> handlerConfig
+	handlers := map[string]map[string]handlerConfig{}
 	for _, hr := range s.handlers {
 		if handlers[hr.pattern] == nil {
-			handlers[hr.pattern] = map[string]HandlerConfig{}
+			handlers[hr.pattern] = map[string]handlerConfig{}
 		}
 		if _, ok := handlers[hr.pattern][hr.method]; ok {
 			// TODO: this should be done in ServeMuxConfig.Handle, not here.
 			panic(fmt.Sprintf("double registration of (pattern = %q, method = %q)", hr.pattern, hr.method))
 		}
 		handlers[hr.pattern][hr.method] =
-			HandlerConfig{
+			handlerConfig{
 				Dispatcher:   dispatcher,
 				Handler:      hr.handler,
 				Interceptors: configureInterceptors(s.interceptors, hr.cfgs),

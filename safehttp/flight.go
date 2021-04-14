@@ -24,7 +24,7 @@ type flight struct {
 	rw  http.ResponseWriter
 	req *IncomingRequest
 
-	cfg HandlerConfig
+	cfg handlerConfig
 
 	code   StatusCode
 	header Header
@@ -38,7 +38,7 @@ type flight struct {
 //
 // The main problem with this is the implementation of the returned
 // ResponseWriter is incomplete, i.e. lacks the Handler and Interceptors fields
-// of the HandlerConfig needed by the flight. For the existing tests that use it,
+// of the handlerConfig needed by the flight. For the existing tests that use it,
 // it's fine, but they should be migrated.
 //
 // TODO(kele): remove this once we have a better option to provide a
@@ -48,21 +48,21 @@ func DeprecatedNewResponseWriter(rw http.ResponseWriter, dispatcher Dispatcher) 
 		dispatcher = DefaultDispatcher{}
 	}
 	return &flight{
-		cfg:    HandlerConfig{Dispatcher: dispatcher},
+		cfg:    handlerConfig{Dispatcher: dispatcher},
 		rw:     rw,
 		header: newHeader(rw.Header()),
 	}
 }
 
-// HandlerConfig is the safe HTTP handler configuration, including the
+// handlerConfig is the safe HTTP handler configuration, including the
 // dispatcher and interceptors.
-type HandlerConfig struct {
+type handlerConfig struct {
 	Handler      Handler
 	Dispatcher   Dispatcher
 	Interceptors []ConfiguredInterceptor
 }
 
-func processRequest(cfg HandlerConfig, rw http.ResponseWriter, req *http.Request) {
+func processRequest(cfg handlerConfig, rw http.ResponseWriter, req *http.Request) {
 	f := &flight{
 		cfg:    cfg,
 		rw:     rw,
