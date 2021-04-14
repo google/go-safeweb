@@ -17,11 +17,9 @@ package safehttp_test
 import (
 	"fmt"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/google/go-safeweb/safehttp"
-	"github.com/google/go-safeweb/safehttp/safehttptest"
 	"github.com/google/safehtml"
 )
 
@@ -72,8 +70,7 @@ func TestFlightInterceptorPanic(t *testing.T) {
 			mux := mb.Mux()
 
 			req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/search", nil)
-			b := &strings.Builder{}
-			rw := safehttptest.NewTestResponseWriter(b)
+			rw := httptest.NewRecorder()
 
 			defer func() {
 				r := recover()
@@ -107,8 +104,7 @@ func TestFlightHandlerPanic(t *testing.T) {
 	mux := mb.Mux()
 
 	req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/search", nil)
-	b := &strings.Builder{}
-	rw := safehttptest.NewTestResponseWriter(b)
+	rw := httptest.NewRecorder()
 
 	defer func() {
 		r := recover()
@@ -150,8 +146,7 @@ func TestFlightDoubleWritePanics(t *testing.T) {
 				mux := mb.Mux()
 
 				req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/search", nil)
-				b := &strings.Builder{}
-				rw := safehttptest.NewTestResponseWriter(b)
+				rw := httptest.NewRecorder()
 				defer func() {
 					if r := recover(); r == nil {
 						t.Fatalf("expected panic")
