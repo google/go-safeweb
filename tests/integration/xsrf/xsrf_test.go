@@ -25,7 +25,7 @@ import (
 )
 
 func TestServeMuxInstallXSRF(t *testing.T) {
-	mb := &safehttp.ServeMuxConfig{}
+	mb := safehttp.NewServeMuxConfig(nil)
 	it := xsrfhtml.Interceptor{SecretAppKey: "testSecretAppKey"}
 	mb.Intercept(&it)
 

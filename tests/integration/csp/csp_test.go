@@ -25,7 +25,7 @@ import (
 )
 
 func TestServeMuxInstallCSP(t *testing.T) {
-	mb := &safehttp.ServeMuxConfig{}
+	mb := safehttp.NewServeMuxConfig(nil)
 	it := csp.Default("")
 	mb.Intercept(&it)
 
