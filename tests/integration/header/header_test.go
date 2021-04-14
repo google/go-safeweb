@@ -21,8 +21,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-safeweb/safehttp/safehttptest"
-
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/safehtml"
@@ -45,9 +43,7 @@ func TestAccessIncomingHeaders(t *testing.T) {
 		t.Fatalf("http.ReadRequest() got err: %v", err)
 	}
 
-	b := &strings.Builder{}
-	rw := safehttptest.NewTestResponseWriter(b)
-
+	rw := httptest.NewRecorder()
 	mux := mb.Mux()
 	mux.ServeHTTP(rw, req)
 }
@@ -61,8 +57,7 @@ func TestChangingResponseHeaders(t *testing.T) {
 
 	req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/", nil)
 
-	b := &strings.Builder{}
-	rw := safehttptest.NewTestResponseWriter(b)
+	rw := httptest.NewRecorder()
 
 	mux := mb.Mux()
 	mux.ServeHTTP(rw, req)

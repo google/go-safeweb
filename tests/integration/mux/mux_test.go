@@ -18,12 +18,10 @@ import (
 	"html/template"
 	"math"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
-	"github.com/google/go-safeweb/safehttp/safehttptest"
 	"github.com/google/safehtml"
 	safetemplate "github.com/google/safehtml/template"
 )
@@ -75,21 +73,21 @@ func TestMuxDefaultDispatcher(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mb := &safehttp.ServeMuxConfig{}
 			mb.Handle("/pizza", safehttp.MethodGet, tt.handler)
-			req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/pizza", nil)
-			b := &strings.Builder{}
-			rw := safehttptest.NewTestResponseWriter(b)
 
+			rw := httptest.NewRecorder()
+
+			req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/pizza", nil)
 			mb.Mux().ServeHTTP(rw, req)
 
-			if wantStatus := safehttp.StatusOK; rw.Status() != wantStatus {
-				t.Errorf("rw.Status(): got %v want %v", rw.Status(), wantStatus)
+			if wantStatus := safehttp.StatusOK; rw.Code != int(wantStatus) {
+				t.Errorf("rw.Code: got %v want %v", rw.Code, wantStatus)
 			}
 
 			if diff := cmp.Diff(tt.wantHeaders, map[string][]string(rw.Header())); diff != "" {
-				t.Errorf("rw.header mismatch (-want +got):\n%s", diff)
+				t.Errorf("rw.Header mismatch (-want +got):\n%s", diff)
 			}
 
-			if gotBody := b.String(); tt.wantBody != gotBody {
+			if gotBody := rw.Body.String(); tt.wantBody != gotBody {
 				t.Errorf("response body: got %v, want %v", gotBody, tt.wantBody)
 			}
 		})
@@ -128,17 +126,19 @@ func TestMuxDefaultDispatcherUnsafeResponses(t *testing.T) {
 			// cases from the previous test into a single table test after
 			// error-handling in the ResponseWriter has been fixed.
 			t.Skip()
-			req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/pizza", nil)
-			b := &strings.Builder{}
-			rw := safehttptest.NewTestResponseWriter(b)
 
 			mb := &safehttp.ServeMuxConfig{}
 			mb.Handle("/pizza", safehttp.MethodGet, tt.handler)
 			mux := mb.Mux()
+
+			rw := httptest.NewRecorder()
+
+			req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/pizza", nil)
+
 			mux.ServeHTTP(rw, req)
 
-			if wantStatus := safehttp.StatusInternalServerError; rw.Status() != wantStatus {
-				t.Errorf("rw.Status(): got %v want %v", rw.Status(), wantStatus)
+			if wantStatus := safehttp.StatusInternalServerError; rw.Code != int(wantStatus) {
+				t.Errorf("rw.Code: got %v want %v", rw.Code, wantStatus)
 			}
 
 			wantHeaders := map[string][]string{
@@ -149,7 +149,7 @@ func TestMuxDefaultDispatcherUnsafeResponses(t *testing.T) {
 				t.Errorf("rw.Header(): mismatch (-want +got):\n%s", diff)
 			}
 
-			if wantBody, gotBody := "Internal Server Error\n", b.String(); wantBody != gotBody {
+			if wantBody, gotBody := "Internal Server Error\n", rw.Body.String(); wantBody != gotBody {
 				t.Errorf("response body: got %v, want %v", gotBody, wantBody)
 			}
 		})

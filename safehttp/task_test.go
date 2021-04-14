@@ -17,7 +17,7 @@ package safehttp_test
 import (
 	"math"
 	"net/http"
-	"strings"
+	"net/http/httptest"
 	"testing"
 	"text/template"
 
@@ -35,7 +35,7 @@ func stubResponseWriter(dispatcher safehttp.Dispatcher, rw http.ResponseWriter) 
 }
 
 func TestTaskSetCookie(t *testing.T) {
-	testRw := safehttptest.NewTestResponseWriter(&strings.Builder{})
+	testRw := httptest.NewRecorder()
 	rw := stubResponseWriter(safehttp.DefaultDispatcher{}, testRw)
 
 	c := safehttp.NewCookie("foo", "bar")
@@ -53,7 +53,7 @@ func TestTaskSetCookie(t *testing.T) {
 }
 
 func TestTaskSetInvalidCookie(t *testing.T) {
-	testRw := safehttptest.NewTestResponseWriter(&strings.Builder{})
+	testRw := httptest.NewRecorder()
 	rw := stubResponseWriter(safehttp.DefaultDispatcher{}, testRw)
 
 	c := safehttp.NewCookie("f=oo", "bar")
@@ -101,7 +101,7 @@ func TestTaskWriteTwicePanic(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			w := stubResponseWriter(safehttp.DefaultDispatcher{}, safehttptest.NewTestResponseWriter(&strings.Builder{}))
+			w := stubResponseWriter(safehttp.DefaultDispatcher{}, httptest.NewRecorder())
 			defer func() {
 				if r := recover(); r != nil {
 					return
@@ -141,7 +141,7 @@ func TestTaskUnsafeResponse(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			w := stubResponseWriter(safehttp.DefaultDispatcher{}, safehttptest.NewTestResponseWriter(&strings.Builder{}))
+			w := stubResponseWriter(safehttp.DefaultDispatcher{}, httptest.NewRecorder())
 			defer func() {
 				if r := recover(); r != nil {
 					return
@@ -209,10 +209,10 @@ func TestTaskStatusCode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			testRw := safehttptest.NewTestResponseWriter(&strings.Builder{})
+			testRw := httptest.NewRecorder()
 			w := stubResponseWriter(safehttp.DefaultDispatcher{}, testRw)
 			tt.write(w)
-			if gotStatus := testRw.Status(); gotStatus != tt.wantStatus {
+			if gotStatus := testRw.Code; gotStatus != int(tt.wantStatus) {
 				t.Errorf("tt.write(w): got %v, want %v", gotStatus, tt.wantStatus)
 			}
 		})
@@ -241,7 +241,7 @@ func TestTaskInvalidStatusCode(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			w := stubResponseWriter(safehttp.DefaultDispatcher{}, safehttptest.NewTestResponseWriter(&strings.Builder{}))
+			w := stubResponseWriter(safehttp.DefaultDispatcher{}, httptest.NewRecorder())
 			defer func() {
 				if r := recover(); r != nil {
 					return

@@ -19,14 +19,12 @@ import (
 	"math"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/safehtml"
 
 	"github.com/google/go-safeweb/safehttp"
-	"github.com/google/go-safeweb/safehttp/safehttptest"
 	"github.com/google/safehtml/template"
 )
 
@@ -74,37 +72,35 @@ func TestCustomErrors(t *testing.T) {
 	m := mb.Mux()
 
 	t.Run("correct request", func(t *testing.T) {
-		b := strings.Builder{}
-		rr := safehttptest.NewTestResponseWriter(&b)
+		rr := httptest.NewRecorder()
 
 		req := httptest.NewRequest(safehttp.MethodGet, "https://foo.com/compute?a=3", nil)
 		m.ServeHTTP(rr, req)
 
-		if got, want := rr.Status(), safehttp.StatusOK; got != want {
-			t.Errorf("rr.Status() got: %v want: %v", got, want)
+		if got, want := rr.Code, safehttp.StatusOK; got != int(want) {
+			t.Errorf("rr.Code got: %v want: %v", got, want)
 		}
 		want := "Result: 9"
-		if diff := cmp.Diff(want, b.String()); diff != "" {
-			t.Errorf("response body diff (-want,+got): \n%s\ngot %q, want %q", diff, b.String(), want)
+		if diff := cmp.Diff(want, rr.Body.String()); diff != "" {
+			t.Errorf("response body diff (-want,+got): \n%s\ngot %q, want %q", diff, rr.Body.String(), want)
 		}
 	})
 
 	t.Run("missing parameter", func(t *testing.T) {
-		b := strings.Builder{}
-		rr := safehttptest.NewTestResponseWriter(&b)
+		rr := httptest.NewRecorder()
 
 		req := httptest.NewRequest(safehttp.MethodGet, "https://foo.com/compute?foo=3", nil)
 		m.ServeHTTP(rr, req)
 
-		if got, want := rr.Status(), safehttp.StatusBadRequest; got != want {
-			t.Errorf("rr.Status() got: %v want: %v", got, want)
+		if got, want := rr.Code, safehttp.StatusBadRequest; got != int(want) {
+			t.Errorf("rr.Code got: %v want: %v", got, want)
 		}
 
 		want := `<h1>Error: Bad Request</h1>
 <p>missing parameter &#39;a&#39;</p>
 `
-		if diff := cmp.Diff(want, b.String()); diff != "" {
-			t.Errorf("response body diff (-want,+got): \n%s\ngot %q, want %q", diff, b.String(), want)
+		if diff := cmp.Diff(want, rr.Body.String()); diff != "" {
+			t.Errorf("response body diff (-want,+got): \n%s\ngot %q, want %q", diff, rr.Body.String(), want)
 		}
 	})
 
@@ -134,20 +130,19 @@ func TestCustomErrorsInBefore(t *testing.T) {
 
 	m := mb.Mux()
 	t.Run("error in Before", func(t *testing.T) {
-		b := strings.Builder{}
-		rr := safehttptest.NewTestResponseWriter(&b)
+		rr := httptest.NewRecorder()
 
 		req := httptest.NewRequest(safehttp.MethodGet, "https://foo.com/compute?a=3", nil)
 		m.ServeHTTP(rr, req)
 
-		if got, want := rr.Status(), safehttp.StatusForbidden; got != want {
-			t.Errorf("rr.Status() got: %v want: %v", got, want)
+		if got, want := rr.Code, safehttp.StatusForbidden; got != int(want) {
+			t.Errorf("rr.Code got: %v want: %v", got, want)
 		}
 		want := `<h1>Error: Forbidden</h1>
 <p>forbidden in Before</p>
 `
-		if diff := cmp.Diff(want, b.String()); diff != "" {
-			t.Errorf("response body diff (-want,+got): \n%s\ngot %q, want %q", diff, b.String(), want)
+		if diff := cmp.Diff(want, rr.Body.String()); diff != "" {
+			t.Errorf("response body diff (-want,+got): \n%s\ngot %q, want %q", diff, rr.Body.String(), want)
 		}
 	})
 }

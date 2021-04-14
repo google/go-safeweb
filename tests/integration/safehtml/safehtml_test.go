@@ -16,10 +16,7 @@ package safehtml_test
 
 import (
 	"net/http/httptest"
-	"strings"
 	"testing"
-
-	"github.com/google/go-safeweb/safehttp/safehttptest"
 
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/safehtml"
@@ -34,12 +31,11 @@ func TestHandleRequestWrite(t *testing.T) {
 
 	req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/", nil)
 
-	b := &strings.Builder{}
-	rw := safehttptest.NewTestResponseWriter(b)
+	rw := httptest.NewRecorder()
 
 	mb.Mux().ServeHTTP(rw, req)
 
-	body := b.String()
+	body := rw.Body.String()
 
 	if want := "&lt;h1&gt;Escaped, so not really a heading&lt;/h1&gt;"; body != want {
 		t.Errorf("body got: %q want: %q", body, want)
@@ -54,12 +50,11 @@ func TestHandleRequestWriteTemplate(t *testing.T) {
 
 	req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/", nil)
 
-	b := &strings.Builder{}
-	rw := safehttptest.NewTestResponseWriter(b)
+	rw := httptest.NewRecorder()
 
 	mb.Mux().ServeHTTP(rw, req)
 
-	body := b.String()
+	body := rw.Body.String()
 
 	if want := "<h1>This is an actual heading, though.</h1>"; body != want {
 		t.Errorf("body got: %q want: %q", body, want)
