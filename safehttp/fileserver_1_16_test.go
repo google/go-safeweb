@@ -18,6 +18,7 @@ package safehttp_test
 
 import (
 	"embed"
+	"io"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -31,6 +32,15 @@ import (
 var testEmbeddedFS embed.FS
 
 func TestFileServerEmbed(t *testing.T) {
+	wantFile, err := testEmbeddedFS.Open("testdata/embed.html")
+	if err != nil {
+		t.Fatalf("Could not open embedded test files: %v", err)
+	}
+	wantFileContent, err := io.ReadAll(wantFile)
+	if err != nil {
+		t.Fatalf("Could not read embedded test files: %v", err)
+	}
+
 	tests := []struct {
 		name     string
 		path     string
@@ -50,7 +60,7 @@ func TestFileServerEmbed(t *testing.T) {
 			path:     "testdata/embed.html",
 			wantCode: 200,
 			wantCT:   "text/html; charset=utf-8",
-			wantBody: "<h1> This is a test embedded document </h1>\n",
+			wantBody: string(wantFileContent),
 		},
 	}
 
