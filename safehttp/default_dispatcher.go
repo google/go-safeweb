@@ -70,13 +70,22 @@ func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 			return fmt.Errorf("%T is not a safe template and it cannot be parsed and written", t)
 		}
 		if len(x.FuncMap) == 0 {
-			return t.Execute(rw, x.Data)
+			if x.Name == "" {
+				return t.Execute(rw, x.Data)
+			} else {
+				return t.ExecuteTemplate(rw, x.Name, x.Data)
+			}
 		}
 		cloned, err := t.Clone()
 		if err != nil {
 			return err
 		}
-		return cloned.Funcs(x.FuncMap).Execute(rw, x.Data)
+		cloned = cloned.Funcs(x.FuncMap)
+		if x.Name == "" {
+			return cloned.Execute(rw, x.Data)
+		} else {
+			return cloned.ExecuteTemplate(rw, x.Name, x.Data)
+		}
 	case safehtml.HTML:
 		_, err := io.WriteString(rw, x.String())
 		return err
