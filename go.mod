@@ -1,6 +1,6 @@
 module github.com/google/go-safeweb
 
-go 1.14
+go 1.16
 
 require (
 	github.com/google/go-cmp v0.5.0
