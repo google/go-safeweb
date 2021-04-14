@@ -554,10 +554,10 @@ func TestMultipartFormFileWithPathInName(t *testing.T) {
 
 	filename := f.File("foo")[0].Filename
 	if want, got := "myfile.txt", filename; want != got {
-		t.Errorf(`f.File("foo").Filename: got %s, want %s`, got, want)
+		t.Errorf(`f.File("foo").Filename: got %q, want %q`, got, want)
 	}
 	if err := f.Err(); err != nil {
-		t.Errorf(`f.Err(): got err %v`, err)
+		t.Errorf(`f.Err(): got err %v, want nil`, err)
 	}
 }
 
