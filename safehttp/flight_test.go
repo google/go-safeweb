@@ -59,7 +59,7 @@ func TestFlightInterceptorPanic(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.desc, func(t *testing.T) {
-			mb := &safehttp.ServeMuxConfig{}
+			mb := safehttp.NewServeMuxConfig(nil)
 			mb.Intercept(tc.interceptor)
 			mb.Handle("/search", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				// IMPORTANT: We are setting the header here and expecting to be
@@ -94,7 +94,7 @@ func TestFlightInterceptorPanic(t *testing.T) {
 }
 
 func TestFlightHandlerPanic(t *testing.T) {
-	mb := &safehttp.ServeMuxConfig{}
+	mb := safehttp.NewServeMuxConfig(nil)
 	mb.Handle("/search", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		// IMPORTANT: We are setting the header here and expecting to be
 		// cleared if a panic occurs.
@@ -136,7 +136,7 @@ func TestFlightDoubleWritePanics(t *testing.T) {
 	for firstWriteName, firstWrite := range writeFuncs {
 		for secondWriteName, secondWrite := range writeFuncs {
 			t.Run(fmt.Sprintf("%s->%s", firstWriteName, secondWriteName), func(t *testing.T) {
-				mb := &safehttp.ServeMuxConfig{}
+				mb := safehttp.NewServeMuxConfig(nil)
 				mb.Handle("/search", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					firstWrite(w, r)
 					secondWrite(w, r) // this should panic

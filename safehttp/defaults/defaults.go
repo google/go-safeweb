@@ -41,7 +41,7 @@ func ServeMuxConfig(hosts []string, xsrfKey string) (*safehttp.ServeMuxConfig, e
 		return nil, errors.New("xsrfKey cannot be empty")
 	}
 
-	var c safehttp.ServeMuxConfig
+	c := safehttp.NewServeMuxConfig(nil)
 	// TODO(clap): add a report group once we support reporting.
 	c.Intercept(coop.Default(""))
 	// TODO(clap): add a report-uri once we support reporting.
@@ -52,5 +52,5 @@ func ServeMuxConfig(hosts []string, xsrfKey string) (*safehttp.ServeMuxConfig, e
 	c.Intercept(hsts.Default())
 	c.Intercept(staticheaders.Interceptor{})
 	c.Intercept(&xsrfhtml.Interceptor{SecretAppKey: xsrfKey})
-	return &c, nil
+	return c, nil
 }

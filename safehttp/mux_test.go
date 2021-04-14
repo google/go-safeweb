@@ -56,7 +56,7 @@ func TestMuxOneHandlerOneRequest(t *testing.T) {
 
 	for _, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
-			mb := &safehttp.ServeMuxConfig{}
+			mb := safehttp.NewServeMuxConfig(nil)
 
 			h := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
@@ -118,7 +118,7 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 		},
 	}
 
-	mb := &safehttp.ServeMuxConfig{}
+	mb := safehttp.NewServeMuxConfig(nil)
 	mb.Handle("/bar", safehttp.MethodGet, tests[0].hf)
 	mb.Handle("/bar", safehttp.MethodPost, tests[1].hf)
 	mux := mb.Mux()
@@ -165,7 +165,7 @@ func TestMuxRegisterCorrectHandlerAllPaths(t *testing.T) {
 		},
 	}
 
-	mb := &safehttp.ServeMuxConfig{}
+	mb := safehttp.NewServeMuxConfig(nil)
 	mb.Handle("/get", safehttp.MethodGet, tests[0].hf)
 	mb.Handle("/get2", safehttp.MethodGet, tests[1].hf)
 	mux := mb.Mux()
@@ -181,7 +181,7 @@ func TestMuxRegisterCorrectHandlerAllPaths(t *testing.T) {
 }
 
 func TestMuxHandleSameMethodTwice(t *testing.T) {
-	mb := &safehttp.ServeMuxConfig{}
+	mb := safehttp.NewServeMuxConfig(nil)
 
 	registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
@@ -272,7 +272,7 @@ func TestMuxInterceptors(t *testing.T) {
 		{
 			name: "Install ServeMux Interceptor before handler registration",
 			mux: func() *safehttp.ServeMux {
-				mb := &safehttp.ServeMuxConfig{}
+				mb := safehttp.NewServeMuxConfig(nil)
 				mb.Intercept(setHeaderInterceptor{
 					name:  "Foo",
 					value: "bar",
@@ -294,7 +294,7 @@ func TestMuxInterceptors(t *testing.T) {
 		{
 			name: "Install Interrupting Interceptor",
 			mux: func() *safehttp.ServeMux {
-				mb := &safehttp.ServeMuxConfig{}
+				mb := safehttp.NewServeMuxConfig(nil)
 				mb.Intercept(internalErrorInterceptor{})
 
 				registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
@@ -314,7 +314,7 @@ func TestMuxInterceptors(t *testing.T) {
 		{
 			name: "Handler Communication With ServeMux Interceptor",
 			mux: func() *safehttp.ServeMux {
-				mb := &safehttp.ServeMuxConfig{}
+				mb := safehttp.NewServeMuxConfig(nil)
 				mb.Intercept(&claimHeaderInterceptor{headerToClaim: "Foo"})
 
 				registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
@@ -335,7 +335,7 @@ func TestMuxInterceptors(t *testing.T) {
 		{
 			name: "Commit phase sets header",
 			mux: func() *safehttp.ServeMux {
-				mb := &safehttp.ServeMuxConfig{}
+				mb := safehttp.NewServeMuxConfig(nil)
 				mb.Intercept(committerInterceptor{})
 
 				registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
@@ -450,7 +450,7 @@ func TestMuxInterceptorConfigs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mb := &safehttp.ServeMuxConfig{}
+			mb := safehttp.NewServeMuxConfig(nil)
 			mb.Intercept(setHeaderConfigInterceptor{})
 
 			registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
@@ -529,7 +529,7 @@ func (interceptorThree) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.Inc
 }
 
 func TestMuxDeterministicInterceptorOrder(t *testing.T) {
-	mb := &safehttp.ServeMuxConfig{}
+	mb := safehttp.NewServeMuxConfig(nil)
 	mb.Intercept(interceptorOne{})
 	mb.Intercept(interceptorTwo{})
 	mb.Intercept(interceptorThree{})
@@ -567,7 +567,7 @@ func TestMuxDeterministicInterceptorOrder(t *testing.T) {
 }
 
 func TestMuxHandlerReturnsNotWritten(t *testing.T) {
-	mb := &safehttp.ServeMuxConfig{}
+	mb := safehttp.NewServeMuxConfig(nil)
 	h := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return safehttp.NotWritten()
 	})
