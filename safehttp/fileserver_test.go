@@ -58,7 +58,7 @@ func TestFileServer(t *testing.T) {
 		},
 	}
 
-	mb := &safehttp.ServeMuxConfig{}
+	mb := safehttp.NewServeMuxConfig(nil)
 	mb.Handle("/", safehttp.MethodGet, safehttp.FileServer(tmpDir))
 	m := mb.Mux()
 

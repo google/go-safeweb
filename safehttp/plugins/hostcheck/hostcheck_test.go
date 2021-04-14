@@ -44,7 +44,7 @@ func TestInterceptor(t *testing.T) {
 
 	for _, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
-			mb := &safehttp.ServeMuxConfig{}
+			mb := safehttp.NewServeMuxConfig(nil)
 			mb.Intercept(hostcheck.New("foo.com"))
 
 			h := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {

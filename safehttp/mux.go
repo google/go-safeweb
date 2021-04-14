@@ -111,9 +111,16 @@ func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // ServeMuxConfig is a builder for ServeMux.
 type ServeMuxConfig struct {
-	Dispatcher   Dispatcher
+	dispatcher   Dispatcher
 	handlers     []handlerRegistration
 	interceptors []Interceptor
+}
+
+func NewServeMuxConfig(disp Dispatcher) *ServeMuxConfig {
+	if disp == nil {
+		disp = &DefaultDispatcher{}
+	}
+	return &ServeMuxConfig{dispatcher: disp}
 }
 
 type handlerRegistration struct {
@@ -154,9 +161,8 @@ func (s *ServeMuxConfig) Mux() *ServeMux {
 		log.Println("Warning: creating safehttp.Mux in dev mode. This configuration is not valid for production use")
 	}
 
-	dispatcher := s.Dispatcher
-	if dispatcher == nil {
-		dispatcher = DefaultDispatcher{}
+	if s.dispatcher == nil {
+		panic("Use NewServeMuxConfig instead of creating ServeMuxConfig using a composite literal.")
 	}
 	// pattern -> method -> handlerConfig
 	handlers := map[string]map[string]handlerConfig{}
@@ -170,7 +176,7 @@ func (s *ServeMuxConfig) Mux() *ServeMux {
 		}
 		handlers[hr.pattern][hr.method] =
 			handlerConfig{
-				Dispatcher:   dispatcher,
+				Dispatcher:   s.dispatcher,
 				Handler:      hr.handler,
 				Interceptors: configureInterceptors(s.interceptors, hr.cfgs),
 			}
@@ -202,7 +208,7 @@ func configureInterceptors(interceptors []Interceptor, cfgs []InterceptorConfig)
 // plugins and some common handlers.
 func (s *ServeMuxConfig) Clone() *ServeMuxConfig {
 	c := &ServeMuxConfig{
-		Dispatcher:   s.Dispatcher,
+		dispatcher:   s.dispatcher,
 		handlers:     make([]handlerRegistration, len(s.handlers)),
 		interceptors: make([]Interceptor, len(s.interceptors)),
 	}

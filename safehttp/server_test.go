@@ -30,7 +30,7 @@ func TestServer(t *testing.T) {
 	l := requesttesting.NewFakeListener()
 	defer l.Close()
 
-	var cfg ServeMuxConfig
+	cfg := NewServeMuxConfig(nil)
 	cfg.Handle("/", "GET", HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
 		return w.Write(safehtml.HTMLEscaped("response"))
 	}))
