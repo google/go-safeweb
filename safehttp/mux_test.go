@@ -18,10 +18,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
-
-	"github.com/google/go-safeweb/safehttp/safehttptest"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
@@ -66,21 +63,20 @@ func TestMuxOneHandlerOneRequest(t *testing.T) {
 			})
 			mb.Handle("/", safehttp.MethodGet, h)
 
-			b := &strings.Builder{}
-			rw := safehttptest.NewTestResponseWriter(b)
+			rw := httptest.NewRecorder()
 
 			mux := mb.Mux()
 			mux.ServeHTTP(rw, tt.req)
 
-			if rw.Status() != tt.wantStatus {
-				t.Errorf("rw.Status(): got %v want %v", rw.Status(), tt.wantStatus)
+			if rw.Code != int(tt.wantStatus) {
+				t.Errorf("rw.Code: got %v want %v", rw.Code, tt.wantStatus)
 			}
 
 			if diff := cmp.Diff(tt.wantHeader, map[string][]string(rw.Header())); diff != "" {
 				t.Errorf("rw.Header() mismatch (-want +got):\n%s", diff)
 			}
 
-			if got := b.String(); got != tt.wantBody {
+			if got := rw.Body.String(); got != tt.wantBody {
 				t.Errorf("response body: got %q want %q", got, tt.wantBody)
 			}
 		})
@@ -128,18 +124,17 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 	mux := mb.Mux()
 
 	for _, test := range tests {
-		b := &strings.Builder{}
-		rw := safehttptest.NewTestResponseWriter(b)
+		rw := httptest.NewRecorder()
 		mux.ServeHTTP(rw, test.req)
-		if want := test.wantStatus; rw.Status() != want {
-			t.Errorf("rw.Status(): got %v want %v", rw.Status(), want)
+		if want := int(test.wantStatus); rw.Code != want {
+			t.Errorf("rw.Code: got %v want %v", rw.Code, want)
 		}
 
 		if diff := cmp.Diff(test.wantHeaders, map[string][]string(rw.Header())); diff != "" {
 			t.Errorf("rw.Header() mismatch (-want +got):\n%s", diff)
 		}
 
-		if got, want := b.String(), test.wantBody; got != want {
+		if got, want := rw.Body.String(), test.wantBody; got != want {
 			t.Errorf("response body: got %q want %q", got, want)
 		}
 	}
@@ -176,11 +171,10 @@ func TestMuxRegisterCorrectHandlerAllPaths(t *testing.T) {
 	mux := mb.Mux()
 
 	for _, test := range tests {
-		b := &strings.Builder{}
-		rw := safehttptest.NewTestResponseWriter(b)
+		rw := httptest.NewRecorder()
 		mux.ServeHTTP(rw, test.req)
 
-		if got, want := b.String(), test.wantBody; got != want {
+		if got, want := rw.Body.String(), test.wantBody; got != want {
 			t.Errorf("response body: got %q want %q", got, want)
 		}
 	}
@@ -362,22 +356,21 @@ func TestMuxInterceptors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			b := &strings.Builder{}
-			rw := safehttptest.NewTestResponseWriter(b)
+			rw := httptest.NewRecorder()
 
 			req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/bar", nil)
 
 			tt.mux.ServeHTTP(rw, req)
 
-			if rw.Status() != tt.wantStatus {
-				t.Errorf("rw.Status(): got %v want %v", rw.Status(), tt.wantStatus)
+			if rw.Code != int(tt.wantStatus) {
+				t.Errorf("rw.Code: got %v want %v", rw.Code, tt.wantStatus)
 			}
 
 			if diff := cmp.Diff(tt.wantHeaders, map[string][]string(rw.Header())); diff != "" {
 				t.Errorf("rw.Header() mismatch (-want +got):\n%s", diff)
 			}
 
-			if got := b.String(); got != tt.wantBody {
+			if got := rw.Body.String(); got != tt.wantBody {
 				t.Errorf("response body: got %q want %q", got, tt.wantBody)
 			}
 		})
@@ -465,23 +458,22 @@ func TestMuxInterceptorConfigs(t *testing.T) {
 			})
 			mb.Handle("/bar", safehttp.MethodGet, registeredHandler, tt.config)
 
-			b := &strings.Builder{}
-			rw := safehttptest.NewTestResponseWriter(b)
+			rw := httptest.NewRecorder()
 
 			req := httptest.NewRequest("GET", "http://foo.com/bar", nil)
 
 			mux := mb.Mux()
 			mux.ServeHTTP(rw, req)
 
-			if rw.Status() != tt.wantStatus {
-				t.Errorf("rw.Status(): got %v want %v", rw.Status(), tt.wantStatus)
+			if rw.Code != int(tt.wantStatus) {
+				t.Errorf("rw.Code: got %v want %v", rw.Code, tt.wantStatus)
 			}
 
 			if diff := cmp.Diff(tt.wantHeaders, map[string][]string(rw.Header())); diff != "" {
 				t.Errorf("rw.Header() mismatch (-want +got):\n%s", diff)
 			}
 
-			if got := b.String(); got != tt.wantBody {
+			if got := rw.Body.String(); got != tt.wantBody {
 				t.Errorf("response body: got %q want %q", got, tt.wantBody)
 			}
 		})
@@ -547,16 +539,15 @@ func TestMuxDeterministicInterceptorOrder(t *testing.T) {
 	})
 	mb.Handle("/bar", safehttp.MethodGet, registeredHandler)
 
-	b := &strings.Builder{}
-	rw := safehttptest.NewTestResponseWriter(b)
+	rw := httptest.NewRecorder()
 
 	req := httptest.NewRequest("GET", "http://foo.com/bar", nil)
 
 	mux := mb.Mux()
 	mux.ServeHTTP(rw, req)
 
-	if want := safehttp.StatusOK; rw.Status() != want {
-		t.Errorf("rw.Status(): got %v want %v", rw.Status(), want)
+	if want := safehttp.StatusOK; rw.Code != int(want) {
+		t.Errorf("rw.Code: got %v want %v", rw.Code, want)
 	}
 	wantHeaders := map[string][]string{
 		"Dessert":      {"tiramisu"},
@@ -570,7 +561,7 @@ func TestMuxDeterministicInterceptorOrder(t *testing.T) {
 	if diff := cmp.Diff(wantHeaders, map[string][]string(rw.Header())); diff != "" {
 		t.Errorf("rw.Header() mismatch (-want +got):\n%s", diff)
 	}
-	if got, want := b.String(), "&lt;h1&gt;Hello World!&lt;/h1&gt;"; got != want {
+	if got, want := rw.Body.String(), "&lt;h1&gt;Hello World!&lt;/h1&gt;"; got != want {
 		t.Errorf(`response body: got %q want %q`, got, want)
 	}
 }
@@ -583,19 +574,18 @@ func TestMuxHandlerReturnsNotWritten(t *testing.T) {
 	mb.Handle("/bar", safehttp.MethodGet, h)
 	req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/bar", nil)
 
-	b := &strings.Builder{}
-	rw := safehttptest.NewTestResponseWriter(b)
+	rw := httptest.NewRecorder()
 
 	mux := mb.Mux()
 	mux.ServeHTTP(rw, req)
 
-	if want := safehttp.StatusNoContent; rw.Status() != want {
-		t.Errorf("rw.Status(): got %v want %v", rw.Status(), want)
+	if want := safehttp.StatusNoContent; rw.Code != int(want) {
+		t.Errorf("rw.Code: got %v want %v", rw.Code, want)
 	}
 	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rw.Header())); diff != "" {
 		t.Errorf("rw.Header() mismatch (-want +got):\n%s", diff)
 	}
-	if got := b.String(); got != "" {
+	if got := rw.Body.String(); got != "" {
 		t.Errorf(`response body got: %q want: ""`, got)
 	}
 }
