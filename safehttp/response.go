@@ -51,12 +51,21 @@ type Template interface {
 	// Template fails or if an error occurs while writing the result to the
 	// io.Writer.
 	Execute(wr io.Writer, data interface{}) error
+
+	// ExecuteTemplate applies the named associated template to the specified data
+	// object and writes the output to the io.Writer.
+	//
+	// ExecuteTemplate returns an error if applying the data object to the
+	// Template fails or if an error occurs while writing the result to the
+	// io.Writer.
+	ExecuteTemplate(wr io.Writer, name string, data interface{}) error
 }
 
 // TemplateResponse bundles a Template with its data and names to function
 // mappings to be passed together to the commit phase.
 type TemplateResponse struct {
 	Template Template
+	Name     string
 	Data     interface{}
 	FuncMap  map[string]interface{}
 }
@@ -64,15 +73,17 @@ type TemplateResponse struct {
 // ExecuteTemplate creates a TemplateResponse from the provided Template and its
 // data and calls the Write function of the ResponseWriter, passing the
 // response.
-func ExecuteTemplate(w ResponseWriter, t Template, data interface{}) Result {
-	return w.Write(&TemplateResponse{t, data, nil})
+// Leaving name empty is valid if the template does not have associated templates.
+func ExecuteTemplate(w ResponseWriter, t Template, name string, data interface{}) Result {
+	return w.Write(&TemplateResponse{Template: t, Name: name, Data: data, FuncMap: nil})
 }
 
 // ExecuteTemplateWithFuncs creates a TemplateResponse from the provided
 // Template, its data and the name to function mappings and calls the Write
 // function of the ResponseWriter, passing the response.
-func ExecuteTemplateWithFuncs(w ResponseWriter, t Template, data interface{}, fm map[string]interface{}) Result {
-	return w.Write(&TemplateResponse{t, data, fm})
+// Leaving name empty is valid if the template does not have associated templates.
+func ExecuteTemplateWithFuncs(w ResponseWriter, t Template, name string, data interface{}, fm map[string]interface{}) Result {
+	return w.Write(&TemplateResponse{Template: t, Name: name, Data: data, FuncMap: fm})
 }
 
 // NoContentResponse is sent to the commit phase when it's initiated from

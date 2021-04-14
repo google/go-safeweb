@@ -52,9 +52,23 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 						Parse("<h1>{{ . }}</h1>")))
 				var data interface{}
 				data = "This is an actual heading, though."
-				return d.Write(w, &safehttp.TemplateResponse{t, data, nil})
+				return d.Write(w, &safehttp.TemplateResponse{Template: t, Data: data})
 			},
 			wantBody: "<h1>This is an actual heading, though.</h1>",
+		},
+		{
+			name: "Named Safe HTML Template Response",
+			write: func(w http.ResponseWriter) error {
+				d := &safehttp.DefaultDispatcher{}
+				t := safehttp.Template(
+					safetemplate.Must(
+						safetemplate.Must(safetemplate.New("name").Parse("<h1>{{ . }}</h1>")).
+							New("associated").Parse("<h2>{{.}}</h2>")))
+				var data interface{}
+				data = "This is an actual heading, though."
+				return d.Write(w, &safehttp.TemplateResponse{t, "associated", data, nil})
+			},
+			wantBody: "<h2>This is an actual heading, though.</h2>",
 		},
 		{
 			name: "Safe HTML Template Response with Token",
@@ -70,7 +84,7 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 				fm := map[string]interface{}{
 					"Token": func() string { return "Token-secret" },
 				}
-				return d.Write(w, &safehttp.TemplateResponse{t, data, fm})
+				return d.Write(w, &safehttp.TemplateResponse{Template: t, Data: data, FuncMap: fm})
 			},
 			wantBody: `<form><input type="hidden" name="token" value="Token-secret">Content</form>`,
 		},
@@ -88,7 +102,7 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 				fm := map[string]interface{}{
 					"Nonce": func() string { return "Nonce-secret" },
 				}
-				return d.Write(w, &safehttp.TemplateResponse{t, data, fm})
+				return d.Write(w, &safehttp.TemplateResponse{Template: t, Data: data, FuncMap: fm})
 			},
 			wantBody: `<script nonce="Nonce-secret" type="application/javascript">alert("script")</script><h1>Content</h1>`,
 		},
@@ -145,7 +159,7 @@ func TestDefaultDispatcherInvalidResponse(t *testing.T) {
 						Parse("<h1>{{ . }}</h1>")))
 				var data interface{}
 				data = "This is an actual heading, though."
-				return d.Write(w, safehttp.TemplateResponse{t, data, nil})
+				return d.Write(w, safehttp.TemplateResponse{Template: t, Data: data})
 			},
 			want: "",
 		},
