@@ -116,6 +116,8 @@ type ServeMuxConfig struct {
 	interceptors []Interceptor
 }
 
+// NewServeMuxConfig crates a ServeMuxConfig with the provided Dispatcher. If
+// the provided Dispatcher is nil, the DefaultDispatcher is used.
 func NewServeMuxConfig(disp Dispatcher) *ServeMuxConfig {
 	if disp == nil {
 		disp = &DefaultDispatcher{}
