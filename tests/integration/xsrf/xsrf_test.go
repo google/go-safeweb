@@ -21,7 +21,6 @@ import (
 
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/plugins/xsrf/xsrfhtml"
-	"github.com/google/go-safeweb/safehttp/safehttptest"
 	"github.com/google/safehtml/template"
 )
 
@@ -40,18 +39,17 @@ func TestServeMuxInstallXSRF(t *testing.T) {
 	})
 	mb.Handle("/bar", safehttp.MethodGet, handler)
 
-	b := strings.Builder{}
-	rr := safehttptest.NewTestResponseWriter(&b)
+	rr := httptest.NewRecorder()
 
 	req := httptest.NewRequest(safehttp.MethodGet, "https://foo.com/bar", nil)
 
 	mb.Mux().ServeHTTP(rr, req)
 
-	if got, want := rr.Status(), safehttp.StatusOK; got != want {
-		t.Errorf("rr.Status() got: %v want: %v", got, want)
+	if got, want := rr.Code, safehttp.StatusOK; got != int(want) {
+		t.Errorf("rr.Code got: %v want: %v", got, int(want))
 	}
 
-	if gotBody := b.String(); strings.Contains(gotBody, "WrongToken") {
+	if gotBody := rr.Body.String(); strings.Contains(gotBody, "WrongToken") {
 		t.Errorf("response body: got %q, injection failed", gotBody)
 	}
 

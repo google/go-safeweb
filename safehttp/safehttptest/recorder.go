@@ -15,9 +15,8 @@
 package safehttptest
 
 import (
-	"io"
 	"net/http"
-	"strings"
+	"net/http/httptest"
 
 	"github.com/google/go-safeweb/safehttp"
 )
@@ -27,28 +26,23 @@ import (
 // should be passed as part of the handler function in tests.
 type ResponseRecorder struct {
 	safehttp.ResponseWriter
-	rw *testResponseWriter
-	b  *strings.Builder
+	rw *httptest.ResponseRecorder
 }
 
 // NewResponseRecorder creates a ResponseRecorder.
 func NewResponseRecorder() *ResponseRecorder {
-	var b strings.Builder
-	rw := NewTestResponseWriter(&b)
+	rw := httptest.NewRecorder()
 	return &ResponseRecorder{
 		rw:             rw,
-		b:              &b,
 		ResponseWriter: safehttp.DeprecatedNewResponseWriter(rw, nil),
 	}
 }
 
 // NewResponseRecorderFromDispatcher creates a ResponseRecorder.
 func NewResponseRecorderFromDispatcher(d safehttp.Dispatcher) *ResponseRecorder {
-	var b strings.Builder
-	rw := NewTestResponseWriter(&b)
+	rw := httptest.NewRecorder()
 	return &ResponseRecorder{
 		rw:             rw,
-		b:              &b,
 		ResponseWriter: safehttp.DeprecatedNewResponseWriter(rw, d),
 	}
 }
@@ -60,48 +54,10 @@ func (r *ResponseRecorder) Header() http.Header {
 
 // Status returns the recorded response status code.
 func (r *ResponseRecorder) Status() safehttp.StatusCode {
-	return r.rw.status
+	return safehttp.StatusCode(r.rw.Code)
 }
 
 // Body returns the recorded response body.
 func (r *ResponseRecorder) Body() string {
-	return r.b.String()
-}
-
-// testResponseWriter is an implementation of the http.ResponseWriter interface
-// used for constructing an HTTP response for testing purposes.
-type testResponseWriter struct {
-	header http.Header
-	writer io.Writer
-	status safehttp.StatusCode
-}
-
-// NewTestResponseWriter creates a new TestResponseWriter.
-func NewTestResponseWriter(w io.Writer) *testResponseWriter {
-	return &testResponseWriter{
-		header: http.Header{},
-		writer: w,
-		status: safehttp.StatusOK,
-	}
-}
-
-// Status returns the response status.
-func (r *testResponseWriter) Status() safehttp.StatusCode {
-	return r.status
-}
-
-// Header implements http.ResponseWriter. It returns the response headers that
-// could have been mutated within a handler.
-func (r *testResponseWriter) Header() http.Header {
-	return r.header
-}
-
-// WriteHeader implements http.ResponseWriter.
-func (r *testResponseWriter) WriteHeader(statusCode int) {
-	r.status = safehttp.StatusCode(statusCode)
-}
-
-// Write implements http.ResponseWriter.
-func (r *testResponseWriter) Write(data []byte) (int, error) {
-	return r.writer.Write(data)
+	return r.rw.Body.String()
 }

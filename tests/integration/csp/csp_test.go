@@ -16,13 +16,11 @@ package csp_test
 
 import (
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/plugins/csp"
-	"github.com/google/go-safeweb/safehttp/safehttptest"
 	"github.com/google/safehtml/template"
 )
 
@@ -48,8 +46,7 @@ func TestServeMuxInstallCSP(t *testing.T) {
 	})
 	mb.Handle("/bar", safehttp.MethodGet, handler)
 
-	b := strings.Builder{}
-	rr := safehttptest.NewTestResponseWriter(&b)
+	rr := httptest.NewRecorder()
 
 	req := httptest.NewRequest(safehttp.MethodGet, "https://foo.com/bar", nil)
 
@@ -64,8 +61,8 @@ func TestServeMuxInstallCSP(t *testing.T) {
 		t.Fatalf("csp.Nonce: got %q, want non-empty", nonce)
 	}
 
-	if want, got := rr.Status(), safehttp.StatusOK; got != want {
-		t.Errorf("rr.Status() got: %v want: %v", got, want)
+	if got, want := rr.Code, safehttp.StatusOK; got != int(want) {
+		t.Errorf("rr.Code got: %v want: %v", got, want)
 	}
 
 	wantHeaders := map[string][]string{
@@ -81,7 +78,7 @@ func TestServeMuxInstallCSP(t *testing.T) {
 
 	wantBody := `<script nonce="` + nonce +
 		`" type="application/javascript">alert("script")</script><h1>Content</h1>`
-	if gotBody := b.String(); gotBody != wantBody {
+	if gotBody := rr.Body.String(); gotBody != wantBody {
 		t.Errorf("response body: got %q, want nonce %q", gotBody, wantBody)
 	}
 

@@ -17,10 +17,7 @@ package hsts_test
 import (
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
-
-	"github.com/google/go-safeweb/safehttp/safehttptest"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
@@ -37,15 +34,14 @@ func TestHSTSServeMuxInstall(t *testing.T) {
 	})
 	mb.Handle("/asdf", safehttp.MethodGet, handler)
 
-	b := strings.Builder{}
-	rw := safehttptest.NewTestResponseWriter(&b)
+	rw := httptest.NewRecorder()
 
 	req := httptest.NewRequest(http.MethodGet, "https://foo.com/asdf", nil)
 
 	mb.Mux().ServeHTTP(rw, req)
 
-	if want := safehttp.StatusOK; rw.Status() != want {
-		t.Errorf("rw.Status() got: %v want: %v", rw.Status(), want)
+	if want := safehttp.StatusOK; rw.Code != int(want) {
+		t.Errorf("rw.Code got: %v want: %v", rw.Code, want)
 	}
 
 	wantHeaders := map[string][]string{
@@ -56,8 +52,8 @@ func TestHSTSServeMuxInstall(t *testing.T) {
 		t.Errorf("rw.Header() mismatch (-want +got):\n%s", diff)
 	}
 
-	if got, want := b.String(), "&lt;h1&gt;Hello World!&lt;/h1&gt;"; got != want {
-		t.Errorf("b.String() got: %v want: %v", got, want)
+	if got, want := rw.Body.String(), "&lt;h1&gt;Hello World!&lt;/h1&gt;"; got != want {
+		t.Errorf("Body got: %v want: %v", got, want)
 	}
 }
 
@@ -70,15 +66,14 @@ func TestHSTSOnErrors(t *testing.T) {
 	})
 	mb.Handle("/asdf", safehttp.MethodGet, handler)
 
-	b := strings.Builder{}
-	rw := safehttptest.NewTestResponseWriter(&b)
+	rw := httptest.NewRecorder()
 
 	req := httptest.NewRequest(http.MethodGet, "https://foo.com/asdf", nil)
 
 	mb.Mux().ServeHTTP(rw, req)
 
-	if want := safehttp.StatusNotFound; rw.Status() != want {
-		t.Errorf("rw.Status() got: %v want: %v", rw.Status(), want)
+	if want := safehttp.StatusNotFound; rw.Code != int(want) {
+		t.Errorf("rw.Code got: %v want: %v", rw.Code, want)
 	}
 	if got, want := rw.Header()["Strict-Transport-Security"], []string{"max-age=63072000; includeSubDomains"}; !cmp.Equal(got, want) {
 		t.Errorf("rw.Header()[\"Strict-Transport-Security\"] = %q, want %q", got, want)

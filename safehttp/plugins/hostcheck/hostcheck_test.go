@@ -17,12 +17,10 @@ package hostcheck_test
 import (
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/plugins/hostcheck"
-	"github.com/google/go-safeweb/safehttp/safehttptest"
 	"github.com/google/safehtml"
 )
 
@@ -54,13 +52,12 @@ func TestInterceptor(t *testing.T) {
 			})
 			mb.Handle("/", safehttp.MethodGet, h)
 
-			b := &strings.Builder{}
-			rw := safehttptest.NewTestResponseWriter(b)
+			rw := httptest.NewRecorder()
 			mux := mb.Mux()
 			mux.ServeHTTP(rw, tt.req)
 
-			if rw.Status() != tt.wantStatus {
-				t.Errorf("rw.Status(): got %v want %v", rw.Status(), tt.wantStatus)
+			if rw.Code != int(tt.wantStatus) {
+				t.Errorf("rw.Code: got %v want %v", rw.Code, tt.wantStatus)
 			}
 		})
 	}
