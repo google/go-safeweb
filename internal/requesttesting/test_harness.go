@@ -33,7 +33,9 @@ type AssertHandler struct {
 
 func (h *AssertHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.callback(r)
-	io.WriteString(w, "Hello world!")
+	if _, err := io.WriteString(w, "Hello world!"); err != nil {
+		panic(err)
+	}
 }
 
 // FakeListener creates a custom listener that avoids opening a socket in order
