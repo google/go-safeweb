@@ -125,13 +125,7 @@ func (r *IncomingRequest) MultipartForm(maxMemory int64) (*MultipartForm, error)
 	if err != nil {
 		return nil, err
 	}
-	return &MultipartForm{
-			Form: Form{
-				values: r.req.MultipartForm.Value,
-			},
-			mf: r.req.MultipartForm,
-		},
-		nil
+	return newMulipartForm(r.req.MultipartForm), nil
 }
 
 // Cookie returns the named cookie provided in the request or
