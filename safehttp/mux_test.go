@@ -16,6 +16,7 @@ package safehttp_test
 
 import (
 	"context"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -587,5 +588,116 @@ func TestMuxHandlerReturnsNotWritten(t *testing.T) {
 	}
 	if got := rw.Body.String(); got != "" {
 		t.Errorf(`response body got: %q want: ""`, got)
+	}
+}
+
+func TestMuxMethodNotAllowedDefaults(t *testing.T) {
+	mb := safehttp.NewServeMuxConfig(nil)
+
+	h := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+		panic("not tested")
+	})
+	mb.Handle("/", safehttp.MethodGet, h)
+
+	rw := httptest.NewRecorder()
+
+	mux := mb.Mux()
+	mux.ServeHTTP(rw, httptest.NewRequest(safehttp.MethodPost, "http://foo.com/", nil))
+
+	if got, want := rw.Code, int(safehttp.StatusMethodNotAllowed); got != want {
+		t.Errorf("rw.Code: got %v want %v", got, want)
+	}
+
+	wantHeader := map[string][]string{
+		"Content-Type":           {"text/plain; charset=utf-8"},
+		"X-Content-Type-Options": {"nosniff"},
+	}
+	if diff := cmp.Diff(wantHeader, map[string][]string(rw.Header())); diff != "" {
+		t.Errorf("rw.Header() mismatch (-want +got):\n%s", diff)
+	}
+
+	wantBody := "Method Not Allowed\n"
+	if got := rw.Body.String(); got != wantBody {
+		t.Errorf("response body: got %q want %q", got, wantBody)
+	}
+}
+
+type methodNotAllowedError struct {
+	message string
+}
+
+func (err *methodNotAllowedError) Code() safehttp.StatusCode {
+	return safehttp.StatusMethodNotAllowed
+}
+
+type methodNotAllowedDispatcher struct {
+	safehttp.DefaultDispatcher
+}
+
+func (d *methodNotAllowedDispatcher) Error(rw http.ResponseWriter, resp safehttp.ErrorResponse) error {
+	x := resp.(*methodNotAllowedError)
+	rw.Header().Set("Content-Type", "text/html; charset=utf-8")
+	rw.WriteHeader(int(resp.Code()))
+	_, err := io.WriteString(rw, "<h1>"+http.StatusText(int(resp.Code()))+"</h1>"+"<p>"+x.message+"</p>")
+	return err
+}
+
+type methodNotAllowedInterceptor struct{}
+
+func (ip *methodNotAllowedInterceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, ipcfg safehttp.InterceptorConfig) safehttp.Result {
+	cfg := ipcfg.(methodNotAllowedInterceptorConfig)
+	w.Header().Set("Before-Interceptor", cfg.before)
+	return safehttp.NotWritten()
+}
+
+// Commit runs before the response is written by the Dispatcher. If an error
+// is written to the ResponseWriter, then the Commit phases from the
+// remaining interceptors won't execute.
+func (ip *methodNotAllowedInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, ipcfg safehttp.InterceptorConfig) {
+	cfg := ipcfg.(methodNotAllowedInterceptorConfig)
+	w.Header().Set("Commit-Interceptor", cfg.commit)
+}
+
+type methodNotAllowedInterceptorConfig struct {
+	before, commit string
+}
+
+func (methodNotAllowedInterceptorConfig) Match(ip safehttp.Interceptor) bool {
+	_, ok := ip.(*methodNotAllowedInterceptor)
+	return ok
+}
+
+func TestMuxMethodNotAllowedCustom(t *testing.T) {
+	mb := safehttp.NewServeMuxConfig(&methodNotAllowedDispatcher{})
+	mb.Intercept(&methodNotAllowedInterceptor{})
+
+	mb.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+		panic("not tested")
+	}))
+	mb.HandleMethodNotAllowed(safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+		return rw.WriteError(&methodNotAllowedError{"custom message"})
+	}), methodNotAllowedInterceptorConfig{before: "foo", commit: "bar"})
+
+	rw := httptest.NewRecorder()
+
+	mux := mb.Mux()
+	mux.ServeHTTP(rw, httptest.NewRequest(safehttp.MethodPost, "http://foo.com/", nil))
+
+	if got, want := rw.Code, int(safehttp.StatusMethodNotAllowed); got != want {
+		t.Errorf("rw.Code: got %v want %v", got, want)
+	}
+
+	wantHeader := map[string][]string{
+		"Content-Type":       {"text/html; charset=utf-8"},
+		"Before-Interceptor": {"foo"},
+		"Commit-Interceptor": {"bar"},
+	}
+	if diff := cmp.Diff(wantHeader, map[string][]string(rw.Header())); diff != "" {
+		t.Errorf("rw.Header() mismatch (-want +got):\n%s", diff)
+	}
+
+	wantBody := "<h1>Method Not Allowed</h1><p>custom message</p>"
+	if got := rw.Body.String(); got != wantBody {
+		t.Errorf("response body: got %q want %q", got, wantBody)
 	}
 }
