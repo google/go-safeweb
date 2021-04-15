@@ -45,7 +45,7 @@ import (
 // Warning: XSRF protection is currently missing due to
 // https://github.com/google/go-safeweb/issues/171.
 func NewMuxConfig() *safehttp.ServeMuxConfig {
-	c := &safehttp.ServeMuxConfig{}
+	c := safehttp.NewServeMuxConfig(nil)
 
 	c.Intercept(coop.Default(""))
 	c.Intercept(csp.Default(""))
