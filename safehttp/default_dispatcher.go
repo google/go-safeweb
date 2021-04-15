@@ -37,7 +37,9 @@ type DefaultDispatcher struct{}
 // For TemplateResponses, the parsed template is applied to the provided data
 // object. If the funcMap is non-nil, its elements override the  existing names
 // to functions mappings in the template. An attempt to define a new name to
-// function mapping that is not already in the template will result  in a panic.
+// function mapping that is not already in the template will result in a panic.
+//
+// Write sets the Content-Type accordingly.
 func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 	switch x := resp.(type) {
 	case JSONResponse:
@@ -81,6 +83,9 @@ func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 }
 
 // Error writes the error response to the http.ResponseWriter.
+//
+// Error sets the Content-Type to "text/plain; charset=utf-8" through calling
+// WriteTextError.
 func (DefaultDispatcher) Error(rw http.ResponseWriter, resp ErrorResponse) error {
 	WriteTextError(rw, resp)
 	return nil
