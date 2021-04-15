@@ -31,6 +31,18 @@ import (
 	"github.com/google/safehtml"
 )
 
+func createSafeHttpHandler(defaultMessage string) safehttp.HandlerFunc {
+	return func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+		form, err := r.URL.Query()
+		if err != nil {
+			panic(err)
+		}
+		q := form.String("msg", defaultMessage)
+		response := fmt.Sprintf("%s: %s\n", r.Method(), q)
+		return w.Write(safehtml.HTMLEscaped(response))
+	}
+}
+
 func main() {
 
 	fooHandleFunc := func(w http.ResponseWriter, r *http.Request) {
@@ -46,14 +58,8 @@ func main() {
 		fmt.Fprintf(w, "Bar, %q", q)
 	}
 
-	safehttpHandler := func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-		form, err := r.URL.Query()
-		if err != nil {
-			panic(err)
-		}
-		q := form.String("msg", "defaultstr")
-		return w.Write(safehtml.HTMLEscaped(q))
-	}
+	safehttpHandler1 := createSafeHttpHandler("handler 1")
+	safehttpHandler2 := createSafeHttpHandler("handler 2")
 
 	insecureMiddleware := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -64,7 +70,16 @@ func main() {
 
 	mc := safehttp.NewServeMuxConfig(nil)
 	// Generate http.Handler using a safehttp.ServeMuxConfig.
-	httpHandlerFromSafehttp := mc.StdHandler(safehttp.MethodGet, safehttp.HandlerFunc(safehttpHandler))
+	httpHandlerFromSafehttp := mc.StdHandler([]*safehttp.HandlerRegistration{
+		{
+			Method:  safehttp.MethodGet,
+			Handler: safehttp.HandlerFunc(safehttpHandler1),
+		},
+		{
+			Method:  safehttp.MethodPost,
+			Handler: safehttp.HandlerFunc(safehttpHandler2),
+		},
+	})
 	// Note: no mux generation through Mux() call.
 
 	http.HandleFunc("/foo", fooHandleFunc)

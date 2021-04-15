@@ -72,18 +72,18 @@ type ServeMux struct {
 }
 
 func registerHandlers(mux *http.ServeMux, handlers map[string]map[string]*handlerConfig) {
-	for pattern, methodToHandlerConfig := range handlers {
-		httpHandler := stdHandler(methodToHandlerConfig)
+	for pattern, handlerConfigPerMethod := range handlers {
+		httpHandler := stdHandler(handlerConfigPerMethod)
 		mux.Handle(pattern, httpHandler)
 	}
 }
 
-// stdHandler create a http.Handler using a handlerConfig.
+// stdHandler creates an http.Handler using a handlerConfig.
 // The handlerConfig map is needed because http.Handle handles requests for any HTTP request method,
 // which we want to avoid in safehttp.
-func stdHandler(methodToHandlerConfig map[string]*handlerConfig) http.Handler {
+func stdHandler(handlerConfigPerMethod map[string]*handlerConfig) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cfg, ok := methodToHandlerConfig[r.Method]
+		cfg, ok := handlerConfigPerMethod[r.Method]
 		if !ok {
 			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 			return
@@ -92,18 +92,27 @@ func stdHandler(methodToHandlerConfig map[string]*handlerConfig) http.Handler {
 	})
 }
 
+// TODO rename...
+type HandlerRegistration struct {
+	Method  string
+	Handler Handler
+	Cfgs    []InterceptorConfig
+}
+
 // StdHandler creates an http.Handler using the ServeMuxConfig
 // (i.e. using already installed Interceptors etc).
 // This is intended to be used during transition from using the http package to safehttp.
-func (s *ServeMuxConfig) StdHandler(method string, handler Handler, cfgs ...InterceptorConfig) http.Handler {
-	cfg := s.handlerRegistrationToHandlerConfig(&handlerRegistration{
-		method:  method,
-		handler: handler,
-		cfgs:    cfgs,
-	})
-	return stdHandler(map[string]*handlerConfig{
-		method: cfg,
-	})
+func (s *ServeMuxConfig) StdHandler(hr []*HandlerRegistration) http.Handler {
+	handlerConfigPerMethod := make(map[string]*handlerConfig)
+	for _, c := range hr {
+		hc := &handlerConfig{
+			Dispatcher:   s.dispatcher,
+			Handler:      c.Handler,
+			Interceptors: configureInterceptors(s.interceptors, c.Cfgs),
+		}
+		handlerConfigPerMethod[c.Method] = hc
+	}
+	return stdHandler(handlerConfigPerMethod)
 }
 
 // ServeHTTP dispatches the request to the handler whose method matches the
