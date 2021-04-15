@@ -164,12 +164,10 @@ func (f *flight) Header() Header {
 	return f.header
 }
 
-// SetCookie adds a Set-Cookie header to the provided ResponseWriter's headers.
+// AddCookie adds a Set-Cookie header to the provided ResponseWriter's headers.
 // The provided cookie must have a valid Name, otherwise an error will be
 // returned.
-//
-// TODO: should this be named AddCookie?
-func (f *flight) SetCookie(c *Cookie) error {
+func (f *flight) AddCookie(c *Cookie) error {
 	return f.header.addCookie(c)
 }
 

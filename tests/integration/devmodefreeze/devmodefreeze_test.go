@@ -38,7 +38,7 @@ func TestDevMode(t *testing.T) {
 			if !b {
 				t.Error("test parameter, got false, want true")
 			}
-			w.SetCookie(safehttp.NewCookie("test", "insecure"))
+			w.AddCookie(safehttp.NewCookie("test", "insecure"))
 			return w.Write(safehtml.HTMLEscaped(resp))
 		}))
 		mux := cfg.Mux()

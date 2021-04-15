@@ -89,7 +89,7 @@ func (it *Interceptor) addTokenCookie(w safehttp.ResponseHeadersWriter) error {
 	// running on the same domain.
 	c.DisableHTTPOnly()
 
-	return w.SetCookie(c)
+	return w.AddCookie(c)
 }
 
 // Commit generates a cryptographically secure random cookie on the first state

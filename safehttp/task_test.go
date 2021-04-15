@@ -39,9 +39,9 @@ func TestTaskSetCookie(t *testing.T) {
 	rw := stubResponseWriter(safehttp.DefaultDispatcher{}, testRw)
 
 	c := safehttp.NewCookie("foo", "bar")
-	err := rw.SetCookie(c)
+	err := rw.AddCookie(c)
 	if err != nil {
-		t.Errorf("rw.SetCookie(c) got: %v want: nil", err)
+		t.Errorf("rw.AddCookie(c) got: %v want: nil", err)
 	}
 
 	wantHeaders := map[string][]string{
@@ -57,9 +57,9 @@ func TestTaskSetInvalidCookie(t *testing.T) {
 	rw := stubResponseWriter(safehttp.DefaultDispatcher{}, testRw)
 
 	c := safehttp.NewCookie("f=oo", "bar")
-	err := rw.SetCookie(c)
+	err := rw.AddCookie(c)
 	if err == nil {
-		t.Error("rw.SetCookie(c) got: nil want: error")
+		t.Error("rw.AddCookie(c) got: nil want: error")
 	}
 }
 

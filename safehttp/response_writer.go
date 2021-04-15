@@ -51,8 +51,8 @@ type ResponseHeadersWriter interface {
 	// response (e.g. Write, WriteTemplate).
 	Header() Header
 
-	// SetCookie adds a Set-Cookie header to the provided ResponseWriter's headers.
+	// AddCookie adds a Set-Cookie header to the provided ResponseWriter's headers.
 	// The provided cookie must have a valid Name, otherwise an error will be
 	// returned.
-	SetCookie(c *Cookie) error
+	AddCookie(c *Cookie) error
 }
