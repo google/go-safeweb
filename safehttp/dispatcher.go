@@ -24,7 +24,10 @@ import "net/http"
 type Dispatcher interface {
 	// Write writes a Response to the underlying http.ResponseWriter.
 	//
-	// Write is responsible for setting the Content-Type response header.
+	// Write is responsible for setting the Content-Type response header. If the
+	// Dispatcher doesn't set the HTTP response status code, the default
+	// behavior of http.ResponseWriter applies (i.e. 200 OK is set on first
+	// Write).
 	//
 	// It should return an error if the writing operation fails or if the
 	// provided Response should not be written to the http.ResponseWriter
@@ -33,7 +36,8 @@ type Dispatcher interface {
 
 	// Error writes an ErrorResponse to the underlying http.ResponseWriter.
 	//
-	// Error is responsible for setting the Content-Type response header.
+	// Error is responsible for setting the Content-Type response header and the
+	// HTTP response status code.
 	//
 	// It should return an error if the writing operation fails or if the
 	// provided Response should not be written to the http.ResponseWriter
