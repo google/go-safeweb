@@ -106,17 +106,6 @@ func (f *flight) Write(resp Response) Result {
 	f.written = true
 	f.commitPhase(resp)
 
-	ct, err := f.cfg.Dispatcher.ContentType(resp)
-	if err != nil {
-		panic(err)
-	}
-	f.rw.Header().Set("Content-Type", ct)
-
-	if f.code == 0 {
-		f.code = StatusOK
-	}
-	f.rw.WriteHeader(int(f.code))
-
 	if err := f.cfg.Dispatcher.Write(f.rw, resp); err != nil {
 		panic(err)
 	}
@@ -148,7 +137,6 @@ func (f *flight) WriteError(resp ErrorResponse) Result {
 	}
 	f.written = true
 	f.commitPhase(resp)
-	f.rw.WriteHeader(int(resp.Code()))
 	if err := f.cfg.Dispatcher.Error(f.rw, resp); err != nil {
 		panic(err)
 	}
@@ -183,25 +171,6 @@ func (f *flight) Header() Header {
 // TODO: should this be named AddCookie?
 func (f *flight) SetCookie(c *Cookie) error {
 	return f.header.addCookie(c)
-}
-
-// SetCode allows setting a response status. If the response was already
-// written, trying to set the status code will have no effect. This method will
-// panic if an invalid status code is passed (i.e. not in the range 1XX-5XX).
-//
-// If SetCode was called before NoContent, Redirect or WriteError, the status
-// code set by the latter will be the actual response status.
-//
-// TODO(empijei@, kele@, maramihali@): decide what should be done if the
-// code passed is either 3XX (redirect) or 4XX-5XX (client/server error).
-func (f *flight) SetCode(code StatusCode) {
-	if f.written {
-		return
-	}
-	if code < 100 || code >= 600 {
-		panic("invalid status code")
-	}
-	f.code = code
 }
 
 // commitPhase calls the Commit phases of all the interceptors. This stage will
