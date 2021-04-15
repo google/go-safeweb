@@ -62,7 +62,7 @@ func TestFileServerEmbed(t *testing.T) {
 		},
 	}
 
-	mb := &safehttp.ServeMuxConfig{}
+	mb := safehttp.NewServeMuxConfig(nil)
 	mb.Handle("/", safehttp.MethodGet, safehttp.FileServerEmbed(testEmbeddedFS))
 	m := mb.Mux()
 
