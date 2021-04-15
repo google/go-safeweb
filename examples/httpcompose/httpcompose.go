@@ -64,7 +64,7 @@ func main() {
 
 	mc := safehttp.NewServeMuxConfig(nil)
 	// Generate http.Handler using a safehttp.ServeMuxConfig.
-	httpHandlerFromSafehttp := mc.HttpHandlerForTransition(safehttp.MethodGet, safehttp.HandlerFunc(safehttpHandler))
+	httpHandlerFromSafehttp := mc.StdHandler(safehttp.MethodGet, safehttp.HandlerFunc(safehttpHandler))
 	// Note: no mux generation through Mux() call.
 
 	http.HandleFunc("/foo", fooHandleFunc)

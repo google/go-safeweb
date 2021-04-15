@@ -72,37 +72,36 @@ type ServeMux struct {
 }
 
 func registerHandlers(mux *http.ServeMux, handlers map[string]map[string]*handlerConfig) {
-	for pattern, methodToHandlerConfigMap := range handlers {
-		httpHandler := generateHttpHandlerFunc(methodToHandlerConfigMap)
-		mux.HandleFunc(pattern, httpHandler)
+	for pattern, methodToHandlerConfig := range handlers {
+		httpHandler := stdHandler(methodToHandlerConfig)
+		mux.Handle(pattern, httpHandler)
 	}
 }
 
-// generateHttpHandlerFunc converts a handlerConfig to a classic http.HandlerFunc.
-// We need to have this map because http.Handle handles requests for any HTTP request method per default,
+// stdHandler create a http.Handler using a handlerConfig.
+// The handlerConfig map is needed because http.Handle handles requests for any HTTP request method,
 // which we want to avoid in safehttp.
-func generateHttpHandlerFunc(methodToHandlerConfig map[string]*handlerConfig) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func stdHandler(methodToHandlerConfig map[string]*handlerConfig) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		cfg, ok := methodToHandlerConfig[r.Method]
 		if !ok {
 			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 			return
 		}
 		processRequest(cfg, w, r)
-	}
+	})
 }
 
-// HttpHandlerForTransition generates a classic http.Handler using its ServeMuxConfig
-// (i.e. already installed Interceptors etc).
+// StdHandler creates an http.Handler using the ServeMuxConfig
+// (i.e. using already installed Interceptors etc).
 // This is intended to be used during transition from using the http package to safehttp.
-func (s *ServeMuxConfig) HttpHandlerForTransition(method string, handler Handler, cfgs ...InterceptorConfig) http.Handler {
+func (s *ServeMuxConfig) StdHandler(method string, handler Handler, cfgs ...InterceptorConfig) http.Handler {
 	cfg := s.handlerRegistrationToHandlerConfig(&handlerRegistration{
-		pattern: "",
 		method:  method,
 		handler: handler,
 		cfgs:    cfgs,
 	})
-	return generateHttpHandlerFunc(map[string]*handlerConfig{
+	return stdHandler(map[string]*handlerConfig{
 		method: cfg,
 	})
 }
