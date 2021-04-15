@@ -71,18 +71,40 @@ type ServeMux struct {
 	mux *http.ServeMux
 }
 
-func registerHandlers(mux *http.ServeMux, handlers map[string]map[string]handlerConfig) {
-	for pattern, handlersPerMethod := range handlers {
-		handlersPerMethod := handlersPerMethod
-		mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
-			cfg, ok := handlersPerMethod[r.Method]
-			if !ok {
-				http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-				return
-			}
-			processRequest(cfg, w, r)
-		})
+func registerHandlers(mux *http.ServeMux, handlers map[string]map[string]*handlerConfig) {
+	for pattern, methodToHandlerConfigMap := range handlers {
+		httpHandler := generateHttpHandlerFunc(methodToHandlerConfigMap)
+		mux.HandleFunc(pattern, httpHandler)
 	}
+}
+
+// generateHttpHandlerFunc converts a handlerConfig to a classic http.HandlerFunc.
+// We need to have this map because http.Handle handles requests for any HTTP request method per default,
+// which we want to avoid in safehttp.
+func generateHttpHandlerFunc(methodToHandlerConfig map[string]*handlerConfig) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cfg, ok := methodToHandlerConfig[r.Method]
+		if !ok {
+			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+			return
+		}
+		processRequest(cfg, w, r)
+	}
+}
+
+// HttpHandlerForTransition generates a classic http.Handler using its ServeMuxConfig
+// (i.e. already installed Interceptors etc).
+// This is intended to be used during transition from using the http package to safehttp.
+func (s *ServeMuxConfig) HttpHandlerForTransition(method string, handler Handler, cfgs ...InterceptorConfig) http.Handler {
+	cfg := s.handlerRegistrationToHandlerConfig(&handlerRegistration{
+		pattern: "",
+		method:  method,
+		handler: handler,
+		cfgs:    cfgs,
+	})
+	return generateHttpHandlerFunc(map[string]*handlerConfig{
+		method: cfg,
+	})
 }
 
 // ServeHTTP dispatches the request to the handler whose method matches the
@@ -141,6 +163,12 @@ type handlerRegistration struct {
 // multiple configurations are passed for the same Interceptor, only the first
 // one will take effect.
 func (s *ServeMuxConfig) Handle(pattern string, method string, h Handler, cfgs ...InterceptorConfig) {
+	// check for duplicate handlers
+	for _, hr := range s.handlers {
+		if hr.pattern == pattern && hr.method == method {
+			panic(fmt.Sprintf("double registration of (pattern = %q, method = %q)", hr.pattern, hr.method))
+		}
+	}
 	s.handlers = append(s.handlers, handlerRegistration{
 		pattern: pattern,
 		method:  method,
@@ -167,25 +195,24 @@ func (s *ServeMuxConfig) Mux() *ServeMux {
 		panic("Use NewServeMuxConfig instead of creating ServeMuxConfig using a composite literal.")
 	}
 	// pattern -> method -> handlerConfig
-	handlers := map[string]map[string]handlerConfig{}
+	handlers := make(map[string]map[string]*handlerConfig)
 	for _, hr := range s.handlers {
 		if handlers[hr.pattern] == nil {
-			handlers[hr.pattern] = map[string]handlerConfig{}
+			handlers[hr.pattern] = make(map[string]*handlerConfig)
 		}
-		if _, ok := handlers[hr.pattern][hr.method]; ok {
-			// TODO: this should be done in ServeMuxConfig.Handle, not here.
-			panic(fmt.Sprintf("double registration of (pattern = %q, method = %q)", hr.pattern, hr.method))
-		}
-		handlers[hr.pattern][hr.method] =
-			handlerConfig{
-				Dispatcher:   s.dispatcher,
-				Handler:      hr.handler,
-				Interceptors: configureInterceptors(s.interceptors, hr.cfgs),
-			}
+		handlers[hr.pattern][hr.method] = s.handlerRegistrationToHandlerConfig(&hr)
 	}
 	m := http.NewServeMux()
 	registerHandlers(m, handlers)
 	return &ServeMux{mux: m}
+}
+
+func (s *ServeMuxConfig) handlerRegistrationToHandlerConfig(hr *handlerRegistration) *handlerConfig {
+	return &handlerConfig{
+		Dispatcher:   s.dispatcher,
+		Handler:      hr.handler,
+		Interceptors: configureInterceptors(s.interceptors, hr.cfgs),
+	}
 }
 
 func configureInterceptors(interceptors []Interceptor, cfgs []InterceptorConfig) []configuredInterceptor {

@@ -24,7 +24,7 @@ type flight struct {
 	rw  http.ResponseWriter
 	req *IncomingRequest
 
-	cfg handlerConfig
+	cfg *handlerConfig
 
 	code   StatusCode
 	header Header
@@ -48,7 +48,7 @@ func DeprecatedNewResponseWriter(rw http.ResponseWriter, dispatcher Dispatcher) 
 		dispatcher = DefaultDispatcher{}
 	}
 	return &flight{
-		cfg:    handlerConfig{Dispatcher: dispatcher},
+		cfg:    &handlerConfig{Dispatcher: dispatcher},
 		rw:     rw,
 		header: newHeader(rw.Header()),
 	}
@@ -62,7 +62,7 @@ type handlerConfig struct {
 	Interceptors []configuredInterceptor
 }
 
-func processRequest(cfg handlerConfig, rw http.ResponseWriter, req *http.Request) {
+func processRequest(cfg *handlerConfig, rw http.ResponseWriter, req *http.Request) {
 	f := &flight{
 		cfg:    cfg,
 		rw:     rw,
