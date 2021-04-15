@@ -71,14 +71,13 @@ type ServeMux struct {
 	mux *http.ServeMux
 }
 
-func registerHandlers(mux *http.ServeMux, handlers map[string]map[string]handlerConfig) {
+func registerHandlers(mux *http.ServeMux, handlers map[string]map[string]handlerConfig, methodNotAllowed handlerConfig) {
 	for pattern, handlersPerMethod := range handlers {
 		handlersPerMethod := handlersPerMethod
 		mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 			cfg, ok := handlersPerMethod[r.Method]
 			if !ok {
-				http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
-				return
+				cfg = methodNotAllowed
 			}
 			processRequest(cfg, w, r)
 		})
@@ -111,9 +110,10 @@ func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // ServeMuxConfig is a builder for ServeMux.
 type ServeMuxConfig struct {
-	dispatcher   Dispatcher
-	handlers     []handlerRegistration
-	interceptors []Interceptor
+	dispatcher              Dispatcher
+	handlers                []handlerRegistration
+	interceptors            []Interceptor
+	methodNotAllowedHandler handlerRegistration
 }
 
 // NewServeMuxConfig crates a ServeMuxConfig with the provided Dispatcher. If
@@ -122,7 +122,12 @@ func NewServeMuxConfig(disp Dispatcher) *ServeMuxConfig {
 	if disp == nil {
 		disp = &DefaultDispatcher{}
 	}
-	return &ServeMuxConfig{dispatcher: disp}
+	return &ServeMuxConfig{
+		dispatcher: disp,
+		methodNotAllowedHandler: handlerRegistration{
+			handler: HandlerFunc(defaultMethotNotAllowed),
+		},
+	}
 }
 
 type handlerRegistration struct {
@@ -147,6 +152,19 @@ func (s *ServeMuxConfig) Handle(pattern string, method string, h Handler, cfgs .
 		handler: h,
 		cfgs:    cfgs,
 	})
+}
+
+// HandleMethodNotAllowed registers a handler that runs when a given method is
+// not allowed for a registered path.
+func (s *ServeMuxConfig) HandleMethodNotAllowed(h Handler, cfgs ...InterceptorConfig) {
+	s.methodNotAllowedHandler = handlerRegistration{
+		handler: h,
+		cfgs:    cfgs,
+	}
+}
+
+func defaultMethotNotAllowed(w ResponseWriter, req *IncomingRequest) Result {
+	return w.WriteError(StatusMethodNotAllowed)
 }
 
 // Intercept installs an Interceptor.
@@ -183,8 +201,13 @@ func (s *ServeMuxConfig) Mux() *ServeMux {
 				Interceptors: configureInterceptors(s.interceptors, hr.cfgs),
 			}
 	}
+	methodNotAllowed := handlerConfig{
+		Dispatcher:   s.dispatcher,
+		Handler:      s.methodNotAllowedHandler.handler,
+		Interceptors: configureInterceptors(s.interceptors, s.methodNotAllowedHandler.cfgs),
+	}
 	m := http.NewServeMux()
-	registerHandlers(m, handlers)
+	registerHandlers(m, handlers, methodNotAllowed)
 	return &ServeMux{mux: m}
 }
 
