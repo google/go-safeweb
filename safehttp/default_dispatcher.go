@@ -80,15 +80,8 @@ func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 	}
 }
 
-// Error writes the error response to the http.ResponseWriter if it's deemed
-// safe. It returns a non-nil error if the response is deemed unsafe or if the
-// writing operation fails.
+// Error writes the error response to the http.ResponseWriter.
 func (DefaultDispatcher) Error(rw http.ResponseWriter, resp ErrorResponse) error {
-	switch x := resp.(type) {
-	case StatusCode:
-		http.Error(rw, http.StatusText(int(x.Code())), int(x.Code()))
-		return nil
-	default:
-		return fmt.Errorf("%T is not a safe response type and it cannot be written", resp)
-	}
+	WriteTextError(rw, resp)
+	return nil
 }

@@ -39,8 +39,13 @@ type Dispatcher interface {
 	// Error is responsible for setting the Content-Type response header and the
 	// HTTP response status code.
 	//
-	// It should return an error if the writing operation fails or if the
-	// provided Response should not be written to the http.ResponseWriter
-	// because it's unsafe.
+	// It should return an error if the writing operation fails.
+	//
+	// Error should always attempt to write a response, no matter what is the
+	// underlying type of resp. As a fallback, the Dispatcher can use WriteTextError.
 	Error(rw http.ResponseWriter, resp ErrorResponse) error
+}
+
+func WriteTextError(rw http.ResponseWriter, resp ErrorResponse) {
+	http.Error(rw, http.StatusText(int(resp.Code())), int(resp.Code()))
 }
