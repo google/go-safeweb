@@ -43,6 +43,8 @@ type myDispatcher struct {
 
 func (m myDispatcher) Error(rw http.ResponseWriter, resp safehttp.ErrorResponse) error {
 	if x, ok := resp.(myError); ok {
+		rw.Header().Set("Content-Type", "text/html; charset=utf-8")
+		rw.WriteHeader(int(x.StatusCode))
 		return myErrorTmpl.Execute(rw, x)
 	}
 	return m.DefaultDispatcher.Error(rw, resp)

@@ -55,12 +55,4 @@ type ResponseHeadersWriter interface {
 	// The provided cookie must have a valid Name, otherwise an error will be
 	// returned.
 	SetCookie(c *Cookie) error
-
-	// SetCode allows setting a response status. If the response was already
-	// written, trying to set the status code will have no effect. This method will
-	// panic if an invalid status code is passed (i.e. not in the range 1XX-5XX).
-	//
-	// If SetCode was called before NoContent, Redirect or WriteError, the status
-	// code set by the latter will be the actual response status.
-	SetCode(code StatusCode)
 }

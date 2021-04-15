@@ -27,27 +27,6 @@ import (
 // DefaultDispatcher is responsible for writing safe responses.
 type DefaultDispatcher struct{}
 
-// ContentType returns the Content-Type of a response if it's deemed safe and
-// an error otherwise.
-func (DefaultDispatcher) ContentType(resp Response) (string, error) {
-	switch x := resp.(type) {
-	case safehtml.HTML:
-		return "text/html; charset=utf-8", nil
-	case *TemplateResponse:
-		_, ok := (x.Template).(*template.Template)
-		if !ok {
-			return "", fmt.Errorf("%T is not a safe response type, a Content-Type cannot be provided", resp)
-		}
-		return "text/html; charset=utf-8", nil
-	case JSONResponse:
-		return "application/json; charset=utf-8", nil
-	case FileServerResponse:
-		return x.ContentType(), nil
-	default:
-		return "", fmt.Errorf("%T is not a safe response type, a Content-Type cannot be provided", resp)
-	}
-}
-
 // Write writes the response to the http.ResponseWriter if it's deemed safe. It
 // returns a non-nil error if the response is deemed unsafe or if the writing
 // operation fails.
@@ -62,6 +41,7 @@ func (DefaultDispatcher) ContentType(resp Response) (string, error) {
 func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 	switch x := resp.(type) {
 	case JSONResponse:
+		rw.Header().Set("Content-Type", "application/json; charset=utf-8")
 		io.WriteString(rw, ")]}',\n") // Break parsing of JavaScript in order to prevent XSSI.
 		return json.NewEncoder(rw).Encode(x.Data)
 	case *TemplateResponse:
@@ -69,6 +49,7 @@ func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 		if !ok {
 			return fmt.Errorf("%T is not a safe template and it cannot be parsed and written", t)
 		}
+		rw.Header().Set("Content-Type", "text/html; charset=utf-8")
 		if len(x.FuncMap) == 0 {
 			if x.Name == "" {
 				return t.Execute(rw, x.Data)
@@ -87,9 +68,11 @@ func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 			return cloned.ExecuteTemplate(rw, x.Name, x.Data)
 		}
 	case safehtml.HTML:
+		rw.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_, err := io.WriteString(rw, x.String())
 		return err
 	case FileServerResponse:
+		rw.Header().Set("Content-Type", x.ContentType())
 		// The http package will take care of writing the file body.
 		return nil
 	default:
