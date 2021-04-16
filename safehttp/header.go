@@ -28,7 +28,11 @@ type Header struct {
 	claimed map[string]bool
 }
 
-func newHeader(h http.Header) Header {
+// NewHeader creates a new Header.
+func NewHeader(h http.Header) Header {
+	if h == nil {
+		h = http.Header{}
+	}
 	return Header{
 		wrapped: h,
 		claimed: map[string]bool{},

@@ -125,7 +125,7 @@ func TestValidReport(t *testing.T) {
 					"sourceFile": "stuff.js",
 					"lineNumber": 10,
 					"columnNumber": 17
-				}	
+				}
 			}]`,
 			want: []collector.Report{
 				collector.Report{
@@ -164,20 +164,20 @@ func TestValidReport(t *testing.T) {
 			req := safehttptest.NewRequest(safehttp.MethodPost, "/collector", strings.NewReader(tt.report))
 			req.Header.Set("Content-Type", "application/reports+json")
 
-			rr := safehttptest.NewResponseRecorder()
-			h.ServeHTTP(rr.ResponseWriter, req)
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
+			h.ServeHTTP(fakeRW, req)
 
 			if diff := cmp.Diff(tt.want, gotReports); diff != "" {
 				t.Errorf("reports gotten mismatch (-want +got):\n%s", diff)
 			}
 
-			if got, want := rr.Status(), safehttp.StatusNoContent; got != want {
-				t.Errorf("rr.Status() got: %v want: %v", got, want)
+			if got, want := rr.Code, int(safehttp.StatusNoContent); got != want {
+				t.Errorf("rr.Code got: %v want: %v", got, want)
 			}
 			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rr.Header())); diff != "" {
 				t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
 			}
-			if got, want := rr.Body(), ""; got != want {
+			if got, want := rr.Body.String(), ""; got != want {
 				t.Errorf("rr.Body() got: %q want: %q", got, want)
 			}
 		})
@@ -302,16 +302,16 @@ func TestValidDeprecatedCSPReport(t *testing.T) {
 			req := safehttptest.NewRequest(safehttp.MethodPost, "/collector", strings.NewReader(tt.report))
 			req.Header.Set("Content-Type", "application/csp-report")
 
-			rr := safehttptest.NewResponseRecorder()
-			h.ServeHTTP(rr.ResponseWriter, req)
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
+			h.ServeHTTP(fakeRW, req)
 
-			if got, want := rr.Status(), safehttp.StatusNoContent; got != want {
-				t.Errorf("rr.Status() got: %v want: %v", got, want)
+			if got, want := rr.Code, int(safehttp.StatusNoContent); got != want {
+				t.Errorf("rr.Code got: %v want: %v", got, want)
 			}
 			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rr.Header())); diff != "" {
 				t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
 			}
-			if got, want := rr.Body(), ""; got != want {
+			if got, want := rr.Body.String(), ""; got != want {
 				t.Errorf("rr.Body() got: %q want: %q", got, want)
 			}
 		})
@@ -444,17 +444,14 @@ func TestInvalidRequest(t *testing.T) {
 				t.Errorf("expected collector not to be called")
 			})
 
-			rr := safehttptest.NewResponseRecorder()
-			h.ServeHTTP(rr.ResponseWriter, tt.req)
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
+			h.ServeHTTP(fakeRW, tt.req)
 
-			if got := rr.Status(); got != tt.wantStatus {
-				t.Errorf("rr.Status() got: %v want: %v", got, tt.wantStatus)
+			if got, want := rr.Code, int(tt.wantStatus); got != want {
+				t.Errorf("rr.Code got: %v want: %v", got, want)
 			}
-			if diff := cmp.Diff(tt.wantHeaders, map[string][]string(rr.Header())); diff != "" {
+			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rr.Header())); diff != "" {
 				t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
-			}
-			if got := rr.Body(); got != tt.wantBody {
-				t.Errorf("rr.Body() got: %q want: %q", got, tt.wantBody)
 			}
 		})
 	}

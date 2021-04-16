@@ -49,7 +49,7 @@ func NewIncomingRequest(req *http.Request) *IncomingRequest {
 	}
 	return &IncomingRequest{
 		req:    req,
-		Header: newHeader(req.Header),
+		Header: NewHeader(req.Header),
 		TLS:    req.TLS,
 		URL:    &URL{url: req.URL},
 	}

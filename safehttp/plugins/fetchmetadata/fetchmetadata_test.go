@@ -166,19 +166,19 @@ func TestAllowedResourceIsolationEnforceMode(t *testing.T) {
 			req.Header.Add("Sec-Fetch-Site", test.site)
 			req.Header.Add("Sec-Fetch-Mode", test.mode)
 			req.Header.Add("Sec-Fetch-Dest", test.dest)
-			rec := safehttptest.NewResponseRecorder()
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
 
 			p := fetchmetadata.NewInterceptor()
-			p.Before(rec.ResponseWriter, req, nil)
+			p.Before(fakeRW, req, nil)
 
-			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); got != want {
-				t.Errorf("rec.Status() got: %v want: %v", got, want)
+			if want, got := int(safehttp.StatusOK), rr.Code; got != want {
+				t.Errorf("rr.Code got: %v want: %v", got, want)
 			}
-			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
-				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
+			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rr.Header())); diff != "" {
+				t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
 			}
-			if want, got := "", rec.Body(); got != want {
-				t.Errorf("rec.Body() got: %q want: %q", got, want)
+			if want, got := "", rr.Body.String(); got != want {
+				t.Errorf("rr.Body.String() got: %q want: %q", got, want)
 			}
 		})
 	}
@@ -192,23 +192,13 @@ func TestRejectedResourceIsolationEnforceMode(t *testing.T) {
 			req.Header.Add("Sec-Fetch-Site", test.site)
 			req.Header.Add("Sec-Fetch-Mode", test.mode)
 			req.Header.Add("Sec-Fetch-Dest", test.dest)
-			rec := safehttptest.NewResponseRecorder()
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
 
 			p := fetchmetadata.NewInterceptor()
-			p.Before(rec.ResponseWriter, req, nil)
+			p.Before(fakeRW, req, nil)
 
-			if want, got := safehttp.StatusForbidden, safehttp.StatusCode(rec.Status()); want != got {
-				t.Errorf("rec.Status() got: %v want: %v", got, want)
-			}
-			wantHeaders := map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			}
-			if diff := cmp.Diff(wantHeaders, map[string][]string(rec.Header())); diff != "" {
-				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
-			}
-			if want, got := "Forbidden\n", rec.Body(); got != want {
-				t.Errorf("rec.Body() got: %q want: %q", got, want)
+			if want, got := safehttp.StatusForbidden, safehttp.StatusCode(rr.Code); want != got {
+				t.Errorf("rr.Code got: %v want: %v", got, want)
 			}
 		})
 	}
@@ -244,25 +234,15 @@ func TestRejectedResourceIsolationEnforceModeWithLogger(t *testing.T) {
 			req.Header.Add("Sec-Fetch-Site", test.site)
 			req.Header.Add("Sec-Fetch-Mode", test.mode)
 			req.Header.Add("Sec-Fetch-Dest", test.dest)
-			rec := safehttptest.NewResponseRecorder()
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
 
 			p := fetchmetadata.NewInterceptor()
 			logger := &methodLogger{}
 			p.Logger = logger
-			p.Before(rec.ResponseWriter, req, nil)
+			p.Before(fakeRW, req, nil)
 
-			if want, got := safehttp.StatusForbidden, safehttp.StatusCode(rec.Status()); want != got {
-				t.Errorf("rec.Status() got: %v want: %v", got, want)
-			}
-			wantHeaders := map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			}
-			if diff := cmp.Diff(wantHeaders, map[string][]string(rec.Header())); diff != "" {
-				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
-			}
-			if want, got := "Forbidden\n", rec.Body(); got != want {
-				t.Errorf("rec.Body() got: %q want: %q", got, want)
+			if want, got := safehttp.StatusForbidden, safehttp.StatusCode(rr.Code); want != got {
+				t.Errorf("rr.Code got: %v want: %v", got, want)
 			}
 			if test.report != logger.report {
 				t.Errorf("logger.report: got %s, want %s", logger.report, test.report)
@@ -299,22 +279,22 @@ func TestResourceIsolationReportMode(t *testing.T) {
 			req.Header.Add("Sec-Fetch-Site", test.site)
 			req.Header.Add("Sec-Fetch-Mode", test.mode)
 			req.Header.Add("Sec-Fetch-Dest", test.dest)
-			rec := safehttptest.NewResponseRecorder()
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
 
 			p := fetchmetadata.NewInterceptor()
 			logger := &methodLogger{}
 			p.Logger = logger
 			p.SetReportOnly()
-			p.Before(rec.ResponseWriter, req, nil)
+			p.Before(fakeRW, req, nil)
 
-			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); got != want {
-				t.Errorf("rec.Status() got: %v want: %v", got, want)
+			if want, got := safehttp.StatusOK, safehttp.StatusCode(rr.Code); got != want {
+				t.Errorf("rr.Code got: %v want: %v", got, want)
 			}
-			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
-				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
+			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rr.Header())); diff != "" {
+				t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
 			}
-			if want, got := "", rec.Body(); got != want {
-				t.Errorf("rec.Body() got: %q want: %q", got, want)
+			if want, got := "", rr.Body.String(); got != want {
+				t.Errorf("rr.Body.String() got: %q want: %q", got, want)
 			}
 			if logger.report != test.report {
 				t.Errorf("logger.report: got %s, want %s", logger.report, test.report)
@@ -342,24 +322,14 @@ func TestNavIsolationEnforceMode(t *testing.T) {
 			req.Header.Add("Sec-Fetch-Site", test.site)
 			req.Header.Add("Sec-Fetch-Mode", test.mode)
 			req.Header.Add("Sec-Fetch-Dest", test.dest)
-			rec := safehttptest.NewResponseRecorder()
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
 
 			p := fetchmetadata.NewInterceptor()
 			p.NavIsolation = true
-			p.Before(rec.ResponseWriter, req, nil)
+			p.Before(fakeRW, req, nil)
 
-			if want, got := safehttp.StatusForbidden, safehttp.StatusCode(rec.Status()); want != got {
-				t.Errorf("rec.Status() got: %v want: %v", got, want)
-			}
-			wantHeaders := map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			}
-			if diff := cmp.Diff(wantHeaders, map[string][]string(rec.Header())); diff != "" {
-				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
-			}
-			if want, got := "Forbidden\n", rec.Body(); got != want {
-				t.Errorf("rec.Body() got: %q want: %q", got, want)
+			if want, got := safehttp.StatusForbidden, safehttp.StatusCode(rr.Code); want != got {
+				t.Errorf("rr.Code got: %v want: %v", got, want)
 			}
 		})
 	}
@@ -396,23 +366,23 @@ func TestNavIsolationReportMode(t *testing.T) {
 			req.Header.Add("Sec-Fetch-Site", test.site)
 			req.Header.Add("Sec-Fetch-Mode", test.mode)
 			req.Header.Add("Sec-Fetch-Dest", test.dest)
-			rec := safehttptest.NewResponseRecorder()
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
 
 			p := fetchmetadata.NewInterceptor()
 			logger := &methodLogger{}
 			p.Logger = logger
 			p.NavIsolation = true
 			p.SetReportOnly()
-			p.Before(rec.ResponseWriter, req, nil)
+			p.Before(fakeRW, req, nil)
 
-			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); want != got {
-				t.Errorf("rec.Status() got: %v want: %v", got, want)
+			if want, got := safehttp.StatusOK, safehttp.StatusCode(rr.Code); want != got {
+				t.Errorf("rr.Code got: %v want: %v", got, want)
 			}
-			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
-				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
+			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rr.Header())); diff != "" {
+				t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
 			}
-			if want, got := "", rec.Body(); got != want {
-				t.Errorf("rec.Body() got: %q want: %q", got, want)
+			if want, got := "", rr.Body.String(); got != want {
+				t.Errorf("rr.Body.String() got: %q want: %q", got, want)
 			}
 			if logger.report != test.report {
 				t.Errorf("logger.report: got %s, want %s", logger.report, test.report)
@@ -429,19 +399,19 @@ func TestCORSEndpoint(t *testing.T) {
 			req.Header.Add("Sec-Fetch-Site", test.site)
 			req.Header.Add("Sec-Fetch-Mode", test.mode)
 			req.Header.Add("Sec-Fetch-Dest", test.dest)
-			rec := safehttptest.NewResponseRecorder()
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
 
 			p := fetchmetadata.NewInterceptor("/carbonara")
-			p.Before(rec.ResponseWriter, req, nil)
+			p.Before(fakeRW, req, nil)
 
-			if want, got := safehttp.StatusOK, safehttp.StatusCode(rec.Status()); got != want {
-				t.Errorf("rec.Status() got: %v want: %v", got, want)
+			if want, got := safehttp.StatusOK, safehttp.StatusCode(rr.Code); got != want {
+				t.Errorf("rr.Code got: %v want: %v", got, want)
 			}
-			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
-				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
+			if diff := cmp.Diff(map[string][]string{}, map[string][]string(rr.Header())); diff != "" {
+				t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
 			}
-			if want, got := "", rec.Body(); got != want {
-				t.Errorf("rec.Body() got: %q want: %q", got, want)
+			if want, got := "", rr.Body.String(); got != want {
+				t.Errorf("rr.Body.String() got: %q want: %q", got, want)
 			}
 		})
 	}
@@ -450,8 +420,6 @@ func TestCORSEndpoint(t *testing.T) {
 func TestCORSAfterRedirect(t *testing.T) {
 	tests := []struct {
 		name, method, site, mode, dest string
-		wantHeaders                    map[string][]string
-		wantBody                       string
 	}{
 		{
 			name:   "cross origin POST",
@@ -459,10 +427,6 @@ func TestCORSAfterRedirect(t *testing.T) {
 			site:   "cross-site",
 			mode:   "navigate",
 			dest:   "document",
-			wantHeaders: map[string][]string{
-				"Location": {"https://spaghetti.com/carbonara"},
-			},
-			wantBody: "",
 		},
 		{
 			name:   "cross origin GET from object",
@@ -470,11 +434,6 @@ func TestCORSAfterRedirect(t *testing.T) {
 			site:   "cross-site",
 			mode:   "navigate",
 			dest:   "object",
-			wantHeaders: map[string][]string{
-				"Content-Type": {"text/html; charset=utf-8"},
-				"Location":     {"https://spaghetti.com/carbonara"},
-			},
-			wantBody: "<a href=\"https://spaghetti.com/carbonara\">Moved Permanently</a>.\n\n",
 		},
 		{
 			name:   "cross origin HEAD from embed",
@@ -482,11 +441,6 @@ func TestCORSAfterRedirect(t *testing.T) {
 			site:   "cross-site",
 			mode:   "navigate",
 			dest:   "embed",
-			wantHeaders: map[string][]string{
-				"Content-Type": {"text/html; charset=utf-8"},
-				"Location":     {"https://spaghetti.com/carbonara"},
-			},
-			wantBody: "",
 		},
 	}
 	for _, test := range tests {
@@ -495,21 +449,18 @@ func TestCORSAfterRedirect(t *testing.T) {
 			req.Header.Add("Sec-Fetch-Site", test.site)
 			req.Header.Add("Sec-Fetch-Mode", test.mode)
 			req.Header.Add("Sec-Fetch-Dest", test.dest)
-			rec := safehttptest.NewResponseRecorder()
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
 
 			p := fetchmetadata.NewInterceptor("/carbonara")
 			p.NavIsolation = true
 			p.RedirectURL, _ = safehttp.ParseURL("https://spaghetti.com/carbonara")
-			p.Before(rec.ResponseWriter, req, nil)
+			p.Before(fakeRW, req, nil)
 
-			if want, got := safehttp.StatusMovedPermanently, safehttp.StatusCode(rec.Status()); got != want {
-				t.Errorf("rec.Status() got: %v want: %v", got, want)
+			if want, got := safehttp.StatusMovedPermanently, safehttp.StatusCode(rr.Code); got != want {
+				t.Errorf("rr.Code got: %v want: %v", got, want)
 			}
-			if diff := cmp.Diff(test.wantHeaders, map[string][]string(rec.Header())); diff != "" {
-				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
-			}
-			if gotBody := rec.Body(); test.wantBody != gotBody {
-				t.Errorf("rec.Body() got: %q want: %q", gotBody, test.wantBody)
+			if got, want := fakeRW.RedirectURL, "https://spaghetti.com/carbonara"; got != want {
+				t.Errorf("RedirectURL got %q, want %q", got, want)
 			}
 		})
 	}

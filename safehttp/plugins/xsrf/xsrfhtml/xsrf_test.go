@@ -18,7 +18,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/safehttptest"
 	"golang.org/x/net/xsrftoken"
@@ -26,39 +25,26 @@ import (
 
 var (
 	formTokenTests = []struct {
-		name, cookieVal, actionID, wantBody string
-		wantStatus                          safehttp.StatusCode
-		wantHeader                          map[string][]string
+		name, cookieVal, actionID string
+		wantStatus                safehttp.StatusCode
 	}{
 		{
 			name:       "Valid token",
 			cookieVal:  "abcdef",
 			actionID:   "/pizza",
 			wantStatus: safehttp.StatusOK,
-			wantHeader: map[string][]string{},
-			wantBody:   "",
 		},
 		{
 			name:       "Invalid actionID in token generation",
 			cookieVal:  "abcdef",
 			actionID:   "/spaghetti",
 			wantStatus: safehttp.StatusForbidden,
-			wantHeader: map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			},
-			wantBody: "Forbidden\n",
 		},
 		{
 			name:       "Invalid cookie value in token generation",
 			cookieVal:  "evilvalue",
 			actionID:   "/pizza",
 			wantStatus: safehttp.StatusForbidden,
-			wantHeader: map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			},
-			wantBody: "Forbidden\n",
 		},
 	}
 )
@@ -66,23 +52,17 @@ var (
 func TestTokenPost(t *testing.T) {
 	for _, test := range formTokenTests {
 		t.Run(test.name, func(t *testing.T) {
-			rec := safehttptest.NewResponseRecorder()
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
 			tok := xsrftoken.Generate("testSecretAppKey", test.cookieVal, test.actionID)
 			req := safehttptest.NewRequest(safehttp.MethodPost, "https://foo.com/pizza", strings.NewReader(TokenKey+"="+tok))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 			req.Header.Set("Cookie", cookieIDKey+"=abcdef")
 
 			i := Interceptor{SecretAppKey: "testSecretAppKey"}
-			i.Before(rec.ResponseWriter, req, nil)
+			i.Before(fakeRW, req, nil)
 
-			if got := rec.Status(); got != test.wantStatus {
-				t.Errorf("rec.Status(): got %v, want %v", got, test.wantStatus)
-			}
-			if diff := cmp.Diff(test.wantHeader, map[string][]string(rec.Header())); diff != "" {
-				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
-			}
-			if got := rec.Body(); got != test.wantBody {
-				t.Errorf("rec.Body(): got %q want %q", got, test.wantBody)
+			if got := rr.Code; got != int(test.wantStatus) {
+				t.Errorf("rr.Code: got %v, want %v", got, test.wantStatus)
 			}
 		})
 	}
@@ -91,7 +71,7 @@ func TestTokenPost(t *testing.T) {
 func TestTokenMultipart(t *testing.T) {
 	for _, test := range formTokenTests {
 		t.Run(test.name, func(t *testing.T) {
-			rec := safehttptest.NewResponseRecorder()
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
 			tok := xsrftoken.Generate("testSecretAppKey", test.cookieVal, test.actionID)
 			b := "--123\r\n" +
 				"Content-Disposition: form-data; name=\"xsrf-token\"\r\n" +
@@ -103,42 +83,26 @@ func TestTokenMultipart(t *testing.T) {
 			req.Header.Set("Cookie", cookieIDKey+"=abcdef")
 
 			i := Interceptor{SecretAppKey: "testSecretAppKey"}
-			i.Before(rec.ResponseWriter, req, nil)
+			i.Before(fakeRW, req, nil)
 
-			if got := rec.Status(); got != test.wantStatus {
-				t.Errorf("rec.Status(): got %v, want %v", got, test.wantStatus)
-			}
-			if diff := cmp.Diff(test.wantHeader, map[string][]string(rec.Header())); diff != "" {
-				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
-			}
-			if got := rec.Body(); got != test.wantBody {
-				t.Errorf("rec.Body(): got %q want %q", got, test.wantBody)
+			if got := rr.Code; got != int(test.wantStatus) {
+				t.Errorf("rr.Code: got %v, want %v", got, test.wantStatus)
 			}
 		})
 	}
 }
 
 func TestMalformedForm(t *testing.T) {
-	rec := safehttptest.NewResponseRecorder()
+	fakeRW, rr := safehttptest.NewFakeResponseWriter()
 	req := safehttptest.NewRequest(safehttp.MethodPost, "https://foo.com/pizza", nil)
 	req.Header.Set("Content-Type", "wrong")
 	req.Header.Set("Cookie", cookieIDKey+"=abcdef")
 
 	i := Interceptor{SecretAppKey: "testSecretAppKey"}
-	i.Before(rec.ResponseWriter, req, nil)
+	i.Before(fakeRW, req, nil)
 
-	if want, got := safehttp.StatusBadRequest, rec.Status(); got != want {
-		t.Errorf("rec.Status(): got %v, want %v", got, want)
-	}
-	wantHeaders := map[string][]string{
-		"Content-Type":           {"text/plain; charset=utf-8"},
-		"X-Content-Type-Options": {"nosniff"},
-	}
-	if diff := cmp.Diff(wantHeaders, map[string][]string(rec.Header())); diff != "" {
-		t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
-	}
-	if want, got := "Bad Request\n", rec.Body(); got != want {
-		t.Errorf("rec.Body(): got %q want %q", got, want)
+	if want, got := int(safehttp.StatusBadRequest), rr.Code; got != want {
+		t.Errorf("rr.Code: got %v, want %v", got, want)
 	}
 }
 
@@ -196,50 +160,34 @@ func TestMissingTokenInBody(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			rec := safehttptest.NewResponseRecorder()
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
 
 			i := Interceptor{SecretAppKey: "testSecretAppKey"}
-			i.Before(rec.ResponseWriter, test.req, nil)
+			i.Before(fakeRW, test.req, nil)
 
-			if want, got := safehttp.StatusUnauthorized, rec.Status(); got != want {
-				t.Errorf("rec.Status(): got %v, want %v", got, want)
-			}
-			wantHeaders := map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			}
-			if diff := cmp.Diff(wantHeaders, map[string][]string(rec.Header())); diff != "" {
-				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
-			}
-			if want, got := "Unauthorized\n", rec.Body(); got != want {
-				t.Errorf("rec.Body(): got %q want %q", got, want)
+			if want, got := safehttp.StatusUnauthorized, rr.Code; got != int(want) {
+				t.Errorf("rr.Code: got %v, want %v", got, want)
 			}
 		})
 	}
 }
 
 func TestMissingCookieInGetRequest(t *testing.T) {
-	rec := safehttptest.NewResponseRecorder()
+	fakeRW, rr := safehttptest.NewFakeResponseWriter()
 	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
 
 	i := Interceptor{SecretAppKey: "testSecretAppKey"}
-	i.Commit(rec.ResponseWriter, req, nil, nil)
+	i.Commit(fakeRW, req, nil, nil)
 
-	if want, got := safehttp.StatusOK, rec.Status(); want != got {
-		t.Errorf("rec.Status(): got %v, want %v", got, want)
+	if want, got := safehttp.StatusOK, rr.Code; got != int(want) {
+		t.Errorf("rr.Code: got %v, want %v", got, want)
 	}
 
-	tokCookieDefaults := "HttpOnly; Secure; SameSite=Strict"
-	got := map[string][]string(rec.Header())["Set-Cookie"]
-	if len(got) == 0 {
-		t.Error("rec.Header(): expected Set-Cookie header to be set")
+	if len(fakeRW.Cookies) != 1 {
+		t.Errorf("len(Cookies) = %v, want 1", len(fakeRW.Cookies))
 	}
-	if !strings.Contains(got[0], tokCookieDefaults) {
-		t.Errorf("Set-Cookie header: got %s, want defaults %s", got, tokCookieDefaults)
-	}
-
-	if want, got := "", rec.Body(); got != want {
-		t.Errorf("rec.Body(): got %q want %q", got, want)
+	if got, want := fakeRW.Cookies[0].String(), "HttpOnly; Secure; SameSite=Strict"; !strings.Contains(got, want) {
+		t.Errorf("XSRF cookie got %q, want to contain %q", got, want)
 	}
 }
 
@@ -268,14 +216,14 @@ func TestMissingCookieInPostRequest(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			rec := safehttptest.NewResponseRecorder()
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
 			req := safehttptest.NewRequest(safehttp.MethodPost, "/", strings.NewReader("foo=bar"))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-			test.stage(&Interceptor{SecretAppKey: "testSecretAppKey"}, rec.ResponseWriter, req)
+			test.stage(&Interceptor{SecretAppKey: "testSecretAppKey"}, fakeRW, req)
 
-			if gotStatus := rec.Status(); gotStatus != test.wantStatus {
-				t.Errorf("rec.Status(): got %v, want %v", gotStatus, test.wantStatus)
+			if gotStatus := rr.Code; gotStatus != int(test.wantStatus) {
+				t.Errorf("rr.Code: got %v, want %v", gotStatus, test.wantStatus)
 			}
 		})
 	}
@@ -283,12 +231,12 @@ func TestMissingCookieInPostRequest(t *testing.T) {
 }
 
 func TestCommitTokenInResponse(t *testing.T) {
-	rec := safehttptest.NewResponseRecorder()
+	fakeRW, rr := safehttptest.NewFakeResponseWriter()
 	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
 
 	i := Interceptor{SecretAppKey: "testSecretAppKey"}
 	tr := &safehttp.TemplateResponse{}
-	i.Commit(rec.ResponseWriter, req, tr, nil)
+	i.Commit(fakeRW, req, tr, nil)
 
 	tok, ok := tr.FuncMap["XSRFToken"]
 	if !ok {
@@ -303,27 +251,27 @@ func TestCommitTokenInResponse(t *testing.T) {
 		t.Error(`tr.FuncMap["XSRFToken"](): got empty token`, got)
 	}
 
-	if want, got := safehttp.StatusOK, rec.Status(); want != got {
-		t.Errorf("rec.Status(): got %v, want %v", got, want)
+	if want, got := safehttp.StatusOK, rr.Code; got != int(want) {
+		t.Errorf("rr.Code: got %v, want %v", got, want)
 	}
 
-	if want, got := "", rec.Body(); got != want {
-		t.Errorf("rec.Body(): got %q want %q", got, want)
+	if want, got := "", rr.Body.String(); got != want {
+		t.Errorf("rr.Body.String(): got %q want %q", got, want)
 	}
 }
 
 func TestCommitNotTemplateResponse(t *testing.T) {
-	rec := safehttptest.NewResponseRecorder()
+	fakeRW, rr := safehttptest.NewFakeResponseWriter()
 	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
 
 	i := Interceptor{SecretAppKey: "testSecretAppKey"}
-	i.Commit(rec.ResponseWriter, req, safehttp.NoContentResponse{}, nil)
+	i.Commit(fakeRW, req, safehttp.NoContentResponse{}, nil)
 
-	if want, got := safehttp.StatusOK, rec.Status(); want != got {
-		t.Errorf("rec.Status(): got %v, want %v", got, want)
+	if want, got := safehttp.StatusOK, rr.Code; got != int(want) {
+		t.Errorf("rr.Code: got %v, want %v", got, want)
 	}
 
-	if want, got := "", rec.Body(); got != want {
-		t.Errorf("rec.Body(): got %q want %q", got, want)
+	if want, got := "", rr.Body.String(); got != want {
+		t.Errorf("rr.Body.String(): got %q want %q", got, want)
 	}
 }

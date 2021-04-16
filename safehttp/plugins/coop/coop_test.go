@@ -15,6 +15,7 @@
 package coop
 
 import (
+	"net/http/httptest"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -89,7 +90,7 @@ func TestBefore(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			check := func(rr *safehttptest.ResponseRecorder, w want) {
+			check := func(rr *httptest.ResponseRecorder, w want) {
 				t.Helper()
 				h := rr.Header()
 				enf, rep := h.Values("Cross-Origin-Opener-Policy"), h.Values("Cross-Origin-Opener-Policy-Report-Only")
@@ -99,25 +100,25 @@ func TestBefore(t *testing.T) {
 				if diff := cmp.Diff(w.rep, rep); diff != "" {
 					t.Errorf("Report Only COOP -want +got:\n%s", diff)
 				}
-				if rr.Status() != safehttp.StatusOK {
-					t.Errorf("Status: got %v want: %v", rr.Status(), safehttp.StatusOK)
+				if rr.Code != int(safehttp.StatusOK) {
+					t.Errorf("Status: got %v want: %v", rr.Code, safehttp.StatusOK)
 				}
-				if rr.Body() != "" {
-					t.Errorf("Got body: %q, didn't want one", rr.Body())
+				if rr.Body.String() != "" {
+					t.Errorf("Got body: %q, didn't want one", rr.Body.String())
 				}
 			}
 			// Non overridden
 			{
-				rr := safehttptest.NewResponseRecorder()
+				fakeRW, rr := safehttptest.NewFakeResponseWriter()
 				req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
-				tt.interceptor.Before(rr.ResponseWriter, req, nil)
+				tt.interceptor.Before(fakeRW, req, nil)
 				check(rr, tt.want)
 			}
 			// Overridden
 			{
-				rr := safehttptest.NewResponseRecorder()
+				fakeRW, rr := safehttptest.NewFakeResponseWriter()
 				req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
-				tt.interceptor.Before(rr.ResponseWriter, req, tt.overrider)
+				tt.interceptor.Before(fakeRW, req, tt.overrider)
 				check(rr, tt.wantOverridden)
 			}
 		})
