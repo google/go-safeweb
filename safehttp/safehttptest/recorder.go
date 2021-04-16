@@ -21,34 +21,96 @@ import (
 	"github.com/google/go-safeweb/safehttp"
 )
 
-// ResponseRecorder encapsulates a safehttp.ResponseWriter that records
-// mutations for later inspection in tests. The safehttp.ResponseWriter
-// should be passed as part of the handler function in tests.
-type ResponseRecorder struct {
-	safehttp.ResponseWriter
-	rw *httptest.ResponseRecorder
+// FakeResponseWriter creates a fake safehttp.ResponseWriter implementation.
+//
+// It does no error checking nor runs interceptors. Only the
+type FakeResponseWriter struct {
+	// The Dispatcher implementation
+	Dispatcher safehttp.Dispatcher
+
+	// ResponseWriter is only used for calls to Dispatcher. Calls to AddCookie()
+	// do not affect it.
+	ResponseWriter http.ResponseWriter
+
+	// Cookies coming from AddCookie() calls. Use the ResponseWriter to see what
+	// cookies have been set by the Dispatcher.
+	Cookies []*safehttp.Cookie
+
+	// Response headers.
+	Headers safehttp.Header
+
+	// The redirect URL.
+	RedirectURL string
 }
 
-// NewResponseRecorder creates a ResponseRecorder.
-func NewResponseRecorder() *ResponseRecorder {
-	rw := httptest.NewRecorder()
-	return &ResponseRecorder{
-		rw:             rw,
-		ResponseWriter: safehttp.DeprecatedNewResponseWriter(rw, nil),
+// FakeDispatcher provides a minimal implementation of the Dispatcher to be used for testing Interceptors.
+type FakeDispatcher struct{}
+
+// Write is not implemented.
+func (d FakeDispatcher) Write(rw http.ResponseWriter, resp safehttp.Response) error {
+	panic("not implemented") // TODO: Implement
+}
+
+// Error writes just the status code.
+func (d FakeDispatcher) Error(rw http.ResponseWriter, resp safehttp.ErrorResponse) error {
+	rw.WriteHeader(int(resp.Code()))
+	return nil
+}
+
+// NewFakeResponseWriter creates a new safehttp.ResponseWriter implementation
+// and a httptest.ResponseRecorder, for testing purposes only.
+func NewFakeResponseWriter() (*FakeResponseWriter, *httptest.ResponseRecorder) {
+	recorder := httptest.NewRecorder()
+	return &FakeResponseWriter{
+		Dispatcher:     FakeDispatcher{},
+		ResponseWriter: recorder,
+		Headers:        safehttp.NewHeader(recorder.HeaderMap),
+	}, recorder
+}
+
+var _ safehttp.ResponseWriter = (*FakeResponseWriter)(nil)
+
+// Header returns the Header.
+func (frw *FakeResponseWriter) Header() safehttp.Header {
+	return frw.Headers
+}
+
+// AddCookie appends the given cookie to the Cookies field.
+func (frw *FakeResponseWriter) AddCookie(c *safehttp.Cookie) error {
+	if len(c.Name()) == 0 {
+		panic("empty cookie name")
 	}
+
+	frw.Cookies = append(frw.Cookies, c)
+	return nil
 }
 
-// Header returns the recorded response headers.
-func (r *ResponseRecorder) Header() http.Header {
-	return r.rw.Header()
+// Write forwards the response to Dispatcher.Write.
+func (frw *FakeResponseWriter) Write(resp safehttp.Response) safehttp.Result {
+	if err := frw.Dispatcher.Write(frw.ResponseWriter, resp); err != nil {
+		panic(err)
+	}
+	return safehttp.Result{}
 }
 
-// Status returns the recorded response status code.
-func (r *ResponseRecorder) Status() safehttp.StatusCode {
-	return safehttp.StatusCode(r.rw.Code)
+// NoContent writes just the NoContent status code.
+func (frw *FakeResponseWriter) NoContent() safehttp.Result {
+	frw.ResponseWriter.WriteHeader(int(safehttp.StatusNoContent))
+	return safehttp.Result{}
 }
 
-// Body returns the recorded response body.
-func (r *ResponseRecorder) Body() string {
-	return r.rw.Body.String()
+// WrriteError forwards the error response to Dispatcher.WriteError.
+func (frw *FakeResponseWriter) WriteError(resp safehttp.ErrorResponse) safehttp.Result {
+	if err := frw.Dispatcher.Error(frw.ResponseWriter, resp); err != nil {
+		panic(err)
+	}
+	return safehttp.Result{}
+}
+
+// Redirect saves the URL in RedirectURL and writes the MovedPermentantly status
+// code.
+func (frw *FakeResponseWriter) Redirect(r *safehttp.IncomingRequest, url string, code safehttp.StatusCode) safehttp.Result {
+	frw.RedirectURL = url
+	frw.ResponseWriter.WriteHeader(int(safehttp.StatusMovedPermanently))
+	return safehttp.Result{}
 }

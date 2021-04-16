@@ -193,10 +193,10 @@ func TestBefore(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rr := safehttptest.NewResponseRecorder()
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
 			req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
 
-			tt.interceptor.Before(rr.ResponseWriter, req, nil)
+			tt.interceptor.Before(fakeRW, req, nil)
 
 			h := rr.Header()
 			if diff := cmp.Diff(tt.wantEnforcePolicy, h.Values("Content-Security-Policy"), cmpopts.EquateEmpty()); diff != "" {
@@ -264,13 +264,13 @@ func TestNonceEmptyContext(t *testing.T) {
 }
 
 func TestCommitNonce(t *testing.T) {
-	rec := safehttptest.NewResponseRecorder()
+	fakeRW, rr := safehttptest.NewFakeResponseWriter()
 	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
 	req.SetContext(context.WithValue(req.Context(), ctxKey{}, "pizza"))
 
 	it := Interceptor{}
 	tr := &safehttp.TemplateResponse{}
-	it.Commit(rec.ResponseWriter, req, tr, nil)
+	it.Commit(fakeRW, req, tr, nil)
 
 	nonce, ok := tr.FuncMap["CSPNonce"]
 	if !ok {
@@ -285,21 +285,21 @@ func TestCommitNonce(t *testing.T) {
 		t.Errorf(`tr.FuncMap["CSPNonce"](): got %q, want %q`, got, want)
 	}
 
-	if got, want := rec.Status(), safehttp.StatusOK; want != got {
-		t.Errorf("rec.Status(): got %v, want %v", got, want)
+	if got, want := rr.Code, int(safehttp.StatusOK); got != want {
+		t.Errorf("rr.Code: got %v, want %v", got, want)
 	}
 
-	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
-		t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
+	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rr.Header())); diff != "" {
+		t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
 	}
 
-	if got, want := "", rec.Body(); got != want {
-		t.Errorf("rec.Body(): got %q want %q", got, want)
+	if got, want := "", rr.Body.String(); got != want {
+		t.Errorf("rr.Body.String(): got %q want %q", got, want)
 	}
 }
 
 func TestCommitMissingNonce(t *testing.T) {
-	rec := safehttptest.NewResponseRecorder()
+	fakeRW, _ := safehttptest.NewFakeResponseWriter()
 	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
 	req.SetContext(context.Background())
 
@@ -311,26 +311,26 @@ func TestCommitMissingNonce(t *testing.T) {
 			t.Fatal("expected panic")
 		}
 	}()
-	it.Commit(rec.ResponseWriter, req, tr, nil)
+	it.Commit(fakeRW, req, tr, nil)
 }
 
 func TestCommitNotTemplateResponse(t *testing.T) {
-	rec := safehttptest.NewResponseRecorder()
+	fakeRW, rr := safehttptest.NewFakeResponseWriter()
 	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
 
 	it := Interceptor{}
-	it.Commit(rec.ResponseWriter, req, safehttp.NoContentResponse{}, nil)
+	it.Commit(fakeRW, req, safehttp.NoContentResponse{}, nil)
 
-	if got, want := rec.Status(), safehttp.StatusOK; want != got {
-		t.Errorf("rec.Status(): got %v, want %v", got, want)
+	if got, want := rr.Code, int(safehttp.StatusOK); got != want {
+		t.Errorf("rr.Code: got %v, want %v", got, want)
 	}
 
-	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rec.Header())); diff != "" {
-		t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
+	if diff := cmp.Diff(map[string][]string{}, map[string][]string(rr.Header())); diff != "" {
+		t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
 	}
 
-	if got, want := rec.Body(), ""; got != want {
-		t.Errorf("rec.Body(): got %q want %q", got, want)
+	if got, want := rr.Body.String(), ""; got != want {
+		t.Errorf("rr.Body.String(): got %q want %q", got, want)
 	}
 
 }

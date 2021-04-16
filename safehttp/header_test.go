@@ -22,7 +22,7 @@ import (
 )
 
 func TestSet(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	h.Set("Foo-Key", "Bar-Value")
 	if got, want := h.Get("Foo-Key"), "Bar-Value"; got != want {
 		t.Errorf(`h.Get("Foo-Key") got: %q want %q`, got, want)
@@ -35,7 +35,7 @@ func TestSet(t *testing.T) {
 // Note that the casing of the header name is different
 // when accessing and modifying the same header.
 func TestSetCanonicalization(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	h.Set("fOo-KeY", "Bar-Value")
 	if got, want := h.Get("FoO-kEy"), "Bar-Value"; got != want {
 		t.Errorf(`h.Get("FoO-kEy") got: %q want %q`, got, want)
@@ -43,7 +43,7 @@ func TestSetCanonicalization(t *testing.T) {
 }
 
 func TestSetEmptySetCookie(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	defer func() {
 		if r := recover(); r != nil {
 			return
@@ -57,7 +57,7 @@ func TestSetEmptySetCookie(t *testing.T) {
 }
 
 func TestSetClaimed(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	h.Set("Foo-Key", "Pizza-Value")
 	h.Claim("Foo-Key")
 	defer func() {
@@ -73,7 +73,7 @@ func TestSetClaimed(t *testing.T) {
 }
 
 func TestSetEmptyClaimed(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	h.Claim("Foo-Key")
 	defer func() {
 		if r := recover(); r != nil {
@@ -88,7 +88,7 @@ func TestSetEmptyClaimed(t *testing.T) {
 }
 
 func TestAdd(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	h.Add("Foo-Key", "Bar-Value")
 	h.Add("Foo-Key", "Pizza-Value")
 	if diff := cmp.Diff([]string{"Bar-Value", "Pizza-Value"}, h.Values("Foo-Key")); diff != "" {
@@ -102,7 +102,7 @@ func TestAdd(t *testing.T) {
 // Note that the casing of the header name is different
 // when accessing and modifying the same header.
 func TestAddCanonicalization(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	h.Add("fOo-KeY", "Bar-Value")
 	h.Add("FoO-kEy", "Pizza-Value")
 	if diff := cmp.Diff([]string{"Bar-Value", "Pizza-Value"}, h.Values("fOO-KEY")); diff != "" {
@@ -111,7 +111,7 @@ func TestAddCanonicalization(t *testing.T) {
 }
 
 func TestAddEmptySetCookie(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	defer func() {
 		if r := recover(); r != nil {
 			return
@@ -125,7 +125,7 @@ func TestAddEmptySetCookie(t *testing.T) {
 }
 
 func TestAddClaimed(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	h.Add("Foo-Key", "Bar-Value")
 	h.Claim("Foo-Key")
 	defer func() {
@@ -141,7 +141,7 @@ func TestAddClaimed(t *testing.T) {
 }
 
 func TestAddEmptyClaimed(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	h.Claim("Foo-Key")
 	defer func() {
 		if r := recover(); r != nil {
@@ -156,7 +156,7 @@ func TestAddEmptyClaimed(t *testing.T) {
 }
 
 func TestDel(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	h.Set("Foo-Key", "Bar-Value")
 	h.Del("Foo-Key")
 	if diff := cmp.Diff([]string{}, h.Values("Foo-Key")); diff != "" {
@@ -170,7 +170,7 @@ func TestDel(t *testing.T) {
 // Note that the casing of the header name is different
 // when accessing and modifying the same header.
 func TestDelCanonicalization(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	h.Set("fOo-KeY", "Bar-Value")
 	h.Del("FoO-kEy")
 	if diff := cmp.Diff([]string{}, h.Values("FOO-kEY")); diff != "" {
@@ -179,7 +179,7 @@ func TestDelCanonicalization(t *testing.T) {
 }
 
 func TestDelEmptySetCookie(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	defer func() {
 		if r := recover(); r != nil {
 			return
@@ -193,7 +193,7 @@ func TestDelEmptySetCookie(t *testing.T) {
 }
 
 func TestDelClaimed(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	h.Set("Foo-Key", "Bar-Value")
 	h.Claim("Foo-Key")
 	defer func() {
@@ -209,7 +209,7 @@ func TestDelClaimed(t *testing.T) {
 }
 
 func TestDelEmptyClaimed(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	h.Claim("Foo-Key")
 	defer func() {
 		if r := recover(); r != nil {
@@ -228,7 +228,7 @@ func TestDelEmptyClaimed(t *testing.T) {
 // slice. The test ensures that Values() returns a copy
 // of the underlying slice.
 func TestValuesModifyClaimed(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	h.Set("Foo-Key", "Bar-Value")
 	h.Claim("Foo-Key")
 	v := h.Values("Foo-Key")
@@ -261,7 +261,7 @@ func TestValuesOrdering(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			h := newHeader(http.Header{})
+			h := NewHeader(http.Header{})
 			h.Add("Foo-Key", tt.values[0])
 			h.Add("Foo-Key", tt.values[1])
 			if diff := cmp.Diff(tt.values, h.Values("Foo-Key")); diff != "" {
@@ -272,7 +272,7 @@ func TestValuesOrdering(t *testing.T) {
 }
 
 func TestManyEqualKeyValuePairs(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	h.Add("Foo-Key", "Bar-Value")
 	h.Add("Foo-Key", "Bar-Value")
 	if diff := cmp.Diff([]string{"Bar-Value", "Bar-Value"}, h.Values("Foo-Key")); diff != "" {
@@ -284,7 +284,7 @@ func TestManyEqualKeyValuePairs(t *testing.T) {
 // correctly remove the previously added header before setting
 // the new one.
 func TestAddSet(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	h.Add("Foo-Key", "Bar-Value")
 	h.Set("Foo-Key", "Pizza-Value")
 	if diff := cmp.Diff([]string{"Pizza-Value"}, h.Values("Foo-Key")); diff != "" {
@@ -293,14 +293,14 @@ func TestAddSet(t *testing.T) {
 }
 
 func TestValuesEmptyHeader(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	if diff := cmp.Diff([]string{}, h.Values("Foo-Key")); diff != "" {
 		t.Errorf("h.Values(\"Foo-Key\") mismatch (-want +got):\n%s", diff)
 	}
 }
 
 func TestClaim(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	set := h.Claim("Foo-Key")
 	set([]string{"Bar-Value", "Pizza-Value"})
 	if diff := cmp.Diff([]string{"Bar-Value", "Pizza-Value"}, h.Values("Foo-Key")); diff != "" {
@@ -314,7 +314,7 @@ func TestClaim(t *testing.T) {
 // Note that the casing of the header name is different
 // when accessing and modifying the same header.
 func TestClaimCanonicalization(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	set := h.Claim("fOO-kEY")
 	set([]string{"Bar-Value", "Pizza-Value"})
 	if diff := cmp.Diff([]string{"Bar-Value", "Pizza-Value"}, h.Values("fOo-kEy")); diff != "" {
@@ -323,7 +323,7 @@ func TestClaimCanonicalization(t *testing.T) {
 }
 
 func TestClaimSetCookie(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	defer func() {
 		if r := recover(); r != nil {
 			return
@@ -334,7 +334,7 @@ func TestClaimSetCookie(t *testing.T) {
 }
 
 func TestClaimClaimed(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	h.Claim("Foo-Key")
 	defer func() {
 		if r := recover(); r != nil {
@@ -346,7 +346,7 @@ func TestClaimClaimed(t *testing.T) {
 }
 
 func TestHeaderIsClaimed(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	h.Claim("Foo-Key")
 	if got := h.IsClaimed("Foo-Key"); got != true {
 		t.Errorf(`h.IsClaimed("Foo-Key") got: %v want: true`, got)
@@ -354,7 +354,7 @@ func TestHeaderIsClaimed(t *testing.T) {
 }
 
 func TestHeaderIsClaimedCanonicalization(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	h.Claim("fOo-KEY")
 	if got := h.IsClaimed("foo-keY"); got != true {
 		t.Errorf(`h.IsClaimed("foo-keY") got: %v want: true`, got)
@@ -362,14 +362,14 @@ func TestHeaderIsClaimedCanonicalization(t *testing.T) {
 }
 
 func TestHeaderIsClaimedNotClaimed(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	if got := h.IsClaimed("Foo-Key"); got != false {
 		t.Errorf(`h.IsClaimed("Foo-Key") got: %v want: true`, got)
 	}
 }
 
 func TestHeaderIsClaimedSetCookie(t *testing.T) {
-	h := newHeader(http.Header{})
+	h := NewHeader(http.Header{})
 	if got := h.IsClaimed("Set-Cookie"); got != true {
 		t.Errorf(`h.IsClaimed("Set-Cookie") got: %v want: true`, got)
 	}

@@ -32,28 +32,6 @@ type flight struct {
 	written bool
 }
 
-// DeprecatedNewResponseWriter creates a ResponseWriter implementation that has
-// been historically used for testing. DO NOT USE this function, it's going
-// to be removed soon.
-//
-// The main problem with this is the implementation of the returned
-// ResponseWriter is incomplete, i.e. lacks the Handler and Interceptors fields
-// of the handlerConfig needed by the flight. For the existing tests that use it,
-// it's fine, but they should be migrated.
-//
-// TODO(kele): remove this once we have a better option to provide a
-// ResponseWriter implementation for interceptor testing.
-func DeprecatedNewResponseWriter(rw http.ResponseWriter, dispatcher Dispatcher) ResponseWriter {
-	if dispatcher == nil {
-		dispatcher = DefaultDispatcher{}
-	}
-	return &flight{
-		cfg:    handlerConfig{Dispatcher: dispatcher},
-		rw:     rw,
-		header: newHeader(rw.Header()),
-	}
-}
-
 // handlerConfig is the safe HTTP handler configuration, including the
 // dispatcher and interceptors.
 type handlerConfig struct {
@@ -66,7 +44,7 @@ func processRequest(cfg handlerConfig, rw http.ResponseWriter, req *http.Request
 	f := &flight{
 		cfg:    cfg,
 		rw:     rw,
-		header: newHeader(rw.Header()),
+		header: NewHeader(rw.Header()),
 		req:    NewIncomingRequest(req),
 	}
 

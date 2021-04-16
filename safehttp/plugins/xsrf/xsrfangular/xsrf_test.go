@@ -18,7 +18,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/safehttptest"
 )
@@ -51,33 +50,23 @@ func TestAddCookie(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
-			rec := safehttptest.NewResponseRecorder()
-			test.it.Commit(rec.ResponseWriter, req, nil, nil)
+			fakeRW, _ := safehttptest.NewFakeResponseWriter()
+			test.it.Commit(fakeRW, req, nil, nil)
 
-			if got, want := rec.Status(), safehttp.StatusOK; got != want {
-				t.Errorf("rec.Status(): got %v, want %v", got, want)
+			if len(fakeRW.Cookies) != 1 {
+				t.Errorf("len(Cookies) = %v, want 1", len(fakeRW.Cookies))
 			}
 
-			wantCookie := "Path=/; Max-Age=86400; Secure; SameSite=Strict"
-			got := map[string][]string(rec.Header())["Set-Cookie"][0]
-			if !strings.Contains(got, test.cookie) {
-				t.Errorf("Set-Cookie header: %s not present", test.cookie)
+			if got, want := fakeRW.Cookies[0].String(), "Path=/; Max-Age=86400; Secure; SameSite=Strict"; !strings.Contains(got, want) {
+				t.Errorf("XSRF cookie got %q, want to contain %q", got, want)
 			}
-			if !strings.Contains(got, wantCookie) {
-				t.Errorf("Set-Cookie header: got %q, want defaults %q", got, wantCookie)
-			}
-
-			if got, want := rec.Body(), ""; got != want {
-				t.Errorf("rec.Body(): got %q want %q", got, want)
-			}
-
 		})
 	}
 }
 
 func TestAddCookieFail(t *testing.T) {
 	req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
-	rec := safehttptest.NewResponseRecorder()
+	fakeRW, _ := safehttptest.NewFakeResponseWriter()
 	it := &Interceptor{}
 
 	defer func() {
@@ -85,7 +74,7 @@ func TestAddCookieFail(t *testing.T) {
 			t.Fatal("expected panic")
 		}
 	}()
-	it.Commit(rec.ResponseWriter, req, nil, nil)
+	it.Commit(fakeRW, req, nil, nil)
 }
 
 func TestPostProtection(t *testing.T) {
@@ -155,20 +144,12 @@ func TestPostProtection(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			rec := safehttptest.NewResponseRecorder()
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
 			i := Default()
-			i.Before(rec.ResponseWriter, test.req, nil)
+			i.Before(fakeRW, test.req, nil)
 
-			if got := rec.Status(); got != test.wantStatus {
-				t.Errorf("rec.Status(): got %v, want %v", got, test.wantStatus)
-			}
-
-			if diff := cmp.Diff(test.wantHeader, map[string][]string(rec.Header())); diff != "" {
-				t.Errorf("rec.Header() mismatch (-want +got):\n%s", diff)
-			}
-
-			if got := rec.Body(); got != test.wantBody {
-				t.Errorf("rec.Body(): got %q want %q", got, test.wantBody)
+			if got := rr.Code; got != int(test.wantStatus) {
+				t.Errorf("rr.Code: got %v, want %v", got, test.wantStatus)
 			}
 		})
 	}

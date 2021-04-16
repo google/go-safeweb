@@ -151,18 +151,18 @@ func TestRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rr := safehttptest.NewResponseRecorder()
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
 
 			it := cors.Default("https://foo.com")
 			it.AllowCredentials = tt.allowCredentials
 			it.ExposedHeaders = tt.exposedHeaders
-			it.Before(rr.ResponseWriter, tt.req, nil)
+			it.Before(fakeRW, tt.req, nil)
 
 			if diff := cmp.Diff(tt.want, map[string][]string(rr.Header())); diff != "" {
 				t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
 			}
-			if got := rr.Body(); got != "" {
-				t.Errorf(`rr.Body() got: %q want: ""`, got)
+			if got := rr.Body.String(); got != "" {
+				t.Errorf(`rr.Body.String() got: %q want: ""`, got)
 			}
 		})
 	}
@@ -174,11 +174,11 @@ func TestVaryHeaderAppending(t *testing.T) {
 	req.Header.Set("X-Cors", "1")
 	req.Header.Set("Content-Type", "application/json")
 
-	rr := safehttptest.NewResponseRecorder()
+	fakeRW, rr := safehttptest.NewFakeResponseWriter()
 	rr.Header().Set("Vary", "a")
 
 	it := cors.Default("https://foo.com")
-	it.Before(rr.ResponseWriter, req, nil)
+	it.Before(fakeRW, req, nil)
 
 	wantHeaders := map[string][]string{
 		"Access-Control-Allow-Origin": {"https://foo.com"},
@@ -187,8 +187,8 @@ func TestVaryHeaderAppending(t *testing.T) {
 	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
 		t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
 	}
-	if got := rr.Body(); got != "" {
-		t.Errorf(`rr.Body() got: %q want: ""`, got)
+	if got := rr.Body.String(); got != "" {
+		t.Errorf(`rr.Body.String() got: %q want: ""`, got)
 	}
 }
 
@@ -198,23 +198,17 @@ func TestHeadRequest(t *testing.T) {
 	req.Header.Set("X-Cors", "1")
 	req.Header.Set("Content-Type", "application/json")
 
-	rr := safehttptest.NewResponseRecorder()
+	fakeRW, rr := safehttptest.NewFakeResponseWriter()
 
 	it := cors.Default("https://foo.com")
-	it.Before(rr.ResponseWriter, req, nil)
+	it.Before(fakeRW, req, nil)
 
-	if got, want := rr.Status(), safehttp.StatusMethodNotAllowed; got != want {
-		t.Errorf("rr.Status() got: %v want: %v", got, want)
+	if got, want := rr.Code, int(safehttp.StatusMethodNotAllowed); got != want {
+		t.Errorf("rr.Code got: %v want: %v", got, want)
 	}
-	wantHeaders := map[string][]string{
-		"Content-Type":           {"text/plain; charset=utf-8"},
-		"X-Content-Type-Options": {"nosniff"},
-	}
+	wantHeaders := map[string][]string{}
 	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
 		t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
-	}
-	if got, want := rr.Body(), "Method Not Allowed\n"; got != want {
-		t.Errorf(`rr.Body() got: %q want: %q`, got, want)
 	}
 }
 
@@ -244,23 +238,17 @@ func TestInvalidRequest(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rr := safehttptest.NewResponseRecorder()
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
 
 			it := cors.Default("https://foo.com")
-			it.Before(rr.ResponseWriter, tt.req, nil)
+			it.Before(fakeRW, tt.req, nil)
 
-			if want := safehttp.StatusPreconditionFailed; rr.Status() != want {
-				t.Errorf("rr.Status() got: %v want: %v", rr.Status(), want)
+			if want := safehttp.StatusPreconditionFailed; rr.Code != int(want) {
+				t.Errorf("rr.Code got: %v want: %v", rr.Code, want)
 			}
-			wantHeaders := map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			}
+			wantHeaders := map[string][]string{}
 			if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
 				t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
-			}
-			if got, want := rr.Body(), "Precondition Failed\n"; got != want {
-				t.Errorf(`rr.Body() got: %q want: %q`, got, want)
 			}
 		})
 	}
@@ -283,23 +271,17 @@ func TestRequestDisallowedContentTypes(t *testing.T) {
 				req.Header.Set("Content-Type", ct)
 			}
 
-			rr := safehttptest.NewResponseRecorder()
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
 
 			it := cors.Default("https://foo.com")
-			it.Before(rr.ResponseWriter, req, nil)
+			it.Before(fakeRW, req, nil)
 
-			if want := safehttp.StatusUnsupportedMediaType; rr.Status() != want {
-				t.Errorf("rr.Status() got: %v want: %v", rr.Status(), want)
+			if want := safehttp.StatusUnsupportedMediaType; rr.Code != int(want) {
+				t.Errorf("rr.Code got: %v want: %v", rr.Code, want)
 			}
-			wantHeaders := map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			}
+			wantHeaders := map[string][]string{}
 			if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
 				t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
-			}
-			if got, want := rr.Body(), "Unsupported Media Type\n"; got != want {
-				t.Errorf(`rr.Body() got: %q want: %q`, got, want)
 			}
 		})
 	}
@@ -309,23 +291,17 @@ func TestDisallowedOrigin(t *testing.T) {
 	req := safehttptest.NewRequest(safehttp.MethodPut, "http://bar.com/asdf", nil)
 	req.Header.Set("Origin", "https://pizza.com")
 
-	rr := safehttptest.NewResponseRecorder()
+	fakeRW, rr := safehttptest.NewFakeResponseWriter()
 
 	it := cors.Default("https://foo.com")
-	it.Before(rr.ResponseWriter, req, nil)
+	it.Before(fakeRW, req, nil)
 
-	if want := safehttp.StatusForbidden; rr.Status() != want {
-		t.Errorf("rr.Status() got: %v want: %v", rr.Status(), want)
+	if want := safehttp.StatusForbidden; rr.Code != int(want) {
+		t.Errorf("rr.Code got: %v want: %v", rr.Code, want)
 	}
-	wantHeaders := map[string][]string{
-		"Content-Type":           {"text/plain; charset=utf-8"},
-		"X-Content-Type-Options": {"nosniff"},
-	}
+	wantHeaders := map[string][]string{}
 	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
 		t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
-	}
-	if got, want := rr.Body(), "Forbidden\n"; got != want {
-		t.Errorf(`rr.Body() got: %q want: %q`, got, want)
 	}
 }
 
@@ -443,21 +419,21 @@ func TestPreflight(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			rr := safehttptest.NewResponseRecorder()
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
 
 			it := cors.Default("https://foo.com")
 			it.MaxAge = tt.maxAge
 			it.SetAllowedHeaders(tt.allowedHeaders...)
-			it.Before(rr.ResponseWriter, tt.req, nil)
+			it.Before(fakeRW, tt.req, nil)
 
-			if rr.Status() != safehttp.StatusNoContent {
-				t.Errorf("rr.Status() got: %v want: %v", rr.Status(), safehttp.StatusNoContent)
+			if rr.Code != int(safehttp.StatusNoContent) {
+				t.Errorf("rr.Code got: %v want: %v", rr.Code, safehttp.StatusNoContent)
 			}
 			if diff := cmp.Diff(tt.wantHeaders, map[string][]string(rr.Header())); diff != "" {
 				t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
 			}
-			if got := rr.Body(); got != "" {
-				t.Errorf(`rr.Body() got: %q want: ""`, got)
+			if got := rr.Body.String(); got != "" {
+				t.Errorf(`rr.Body.String() got: %q want: ""`, got)
 			}
 		})
 	}
@@ -490,23 +466,17 @@ func TestInvalidAccessControlRequestHeaders(t *testing.T) {
 			rh.Set("Access-Control-Request-Method", safehttp.MethodPut)
 			rh.Set("Access-Control-Request-Headers", tt.headers)
 
-			rr := safehttptest.NewResponseRecorder()
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
 
 			it := cors.Default("https://foo.com")
-			it.Before(rr.ResponseWriter, req, nil)
+			it.Before(fakeRW, req, nil)
 
-			if want := safehttp.StatusForbidden; rr.Status() != want {
-				t.Errorf("rr.Status() got: %v want: %v", rr.Status(), want)
+			if want := safehttp.StatusForbidden; rr.Code != int(want) {
+				t.Errorf("rr.Code got: %v want: %v", rr.Code, want)
 			}
-			wantHeaders := map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			}
+			wantHeaders := map[string][]string{}
 			if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
 				t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
-			}
-			if got, want := rr.Body(), "Forbidden\n"; got != want {
-				t.Errorf("rr.Body() got: %q want: %q", got, want)
 			}
 		})
 	}
@@ -517,23 +487,17 @@ func TestEmptyAccessControlRequestMethod(t *testing.T) {
 	rh := req.Header
 	rh.Set("Origin", "https://foo.com")
 
-	rr := safehttptest.NewResponseRecorder()
+	fakeRW, rr := safehttptest.NewFakeResponseWriter()
 
 	it := cors.Default("https://foo.com")
-	it.Before(rr.ResponseWriter, req, nil)
+	it.Before(fakeRW, req, nil)
 
-	if want := safehttp.StatusForbidden; rr.Status() != want {
-		t.Errorf("rr.Status() got: %v want: %v", rr.Status(), want)
+	if want := safehttp.StatusForbidden; rr.Code != int(want) {
+		t.Errorf("rr.Code got: %v want: %v", rr.Code, want)
 	}
-	wantHeaders := map[string][]string{
-		"Content-Type":           {"text/plain; charset=utf-8"},
-		"X-Content-Type-Options": {"nosniff"},
-	}
+	wantHeaders := map[string][]string{}
 	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
 		t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
-	}
-	if got, want := rr.Body(), "Forbidden\n"; got != want {
-		t.Errorf("rr.Body() got: %q want: %q", got, want)
 	}
 }
 
@@ -542,23 +506,17 @@ func TestAccessControlRequestMethodHead(t *testing.T) {
 	req.Header.Set("Origin", "https://foo.com")
 	req.Header.Set("Access-Control-Request-Method", safehttp.MethodHead)
 
-	rr := safehttptest.NewResponseRecorder()
+	fakeRW, rr := safehttptest.NewFakeResponseWriter()
 
 	it := cors.Default("https://foo.com")
-	it.Before(rr.ResponseWriter, req, nil)
+	it.Before(fakeRW, req, nil)
 
-	if want := safehttp.StatusForbidden; rr.Status() != want {
-		t.Errorf("rr.Status() got: %v want: %v", rr.Status(), want)
+	if want := safehttp.StatusForbidden; rr.Code != int(want) {
+		t.Errorf("rr.Code got: %v want: %v", rr.Code, want)
 	}
-	wantHeaders := map[string][]string{
-		"Content-Type":           {"text/plain; charset=utf-8"},
-		"X-Content-Type-Options": {"nosniff"},
-	}
+	wantHeaders := map[string][]string{}
 	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
 		t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
-	}
-	if got, want := rr.Body(), "Forbidden\n"; got != want {
-		t.Errorf("rr.Body() got: %q want: %q", got, want)
 	}
 }
 
@@ -566,22 +524,16 @@ func TestPreflightEmptyOrigin(t *testing.T) {
 	req := safehttptest.NewRequest(safehttp.MethodOptions, "http://bar.com/asdf", nil)
 	req.Header.Set("Access-Control-Request-Method", safehttp.MethodHead)
 
-	rr := safehttptest.NewResponseRecorder()
+	fakeRW, rr := safehttptest.NewFakeResponseWriter()
 
 	it := cors.Default("https://foo.com")
-	it.Before(rr.ResponseWriter, req, nil)
+	it.Before(fakeRW, req, nil)
 
-	if want := safehttp.StatusForbidden; rr.Status() != want {
-		t.Errorf("rr.Status() got: %v want: %v", rr.Status(), want)
+	if want := safehttp.StatusForbidden; rr.Code != int(want) {
+		t.Errorf("rr.Code got: %v want: %v", rr.Code, want)
 	}
-	wantHeaders := map[string][]string{
-		"Content-Type":           {"text/plain; charset=utf-8"},
-		"X-Content-Type-Options": {"nosniff"},
-	}
+	wantHeaders := map[string][]string{}
 	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {
 		t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
-	}
-	if got, want := rr.Body(), "Forbidden\n"; got != want {
-		t.Errorf("rr.Body() got: %q want: %q", got, want)
 	}
 }

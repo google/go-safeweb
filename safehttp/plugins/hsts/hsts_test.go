@@ -24,119 +24,121 @@ import (
 	"github.com/google/go-safeweb/safehttp/safehttptest"
 )
 
-func TestHSTS(t *testing.T) {
+func TestHSTSReject(t *testing.T) {
 	var test = []struct {
-		name        string
-		interceptor hsts.Interceptor
-		req         *safehttp.IncomingRequest
-		wantStatus  safehttp.StatusCode
-		wantHeaders map[string][]string
-		wantBody    string
+		name         string
+		interceptor  hsts.Interceptor
+		req          *safehttp.IncomingRequest
+		wantStatus   safehttp.StatusCode
+		wantBody     string
+		wantRedirect string
 	}{
 		{
-			name:        "HTTPS",
-			interceptor: hsts.Default(),
-			req:         safehttptest.NewRequest(safehttp.MethodGet, "https://localhost/", nil),
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{
-				"Strict-Transport-Security": {"max-age=63072000; includeSubDomains"}, // 63072000 seconds is two years
-			},
-			wantBody: "",
+			name:         "HTTP",
+			interceptor:  hsts.Default(),
+			req:          safehttptest.NewRequest(safehttp.MethodGet, "http://localhost/", nil),
+			wantStatus:   safehttp.StatusMovedPermanently,
+			wantRedirect: "https://localhost/",
 		},
 		{
-			name:        "HTTP",
-			interceptor: hsts.Default(),
-			req:         safehttptest.NewRequest(safehttp.MethodGet, "http://localhost/", nil),
-			wantStatus:  safehttp.StatusMovedPermanently,
-			wantHeaders: map[string][]string{
-				"Content-Type": {"text/html; charset=utf-8"},
-				"Location":     {"https://localhost/"},
-			},
-			wantBody: "<a href=\"https://localhost/\">Moved Permanently</a>.\n\n",
-		},
-		{
-			name:        "HTTP behind proxy",
-			interceptor: hsts.Interceptor{BehindProxy: true},
-			req:         safehttptest.NewRequest(safehttp.MethodGet, "http://localhost/", nil),
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{
-				// max-age=0 tells the browser to expire the HSTS protection.
-				"Strict-Transport-Security": {"max-age=0; includeSubDomains"},
-			},
-			wantBody: "",
-		},
-		{
-			name:        "Preload",
-			interceptor: hsts.Interceptor{Preload: true, DisableIncludeSubDomains: true},
-			req:         safehttptest.NewRequest(safehttp.MethodGet, "https://localhost/", nil),
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{
-				// max-age=0 tells the browser to expire the HSTS protection.
-				"Strict-Transport-Security": {"max-age=0; preload"},
-			},
-			wantBody: "",
-		},
-		{
-			name:        "Preload and IncludeSubDomains",
-			interceptor: hsts.Interceptor{Preload: true},
-			req:         safehttptest.NewRequest(safehttp.MethodGet, "https://localhost/", nil),
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{
-				// max-age=0 tells the browser to expire the HSTS protection.
-				"Strict-Transport-Security": {"max-age=0; includeSubDomains; preload"},
-			},
-			wantBody: "",
-		},
-		{
-			name:        "No preload and no includeSubDomains",
-			interceptor: hsts.Interceptor{DisableIncludeSubDomains: true},
-			req:         safehttptest.NewRequest(safehttp.MethodGet, "https://localhost/", nil),
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{
-				// max-age=0 tells the browser to expire the HSTS protection.
-				"Strict-Transport-Security": {"max-age=0"},
-			},
-			wantBody: "",
-		},
-		{
-			name:        "Custom maxage",
-			interceptor: hsts.Interceptor{MaxAge: 3600 * time.Second},
-			req:         safehttptest.NewRequest(safehttp.MethodGet, "https://localhost/", nil),
-			wantStatus:  safehttp.StatusOK,
-			wantHeaders: map[string][]string{
-				"Strict-Transport-Security": {"max-age=3600; includeSubDomains"}, // 3600 seconds is 1 hour
-			},
-			wantBody: "",
-		},
-		{
-			name:        "Negative maxage",
+			name:        "Negative MaxAge",
 			interceptor: hsts.Interceptor{MaxAge: -1 * time.Second},
 			req:         safehttptest.NewRequest(safehttp.MethodGet, "https://localhost/", nil),
 			wantStatus:  safehttp.StatusInternalServerError,
-			wantHeaders: map[string][]string{
-				"Content-Type":           {"text/plain; charset=utf-8"},
-				"X-Content-Type-Options": {"nosniff"},
-			},
-			wantBody: "Internal Server Error\n",
 		},
 	}
 
 	for _, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
-			rr := safehttptest.NewResponseRecorder()
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
 
-			tt.interceptor.Before(rr.ResponseWriter, tt.req, nil)
+			tt.interceptor.Before(fakeRW, tt.req, nil)
 
-			if gotStatus := rr.Status(); gotStatus != tt.wantStatus {
-				t.Errorf("rr.Status() got: %v want: %v", gotStatus, tt.wantStatus)
+			if gotStatus := rr.Code; gotStatus != int(tt.wantStatus) {
+				t.Errorf("rr.Code got: %v want: %v", gotStatus, tt.wantStatus)
+			}
+
+			if got, want := fakeRW.RedirectURL, tt.wantRedirect; got != want {
+				t.Errorf("RedirectURL got %q, want %q", got, want)
+			}
+		})
+	}
+}
+
+func TestHSTSOK(t *testing.T) {
+	var test = []struct {
+		name         string
+		interceptor  hsts.Interceptor
+		req          *safehttp.IncomingRequest
+		wantHeaders  map[string][]string
+		wantRedirect string
+	}{
+		{
+			name:        "HTTPS",
+			interceptor: hsts.Default(),
+			req:         safehttptest.NewRequest(safehttp.MethodGet, "https://localhost/", nil),
+			wantHeaders: map[string][]string{
+				"Strict-Transport-Security": {"max-age=63072000; includeSubDomains"}, // 63072000 seconds is two years
+			},
+		},
+		{
+			name:        "HTTP behind proxy",
+			interceptor: hsts.Interceptor{BehindProxy: true},
+			req:         safehttptest.NewRequest(safehttp.MethodGet, "http://localhost/", nil),
+			wantHeaders: map[string][]string{
+				// max-age=0 tells the browser to expire the HSTS protection.
+				"Strict-Transport-Security": {"max-age=0; includeSubDomains"},
+			},
+		},
+		{
+			name:        "Preload",
+			interceptor: hsts.Interceptor{Preload: true, DisableIncludeSubDomains: true},
+			req:         safehttptest.NewRequest(safehttp.MethodGet, "https://localhost/", nil),
+			wantHeaders: map[string][]string{
+				// max-age=0 tells the browser to expire the HSTS protection.
+				"Strict-Transport-Security": {"max-age=0; preload"},
+			},
+		},
+		{
+			name:        "Preload and IncludeSubDomains",
+			interceptor: hsts.Interceptor{Preload: true},
+			req:         safehttptest.NewRequest(safehttp.MethodGet, "https://localhost/", nil),
+			wantHeaders: map[string][]string{
+				// max-age=0 tells the browser to expire the HSTS protection.
+				"Strict-Transport-Security": {"max-age=0; includeSubDomains; preload"},
+			},
+		},
+		{
+			name:        "No preload and no includeSubDomains",
+			interceptor: hsts.Interceptor{DisableIncludeSubDomains: true},
+			req:         safehttptest.NewRequest(safehttp.MethodGet, "https://localhost/", nil),
+			wantHeaders: map[string][]string{
+				// max-age=0 tells the browser to expire the HSTS protection.
+				"Strict-Transport-Security": {"max-age=0"},
+			},
+		},
+		{
+			name:        "Custom MaxAge",
+			interceptor: hsts.Interceptor{MaxAge: 3600 * time.Second},
+			req:         safehttptest.NewRequest(safehttp.MethodGet, "https://localhost/", nil),
+			wantHeaders: map[string][]string{
+				"Strict-Transport-Security": {"max-age=3600; includeSubDomains"}, // 3600 seconds is 1 hour
+			},
+		},
+	}
+
+	for _, tt := range test {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
+
+			tt.interceptor.Before(fakeRW, tt.req, nil)
+
+			if gotStatus := rr.Code; gotStatus != int(safehttp.StatusOK) {
+				t.Errorf("rr.Code got: %v want: %v", gotStatus, safehttp.StatusOK)
 			}
 
 			if diff := cmp.Diff(tt.wantHeaders, map[string][]string(rr.Header())); diff != "" {
 				t.Errorf("rr.Header() mismatch (-want +got):\n%s", diff)
-			}
-
-			if got := rr.Body(); got != tt.wantBody {
-				t.Errorf("rr.Body() got: %q want: %q", got, tt.wantBody)
 			}
 		})
 	}
