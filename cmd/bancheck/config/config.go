@@ -53,7 +53,7 @@ func Read(files []string) (*Config, error) {
 	return &Config{Imports: imports, Functions: functions}, nil
 }
 
-// unmarshalCfg reads contents of one file and converts it to a Config struct.
+// unmarshalCfg reads JSON object from a file and converts it to a Config struct.
 func unmarshalCfg(file string) (*Config, error) {
 	if !fileExists(file) {
 		return nil, errors.New("file does not exist or is a directory")
