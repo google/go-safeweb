@@ -1,89 +1,86 @@
-// Copyright 2020 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// 	https://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 package config
 
 import (
 	"encoding/json"
 	"errors"
+	"io/ioutil"
 	"os"
 )
 
-// Config represents a configuration passed to the linter.
+// Config struct which contains an array of banned imports and function calls
 type Config struct {
-	Imports   []BannedAPI `json:"imports"`
-	Functions []BannedAPI `json:"functions"`
+	Imports   []BannedImport   `json:"imports"`
+	Functions []BannedFunction `json:"functions"`
 }
 
-// BannedAPI represents an identifier (e.g. import, function call) that should not be used.
-type BannedAPI struct {
-	Name       string      `json:"name"` // fully qualified identifier name
-	Msg        string      `json:"msg"`  // additional information e.g. rationale for banning
+// BannedImport struct which contains a fully qualified import name,
+// message with additional information and a list of exemptions.
+type BannedImport struct {
+	Name       string      `json:"name"`
+	Msg        string      `json:"msg"`
 	Exemptions []Exemption `json:"exemptions"`
 }
 
-// Exemption represents a location that should be exempted from checking for banned APIs.
+// BannedFunction struct which contains a fully qualified function name,
+// message with additional information and a list of exemptions.
+type BannedFunction struct {
+	Name       string      `json:"name"`
+	Msg        string      `json:"msg"`
+	Exemptions []Exemption `json:"exemptions"`
+}
+
+// Exemption struct which contains a justification and a path to allowed directory.
 type Exemption struct {
 	Justification string `json:"justification"`
 	AllowedDir    string `json:"allowedDir"`
 }
 
-// ReadConfigs reads banned APIs from all files.
-func ReadConfigs(files []string) (*Config, error) {
-	var imports []BannedAPI
-	var fns []BannedAPI
+// Read reads configs from all files and concatenates them into one object.
+func Read(files []string) (*Config, error) {
+	imports := make([]BannedImport, 0)
+	functions := make([]BannedFunction, 0)
 
 	for _, file := range files {
-		config, err := readCfg(file)
+		config, err := unmarshalCfg(file)
 		if err != nil {
 			return nil, err
 		}
 
 		imports = append(imports, config.Imports...)
-		fns = append(fns, config.Functions...)
+		functions = append(functions, config.Functions...)
 	}
 
-	return &Config{Imports: imports, Functions: fns}, nil
+	return &Config{Imports: imports, Functions: functions}, nil
 }
 
-func readCfg(filename string) (*Config, error) {
-	f, err := openFile(filename)
+// unmarshalCfg reads contents of one file and converts it to a Config struct.
+func unmarshalCfg(file string) (*Config, error) {
+	if !fileExists(file) {
+		return nil, errors.New("file does not exist or is a directory")
+	}
+
+	cfg, err := os.Open(file)
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer cfg.Close()
 
-	return decodeCfg(f)
+	var config Config
+	bytes, _ := ioutil.ReadAll(cfg)
+	err = json.Unmarshal(bytes, &config)
+	if err != nil {
+		return nil, err
+	}
+
+	return &config, nil
 }
 
-func openFile(filename string) (*os.File, error) {
+// fileExists checks if a file exists and is not a directory before we
+// try using it to prevent further errors.
+func fileExists(filename string) bool {
 	info, err := os.Stat(filename)
 	if os.IsNotExist(err) {
-		return nil, errors.New("file does not exist")
+		return false
 	}
-	if info.IsDir() {
-		return nil, errors.New("file is a directory")
-	}
-
-	return os.Open(filename)
-}
-
-func decodeCfg(f *os.File) (*Config, error) {
-	var cfg Config
-	err := json.NewDecoder(f).Decode(&cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return &cfg, nil
+	return !info.IsDir()
 }

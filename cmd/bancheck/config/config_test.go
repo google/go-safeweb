@@ -1,16 +1,3 @@
-// Copyright 2020 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// 	https://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
 package config
 
 import (
@@ -18,15 +5,14 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"golang.org/x/tools/go/analysis/analysistest"
 )
 
-func TestReadConfigs(t *testing.T) {
+func TestBannedFunctionAnalyzer(t *testing.T) {
 	tests := []struct {
-		desc  string
-		files map[string]string
-		want  *Config
+		desc   string            // describes the test case
+		files  map[string]string // fake workspace files
+		config *Config           // the expected config
 	}{
 		{
 			desc: "file with empty definitions",
@@ -35,7 +21,7 @@ func TestReadConfigs(t *testing.T) {
 				{}
 				`,
 			},
-			want: &Config{},
+			config: &Config{Imports: []BannedImport{}, Functions: []BannedFunction{}},
 		},
 		{
 			desc: "file with unknown field",
@@ -46,7 +32,7 @@ func TestReadConfigs(t *testing.T) {
 				}
 				`,
 			},
-			want: &Config{},
+			config: &Config{Imports: []BannedImport{}, Functions: []BannedFunction{}},
 		},
 		{
 			desc: "file with banned import",
@@ -54,52 +40,31 @@ func TestReadConfigs(t *testing.T) {
 				"file.json": `
 				{
 					"imports": [{
-						"name": "legacyconversions",
+						"name": "github.com/google/go-safeweb/safesql/legacyconversions",
 						"msg": "Sample message",
 						"exemptions": [{
 							"justification": "My justification",
-							"allowedDir": "subdirs/vetted/..."
+							"allowedDir": "mycompany.com/my/subdirs/vetted/..."
 						}]
 					}]
 				}
 				`,
 			},
-			want: &Config{Imports: []BannedAPI{
-				{
-					Name: "legacyconversions",
-					Msg:  "Sample message",
-					Exemptions: []Exemption{
-						{
-							Justification: "My justification",
-							AllowedDir:    "subdirs/vetted/...",
+			config: &Config{
+				Imports: []BannedImport{
+					{
+						Name: "github.com/google/go-safeweb/safesql/legacyconversions",
+						Msg:  "Sample message",
+						Exemptions: []Exemption{
+							{
+								Justification: "My justification",
+								AllowedDir:    "mycompany.com/my/subdirs/vetted/...",
+							},
 						},
 					},
-				}},
+				},
+				Functions: []BannedFunction{},
 			},
-		},
-		{
-			desc: "multiple files with imports",
-			files: map[string]string{
-				"file1.json": `
-				{
-					"imports": [{
-						"name": "import1",
-						"msg": "msg1" 
-					}]
-				}
-				`,
-				"file2.json": `
-				{
-					"imports": [{
-						"name": "import2",
-						"msg": "msg2" 
-					}]
-				}
-				`,
-			},
-			want: &Config{Imports: []BannedAPI{
-				{Name: "import1", Msg: "msg1"}, {Name: "import2", Msg: "msg2"},
-			}},
 		},
 		{
 			desc: "file with banned function",
@@ -107,149 +72,64 @@ func TestReadConfigs(t *testing.T) {
 				"file.json": `
 				{
 					"functions": [{
-						"name": "safehttp.NewServeMuxConfig",
+						"name": "github.com/google/go-safeweb/safehttp.NewServeMuxConfig",
 						"msg": "Sample message",
 						"exemptions": [{
 							"justification": "My justification",
-							"allowedDir": "subdirs/vetted/..."
+							"allowedDir": "mycompany.com/my/subdirs/vetted/..."
 						}]
 					}]
 				}
 				`,
 			},
-			want: &Config{Functions: []BannedAPI{{
-				Name: "safehttp.NewServeMuxConfig",
-				Msg:  "Sample message",
-				Exemptions: []Exemption{
+			config: &Config{
+				Imports: []BannedImport{},
+				Functions: []BannedFunction{
 					{
-						Justification: "My justification",
-						AllowedDir:    "subdirs/vetted/...",
-					},
-				},
-			}}},
-		},
-		{
-			desc: "file with banned imports and functions",
-			files: map[string]string{
-				"file.json": `
-				{
-					"imports": [{
-						"name": "legacyconversions",
-						"msg": "Sample message",
-						"exemptions": [{
-							"justification": "My justification",
-							"allowedDir": "subdirs/vetted/..."
-						}]
-					}],
-					"functions": [{
-						"name": "safehttp.NewServeMuxConfig",
-						"msg": "Sample message",
-						"exemptions": [{
-							"justification": "My justification",
-							"allowedDir": "subdirs/vetted/..."
-						}]
-					}]
-				}
-				`,
-			},
-			want: &Config{
-				Imports: []BannedAPI{
-					{
-						Name: "legacyconversions",
+						Name: "github.com/google/go-safeweb/safehttp.NewServeMuxConfig",
 						Msg:  "Sample message",
 						Exemptions: []Exemption{
 							{
 								Justification: "My justification",
-								AllowedDir:    "subdirs/vetted/...",
+								AllowedDir:    "mycompany.com/my/subdirs/vetted/...",
 							},
 						},
-					}},
-				Functions: []BannedAPI{{
-					Name: "safehttp.NewServeMuxConfig",
-					Msg:  "Sample message",
-					Exemptions: []Exemption{
-						{
-							Justification: "My justification",
-							AllowedDir:    "subdirs/vetted/...",
-						},
 					},
-				}},
+				},
 			},
 		},
 		{
-			desc: "multiple files with functions",
+			desc: "multiple files",
 			files: map[string]string{
 				"file1.json": `
 				{
 					"functions": [{
-						"name": "function1",
-						"msg": "msg1" 
+						"name": "function1"
+					}],
+					"imports": [{
+						"name": "import1"
 					}]
 				}
 				`,
 				"file2.json": `
 				{
 					"functions": [{
-						"name": "function2",
-						"msg": "msg2" 
+						"name": "function2"
+					}],
+					"imports": [{
+						"name": "import2"
 					}]
 				}
 				`,
 			},
-			want: &Config{Functions: []BannedAPI{
-				{Name: "function1", Msg: "msg1"}, {Name: "function2", Msg: "msg2"},
-			}},
-		},
-		{
-			desc: "duplicate definitions",
-			files: map[string]string{
-				"file1.json": `
-				{
-					"functions": [{
-						"name": "function",
-						"msg": "Banned by team x",
-						"exemptions": [{
-							"justification": "My justification",
-							"allowedDir": "subdirs/vetted/..."
-						}]
-					}]
-				}
-				`,
-				"file2.json": `
-				{
-					"functions": [{
-						"name": "function",
-						"msg": "Banned by team y",
-						"exemptions": [{
-							"justification": "#yolo",
-							"allowedDir": "otherdir/legacy/..."
-						}]
-					}]
-				}
-				`,
-			},
-			want: &Config{
-				Functions: []BannedAPI{
-					{
-						Name: "function",
-						Msg:  "Banned by team x",
-						Exemptions: []Exemption{
-							{
-								Justification: "My justification",
-								AllowedDir:    "subdirs/vetted/...",
-							},
-						},
-					},
-					{
-						Name: "function",
-						Msg:  "Banned by team y",
-						Exemptions: []Exemption{
-							{
-								Justification: "#yolo",
-								AllowedDir:    "otherdir/legacy/...",
-							},
-						},
-					},
+			config: &Config{
+				Imports: []BannedImport{
+					{Name: "import1"},
+					{Name: "import2"},
+				},
+				Functions: []BannedFunction{
+					{Name: "function1"},
+					{Name: "function2"},
 				},
 			},
 		},
@@ -259,34 +139,31 @@ func TestReadConfigs(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			dir, cleanup, err := analysistest.WriteFiles(test.files)
 			if err != nil {
-				t.Fatalf("WriteFiles() returned err: %v", err)
+				t.Fatalf("Test %s: WriteFiles() returned err: %v", test.desc, err)
 			}
 			defer cleanup()
-			var files []string
+			files := make([]string, 0)
 			for f := range test.files {
 				path := filepath.Join(dir, "src", f)
 				files = append(files, path)
 			}
 
-			cfg, err := ReadConfigs(files)
+			config, error := Read(files)
 
-			if err != nil {
-				t.Errorf("ReadConfigs() got err: %v want: nil", err)
+			if error != nil {
+				t.Errorf("Read() got err: %v want: nil", error)
 			}
-			if diff := cmp.Diff(cfg, test.want, cmpopts.SortSlices(BannedAPICmp)); diff != "" {
+			if diff := cmp.Diff(config, test.config); diff != "" {
 				t.Errorf("config mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
 }
-
-var BannedAPICmp = func(b1, b2 BannedAPI) bool { return b1.Msg < b2.Msg }
-
 func TestConfigErrors(t *testing.T) {
 	tests := []struct {
-		desc     string
-		files    map[string]string
-		fileName string
+		desc     string            // describes the test case
+		files    map[string]string // fake workspace files
+		fileName string            // file name to read
 	}{
 		{
 			desc:     "file does not exist",
@@ -294,11 +171,9 @@ func TestConfigErrors(t *testing.T) {
 			fileName: "nonexistent",
 		},
 		{
-			desc: "file is a directory",
-			files: map[string]string{
-				"dir/file.json": ``,
-			},
-			fileName: "dir",
+			desc:     "file is a directory",
+			files:    map[string]string{},
+			fileName: "",
 		},
 		{
 			desc: "file has invalid contents",
@@ -315,18 +190,18 @@ func TestConfigErrors(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			dir, cleanup, err := analysistest.WriteFiles(test.files)
 			if err != nil {
-				t.Fatalf("WriteFiles() got err: %v", err)
+				t.Fatalf("Test %s: WriteFiles() returned err: %v", test.desc, err)
 			}
 			defer cleanup()
 
 			file := filepath.Join(dir, "src", test.fileName)
-			cfg, err := ReadConfigs([]string{file})
+			cfg, error := Read([]string{file})
 
 			if cfg != nil {
-				t.Errorf("ReadConfigs() got %v, wanted nil", cfg)
+				t.Errorf("Read(%q) returned a config but wanted nil", test.fileName)
 			}
-			if err == nil {
-				t.Errorf("ReadConfigs() got %v, wanted error", cfg)
+			if error == nil {
+				t.Errorf("Read(%q) succeeded but wanted error", test.fileName)
 			}
 		})
 	}
