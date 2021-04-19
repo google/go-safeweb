@@ -21,7 +21,10 @@ func TestBannedFunctionAnalyzer(t *testing.T) {
 				{}
 				`,
 			},
-			config: &Config{Imports: []BannedImport{}, Functions: []BannedFunction{}},
+			config: &Config{
+				Imports:   []BannedImport{},
+				Functions: []BannedFunction{},
+			},
 		},
 		{
 			desc: "file with unknown field",
@@ -32,7 +35,10 @@ func TestBannedFunctionAnalyzer(t *testing.T) {
 				}
 				`,
 			},
-			config: &Config{Imports: []BannedImport{}, Functions: []BannedFunction{}},
+			config: &Config{
+				Imports:   []BannedImport{},
+				Functions: []BannedFunction{},
+			},
 		},
 		{
 			desc: "file with banned import",
@@ -40,11 +46,11 @@ func TestBannedFunctionAnalyzer(t *testing.T) {
 				"file.json": `
 				{
 					"imports": [{
-						"name": "github.com/google/go-safeweb/safesql/legacyconversions",
+						"name": "legacyconversions",
 						"msg": "Sample message",
 						"exemptions": [{
 							"justification": "My justification",
-							"allowedDir": "mycompany.com/my/subdirs/vetted/..."
+							"allowedDir": "subdirs/vetted/..."
 						}]
 					}]
 				}
@@ -53,12 +59,12 @@ func TestBannedFunctionAnalyzer(t *testing.T) {
 			config: &Config{
 				Imports: []BannedImport{
 					{
-						Name: "github.com/google/go-safeweb/safesql/legacyconversions",
+						Name: "legacyconversions",
 						Msg:  "Sample message",
 						Exemptions: []Exemption{
 							{
 								Justification: "My justification",
-								AllowedDir:    "mycompany.com/my/subdirs/vetted/...",
+								AllowedDir:    "subdirs/vetted/...",
 							},
 						},
 					},
@@ -72,11 +78,11 @@ func TestBannedFunctionAnalyzer(t *testing.T) {
 				"file.json": `
 				{
 					"functions": [{
-						"name": "github.com/google/go-safeweb/safehttp.NewServeMuxConfig",
+						"name": "safehttp.NewServeMuxConfig",
 						"msg": "Sample message",
 						"exemptions": [{
 							"justification": "My justification",
-							"allowedDir": "mycompany.com/my/subdirs/vetted/..."
+							"allowedDir": "subdirs/vetted/..."
 						}]
 					}]
 				}
@@ -86,12 +92,12 @@ func TestBannedFunctionAnalyzer(t *testing.T) {
 				Imports: []BannedImport{},
 				Functions: []BannedFunction{
 					{
-						Name: "github.com/google/go-safeweb/safehttp.NewServeMuxConfig",
+						Name: "safehttp.NewServeMuxConfig",
 						Msg:  "Sample message",
 						Exemptions: []Exemption{
 							{
 								Justification: "My justification",
-								AllowedDir:    "mycompany.com/my/subdirs/vetted/...",
+								AllowedDir:    "subdirs/vetted/...",
 							},
 						},
 					},
