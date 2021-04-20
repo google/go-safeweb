@@ -117,14 +117,18 @@ func TestBannedImportConfig(t *testing.T) {
 			imports: BannedIdents{
 				"import": {
 					{
-						Name:       "import",
-						Msg:        "Banned by team x",
-						Exemptions: []Exemption{{Justification: "My justification", AllowedDir: "subdirs/vetted/..."}},
+						Name: "import",
+						Msg:  "Banned by team x",
+						Exemptions: []Exemption{{
+							Justification: "My justification",
+							AllowedDir:    "subdirs/vetted/..."}},
 					},
 					{
-						Name:       "import",
-						Msg:        "Banned by team y",
-						Exemptions: []Exemption{{Justification: "#yolo", AllowedDir: "otherdir/legacy/..."}},
+						Name: "import",
+						Msg:  "Banned by team y",
+						Exemptions: []Exemption{{
+							Justification: "#yolo",
+							AllowedDir:    "otherdir/legacy/..."}},
 					},
 				},
 			},
@@ -265,14 +269,18 @@ func TestBannedFunctionConfig(t *testing.T) {
 			functions: BannedIdents{
 				"function": {
 					{
-						Name:       "function",
-						Msg:        "Banned by team x",
-						Exemptions: []Exemption{{Justification: "My justification", AllowedDir: "subdirs/vetted/..."}},
+						Name: "function",
+						Msg:  "Banned by team x",
+						Exemptions: []Exemption{{
+							Justification: "My justification",
+							AllowedDir:    "subdirs/vetted/..."}},
 					},
 					{
-						Name:       "function",
-						Msg:        "Banned by team y",
-						Exemptions: []Exemption{{Justification: "#yolo", AllowedDir: "otherdir/legacy/..."}},
+						Name: "function",
+						Msg:  "Banned by team y",
+						Exemptions: []Exemption{{
+							Justification: "#yolo",
+							AllowedDir:    "otherdir/legacy/..."}},
 					},
 				},
 			},
