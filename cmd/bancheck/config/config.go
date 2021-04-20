@@ -7,12 +7,6 @@ import (
 	"os"
 )
 
-// config struct which contains an array of banned imports and function calls.
-type config struct {
-	Imports   []BannedIdent `json:"imports"`
-	Functions []BannedIdent `json:"functions"`
-}
-
 // BannedIdent struct which all information about a banned identifier:
 // - fully qualified import/function name,
 // - message with additional information,
@@ -27,7 +21,8 @@ type BannedIdent struct {
 // entries that define additional information.
 type BannedIdents map[string][]BannedIdent
 
-// Exemption struct which contains a justification and a path to allowed directory.
+// Exemption struct which contains a justification and a path to a directory
+// that should be exempted from the check.
 type Exemption struct {
 	Justification string `json:"justification"`
 	AllowedDir    string `json:"allowedDir"`
@@ -71,7 +66,13 @@ func ReadBannedFunctions(files []string) (BannedIdents, error) {
 	return fns, nil
 }
 
-// unmarshalCfg reads JSON object from a file and converts it to a Config struct.
+// config struct which contains an array of banned imports and function calls.
+type config struct {
+	Imports   []BannedIdent `json:"imports"`
+	Functions []BannedIdent `json:"functions"`
+}
+
+// unmarshalCfg reads JSON object from a file and converts it to a config struct.
 func unmarshalCfg(file string) (*config, error) {
 	if !fileExists(file) {
 		return nil, errors.New("file does not exist or is a directory")
