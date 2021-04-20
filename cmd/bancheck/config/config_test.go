@@ -12,7 +12,7 @@ func TestBannedImportConfig(t *testing.T) {
 	tests := []struct {
 		desc    string            // describes the test case
 		files   map[string]string // fake workspace files
-		imports BannedImports     // the expected imports
+		imports BannedIdents      // the expected imports
 	}{
 		{
 			desc: "file with empty definitions",
@@ -21,7 +21,7 @@ func TestBannedImportConfig(t *testing.T) {
 				{}
 				`,
 			},
-			imports: BannedImports{},
+			imports: BannedIdents{},
 		},
 		{
 			desc: "file with unknown field",
@@ -32,7 +32,7 @@ func TestBannedImportConfig(t *testing.T) {
 				}
 				`,
 			},
-			imports: BannedImports{},
+			imports: BannedIdents{},
 		},
 		{
 			desc: "file with banned import",
@@ -50,7 +50,7 @@ func TestBannedImportConfig(t *testing.T) {
 				}
 				`,
 			},
-			imports: BannedImports{
+			imports: BannedIdents{
 				"legacyconversions": {{
 					Name: "legacyconversions",
 					Msg:  "Sample message",
@@ -81,7 +81,7 @@ func TestBannedImportConfig(t *testing.T) {
 				}
 				`,
 			},
-			imports: BannedImports{
+			imports: BannedIdents{
 				"import1": {{Name: "import1"}},
 				"import2": {{Name: "import2"}},
 			},
@@ -114,7 +114,7 @@ func TestBannedImportConfig(t *testing.T) {
 				}
 				`,
 			},
-			imports: BannedImports{
+			imports: BannedIdents{
 				"import": {
 					{
 						Name:       "import",
@@ -160,7 +160,7 @@ func TestBannedFunctionConfig(t *testing.T) {
 	tests := []struct {
 		desc      string            // describes the test case
 		files     map[string]string // fake workspace files
-		functions BannedFunctions   // the expected imports
+		functions BannedIdents      // the expected imports
 	}{
 		{
 			desc: "file with empty definitions",
@@ -169,7 +169,7 @@ func TestBannedFunctionConfig(t *testing.T) {
 				{}
 				`,
 			},
-			functions: BannedFunctions{},
+			functions: BannedIdents{},
 		},
 		{
 			desc: "file with unknown field",
@@ -180,7 +180,7 @@ func TestBannedFunctionConfig(t *testing.T) {
 				}
 				`,
 			},
-			functions: BannedFunctions{},
+			functions: BannedIdents{},
 		},
 		{
 			desc: "file with banned function",
@@ -198,7 +198,7 @@ func TestBannedFunctionConfig(t *testing.T) {
 				}
 				`,
 			},
-			functions: BannedFunctions{
+			functions: BannedIdents{
 				"safehttp.NewServeMuxConfig": {{
 					Name: "safehttp.NewServeMuxConfig",
 					Msg:  "Sample message",
@@ -229,7 +229,7 @@ func TestBannedFunctionConfig(t *testing.T) {
 				}
 				`,
 			},
-			functions: BannedFunctions{
+			functions: BannedIdents{
 				"function1": {{Name: "function1"}},
 				"function2": {{Name: "function2"}},
 			},
@@ -262,7 +262,7 @@ func TestBannedFunctionConfig(t *testing.T) {
 				}
 				`,
 			},
-			functions: BannedFunctions{
+			functions: BannedIdents{
 				"function": {
 					{
 						Name:       "function",

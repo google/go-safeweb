@@ -7,35 +7,25 @@ import (
 	"os"
 )
 
-// Config struct which contains an array of banned imports and function calls
+// config struct which contains an array of banned imports and function calls.
 type config struct {
-	Imports   []BannedImport   `json:"imports"`
-	Functions []BannedFunction `json:"functions"`
+	Imports   []BannedIdent `json:"imports"`
+	Functions []BannedIdent `json:"functions"`
 }
 
-// BannedImport struct which contains a fully qualified import name,
-// message with additional information and a list of exemptions.
-type BannedImport struct {
+// BannedIdent struct which all information about a banned identifier:
+// - fully qualified import/function name,
+// - message with additional information,
+// - a list of exemptions.
+type BannedIdent struct {
 	Name       string      `json:"name"`
 	Msg        string      `json:"msg"`
 	Exemptions []Exemption `json:"exemptions"`
 }
 
-// BannedImports is a map of import names to a list of BannedImport
+// BannedIdents is a map of identifier names to a list of BannedIdent
 // entries that define additional information.
-type BannedImports map[string][]BannedImport
-
-// BannedFunction struct which contains a fully qualified function name,
-// message with additional information and a list of exemptions.
-type BannedFunction struct {
-	Name       string      `json:"name"`
-	Msg        string      `json:"msg"`
-	Exemptions []Exemption `json:"exemptions"`
-}
-
-// BannedFunctions is a map of fully qualified function names
-// to a list of BannedFunction entries that define additional information.
-type BannedFunctions map[string][]BannedFunction
+type BannedIdents map[string][]BannedIdent
 
 // Exemption struct which contains a justification and a path to allowed directory.
 type Exemption struct {
@@ -45,8 +35,8 @@ type Exemption struct {
 
 // ReadBannedImports reads banned imports from all config files
 // and concatenates them into one object.
-func ReadBannedImports(files []string) (BannedImports, error) {
-	imports := make(BannedImports)
+func ReadBannedImports(files []string) (BannedIdents, error) {
+	imports := make(BannedIdents)
 
 	for _, file := range files {
 		config, err := unmarshalCfg(file)
@@ -64,8 +54,8 @@ func ReadBannedImports(files []string) (BannedImports, error) {
 
 // ReadBannedFunctions reads banned function calls from all config files
 // and concatenates them into a map.
-func ReadBannedFunctions(files []string) (BannedFunctions, error) {
-	fns := make(BannedFunctions)
+func ReadBannedFunctions(files []string) (BannedIdents, error) {
+	fns := make(BannedIdents)
 
 	for _, file := range files {
 		config, err := unmarshalCfg(file)
