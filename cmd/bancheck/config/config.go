@@ -40,7 +40,7 @@ func ReadBannedImports(files []string) (BannedApis, error) {
 	imports := make(BannedApis)
 
 	for _, file := range files {
-		config, err := decodeCfg(file)
+		config, err := readCfg(file)
 		if err != nil {
 			return nil, err
 		}
@@ -59,7 +59,7 @@ func ReadBannedFunctions(files []string) (BannedApis, error) {
 	fns := make(BannedApis)
 
 	for _, file := range files {
-		config, err := decodeCfg(file)
+		config, err := readCfg(file)
 		if err != nil {
 			return nil, err
 		}
