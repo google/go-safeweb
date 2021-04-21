@@ -23,7 +23,7 @@ import (
 
 // FakeResponseWriter creates a fake safehttp.ResponseWriter implementation.
 //
-// It does no error checking nor runs interceptors. Only the
+// It does no error checking nor runs interceptors.
 type FakeResponseWriter struct {
 	// The Dispatcher implementation
 	Dispatcher safehttp.Dispatcher
