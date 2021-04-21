@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"golang.org/x/tools/go/analysis/analysistest"
 )
 
@@ -166,7 +167,7 @@ func TestBannedImportConfig(t *testing.T) {
 			if err != nil {
 				t.Errorf("ReadBannedImports() got err: %v want: nil", err)
 			}
-			if diff := cmp.Diff(imports, test.want); diff != "" {
+			if diff := cmp.Diff(imports, test.want, cmpopts.SortSlices(bannedApiCmp)); diff != "" {
 				t.Errorf("config mismatch (-want +got):\n%s", diff)
 			}
 		})
@@ -324,12 +325,15 @@ func TestBannedFunctionConfig(t *testing.T) {
 			if err != nil {
 				t.Errorf("Read() got err: %v want: nil", err)
 			}
-			if diff := cmp.Diff(fns, test.want); diff != "" {
+			if diff := cmp.Diff(fns, test.want, cmpopts.SortSlices(bannedApiCmp)); diff != "" {
 				t.Errorf("config mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
 }
+
+var bannedApiCmp = func(b1, b2 BannedApi) bool { return b1.Msg > b2.Msg }
+
 func TestConfigErrors(t *testing.T) {
 	tests := []struct {
 		desc     string
