@@ -372,16 +372,20 @@ func TestConfigErrors(t *testing.T) {
 			imports, errImports := ReadBannedImports([]string{file})
 
 			if fns != nil {
-				t.Errorf("ReadBannedFunctions(%q) got %v, wanted nil", fns, test.fileName)
+				t.Errorf("ReadBannedFunctions(%q) got %v, wanted nil",
+					fns, test.fileName)
 			}
 			if imports != nil {
-				t.Errorf("ReadBannedImports(%q) got %v, wanted nil", fns, test.fileName)
+				t.Errorf("ReadBannedImports(%q) got %v, wanted nil",
+					fns, test.fileName)
 			}
 			if errFns == nil {
-				t.Errorf("ReadBannedFunctions(%q) succeeded but wanted error", test.fileName)
+				t.Errorf("ReadBannedFunctions(%q) succeeded but wanted error",
+					test.fileName)
 			}
 			if errImports == nil {
-				t.Errorf("ReadBannedImports(%q) succeeded but wanted error", test.fileName)
+				t.Errorf("ReadBannedImports(%q) succeeded but wanted error",
+					test.fileName)
 			}
 		})
 	}
