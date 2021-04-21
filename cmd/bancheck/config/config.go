@@ -40,7 +40,7 @@ func ReadBannedImports(files []string) (BannedApis, error) {
 	imports := make(BannedApis)
 
 	for _, file := range files {
-		config, err := unmarshalCfg(file)
+		config, err := decodeCfg(file)
 		if err != nil {
 			return nil, err
 		}
@@ -59,7 +59,7 @@ func ReadBannedFunctions(files []string) (BannedApis, error) {
 	fns := make(BannedApis)
 
 	for _, file := range files {
-		config, err := unmarshalCfg(file)
+		config, err := decodeCfg(file)
 		if err != nil {
 			return nil, err
 		}
@@ -78,22 +78,14 @@ type config struct {
 	Functions []BannedApi `json:"functions"`
 }
 
-// unmarshalCfg reads JSON object from a file and converts it to a bannedAPIs struct.
-func unmarshalCfg(filename string) (*config, error) {
+func readCfg(filename string) (*config, error) {
 	f, err := readFile(filename)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
 
-	var cfg config
-	d := json.NewDecoder(f)
-	err = d.Decode(&cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return &cfg, nil
+	return decodeCfg(f)
 }
 
 func readFile(filename string) (*os.File, error) {
@@ -106,4 +98,15 @@ func readFile(filename string) (*os.File, error) {
 	}
 
 	return os.Open(filename)
+}
+
+func decodeCfg(f *os.File) (*config, error) {
+	var cfg config
+	d := json.NewDecoder(f)
+	err := d.Decode(&cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return &cfg, nil
 }
