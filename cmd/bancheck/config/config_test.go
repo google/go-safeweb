@@ -23,9 +23,9 @@ import (
 
 func TestBannedImportConfig(t *testing.T) {
 	tests := []struct {
-		desc    string            // describes the test case
-		files   map[string]string // fake workspace files
-		imports BannedIdents      // the expected imports
+		desc  string
+		files map[string]string // fake workspace files
+		want  BannedApis
 	}{
 		{
 			desc: "file with empty definitions",
@@ -34,7 +34,7 @@ func TestBannedImportConfig(t *testing.T) {
 				{}
 				`,
 			},
-			imports: BannedIdents{},
+			want: BannedApis{},
 		},
 		{
 			desc: "file with unknown field",
@@ -45,7 +45,7 @@ func TestBannedImportConfig(t *testing.T) {
 				}
 				`,
 			},
-			imports: BannedIdents{},
+			want: BannedApis{},
 		},
 		{
 			desc: "file with banned import",
@@ -63,7 +63,7 @@ func TestBannedImportConfig(t *testing.T) {
 				}
 				`,
 			},
-			imports: BannedIdents{
+			want: BannedApis{
 				"legacyconversions": {{
 					Name: "legacyconversions",
 					Msg:  "Sample message",
@@ -94,7 +94,7 @@ func TestBannedImportConfig(t *testing.T) {
 				}
 				`,
 			},
-			imports: BannedIdents{
+			want: BannedApis{
 				"import1": {{Name: "import1"}},
 				"import2": {{Name: "import2"}},
 			},
@@ -127,7 +127,7 @@ func TestBannedImportConfig(t *testing.T) {
 				}
 				`,
 			},
-			imports: BannedIdents{
+			want: BannedApis{
 				"import": {
 					{
 						Name: "import",
@@ -152,21 +152,21 @@ func TestBannedImportConfig(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			dir, cleanup, err := analysistest.WriteFiles(test.files)
 			if err != nil {
-				t.Fatalf("Test %s: WriteFiles() returned err: %v", test.desc, err)
+				t.Fatalf("WriteFiles() returned err: %v", err)
 			}
 			defer cleanup()
-			files := make([]string, 0)
+			var files []string
 			for f := range test.files {
 				path := filepath.Join(dir, "src", f)
 				files = append(files, path)
 			}
 
-			imports, error := ReadBannedImports(files)
+			imports, err := ReadBannedImports(files)
 
-			if error != nil {
-				t.Errorf("Read() got err: %v want: nil", error)
+			if err != nil {
+				t.Errorf("ReadBannedImports() got err: %v want: nil", err)
 			}
-			if diff := cmp.Diff(imports, test.imports); diff != "" {
+			if diff := cmp.Diff(imports, test.want); diff != "" {
 				t.Errorf("config mismatch (-want +got):\n%s", diff)
 			}
 		})
@@ -175,9 +175,9 @@ func TestBannedImportConfig(t *testing.T) {
 
 func TestBannedFunctionConfig(t *testing.T) {
 	tests := []struct {
-		desc      string            // describes the test case
-		files     map[string]string // fake workspace files
-		functions BannedIdents      // the expected imports
+		desc  string
+		files map[string]string // fake workspace files
+		want  BannedApis
 	}{
 		{
 			desc: "file with empty definitions",
@@ -186,7 +186,7 @@ func TestBannedFunctionConfig(t *testing.T) {
 				{}
 				`,
 			},
-			functions: BannedIdents{},
+			want: BannedApis{},
 		},
 		{
 			desc: "file with unknown field",
@@ -197,7 +197,7 @@ func TestBannedFunctionConfig(t *testing.T) {
 				}
 				`,
 			},
-			functions: BannedIdents{},
+			want: BannedApis{},
 		},
 		{
 			desc: "file with banned function",
@@ -215,7 +215,7 @@ func TestBannedFunctionConfig(t *testing.T) {
 				}
 				`,
 			},
-			functions: BannedIdents{
+			want: BannedApis{
 				"safehttp.NewServeMuxConfig": {{
 					Name: "safehttp.NewServeMuxConfig",
 					Msg:  "Sample message",
@@ -246,7 +246,7 @@ func TestBannedFunctionConfig(t *testing.T) {
 				}
 				`,
 			},
-			functions: BannedIdents{
+			want: BannedApis{
 				"function1": {{Name: "function1"}},
 				"function2": {{Name: "function2"}},
 			},
@@ -279,21 +279,27 @@ func TestBannedFunctionConfig(t *testing.T) {
 				}
 				`,
 			},
-			functions: BannedIdents{
+			want: BannedApis{
 				"function": {
 					{
 						Name: "function",
 						Msg:  "Banned by team x",
-						Exemptions: []Exemption{{
-							Justification: "My justification",
-							AllowedDir:    "subdirs/vetted/..."}},
+						Exemptions: []Exemption{
+							{
+								Justification: "My justification",
+								AllowedDir:    "subdirs/vetted/...",
+							},
+						},
 					},
 					{
 						Name: "function",
 						Msg:  "Banned by team y",
-						Exemptions: []Exemption{{
-							Justification: "#yolo",
-							AllowedDir:    "otherdir/legacy/..."}},
+						Exemptions: []Exemption{
+							{
+								Justification: "#yolo",
+								AllowedDir:    "otherdir/legacy/...",
+							},
+						},
 					},
 				},
 			},
@@ -304,21 +310,21 @@ func TestBannedFunctionConfig(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			dir, cleanup, err := analysistest.WriteFiles(test.files)
 			if err != nil {
-				t.Fatalf("Test %s: WriteFiles() returned err: %v", test.desc, err)
+				t.Fatalf("WriteFiles() returned err: %v", err)
 			}
 			defer cleanup()
-			files := make([]string, 0)
+			var files []string
 			for f := range test.files {
 				path := filepath.Join(dir, "src", f)
 				files = append(files, path)
 			}
 
-			fns, error := ReadBannedFunctions(files)
+			fns, err := ReadBannedFunctions(files)
 
-			if error != nil {
-				t.Errorf("Read() got err: %v want: nil", error)
+			if err != nil {
+				t.Errorf("Read() got err: %v want: nil", err)
 			}
-			if diff := cmp.Diff(fns, test.functions); diff != "" {
+			if diff := cmp.Diff(fns, test.want); diff != "" {
 				t.Errorf("config mismatch (-want +got):\n%s", diff)
 			}
 		})
@@ -326,7 +332,7 @@ func TestBannedFunctionConfig(t *testing.T) {
 }
 func TestConfigErrors(t *testing.T) {
 	tests := []struct {
-		desc     string            // describes the test case
+		desc     string
 		files    map[string]string // fake workspace files
 		fileName string            // file name to read
 	}{
@@ -336,9 +342,11 @@ func TestConfigErrors(t *testing.T) {
 			fileName: "nonexistent",
 		},
 		{
-			desc:     "file is a directory",
-			files:    map[string]string{},
-			fileName: "",
+			desc: "file is a directory",
+			files: map[string]string{
+				"dir/file.json": ``,
+			},
+			fileName: "dir",
 		},
 		{
 			desc: "file has invalid contents",
@@ -355,24 +363,24 @@ func TestConfigErrors(t *testing.T) {
 		t.Run(test.desc, func(t *testing.T) {
 			dir, cleanup, err := analysistest.WriteFiles(test.files)
 			if err != nil {
-				t.Fatalf("Test %s: WriteFiles() returned err: %v", test.desc, err)
+				t.Fatalf("WriteFiles() got err: %v", err)
 			}
 			defer cleanup()
 
 			file := filepath.Join(dir, "src", test.fileName)
-			fns, errorFns := ReadBannedFunctions([]string{file})
-			imports, errorImports := ReadBannedImports([]string{file})
+			fns, errFns := ReadBannedFunctions([]string{file})
+			imports, errImports := ReadBannedImports([]string{file})
 
 			if fns != nil {
-				t.Errorf("ReadBannedFunctions(%q) returned a config but wanted nil", test.fileName)
+				t.Errorf("ReadBannedFunctions(%q) got %v, wanted nil", fns, test.fileName)
 			}
 			if imports != nil {
-				t.Errorf("ReadBannedImports(%q) returned a config but wanted nil", test.fileName)
+				t.Errorf("ReadBannedImports(%q) got %v, wanted nil", fns, test.fileName)
 			}
-			if errorFns == nil {
+			if errFns == nil {
 				t.Errorf("ReadBannedFunctions(%q) succeeded but wanted error", test.fileName)
 			}
-			if errorImports == nil {
+			if errImports == nil {
 				t.Errorf("ReadBannedImports(%q) succeeded but wanted error", test.fileName)
 			}
 		})
