@@ -16,26 +16,19 @@ package config
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
 	"os"
 )
 
-// BannedIdent struct which all information about a banned identifier:
-// - fully qualified import/function name,
-// - message with additional information,
-// - a list of exemptions.
-type BannedIdent struct {
-	Name       string      `json:"name"`
-	Msg        string      `json:"msg"`
+type BannedApi struct {
+	Name       string      `json:"name"` // fully qualified identifier name
+	Msg        string      `json:"msg"`  // additional information e.g. rationale for banning
 	Exemptions []Exemption `json:"exemptions"`
 }
 
-// BannedIdents is a map of identifier names to a list of BannedIdent
-// entries that define additional information.
-type BannedIdents map[string][]BannedIdent
+// BannedApis is a map of identifier names to a list of all corresponding
+// BannedApi entries with additional information.
+type BannedApis map[string][]BannedApi
 
-// Exemption struct which contains a justification and a path to a directory
-// that should be exempted from the check.
 type Exemption struct {
 	Justification string `json:"justification"`
 	AllowedDir    string `json:"allowedDir"`
@@ -43,8 +36,8 @@ type Exemption struct {
 
 // ReadBannedImports reads banned imports from all config files
 // and concatenates them into one object.
-func ReadBannedImports(files []string) (BannedIdents, error) {
-	imports := make(BannedIdents)
+func ReadBannedImports(files []string) (BannedApis, error) {
+	imports := make(BannedApis)
 
 	for _, file := range files {
 		config, err := unmarshalCfg(file)
@@ -62,8 +55,8 @@ func ReadBannedImports(files []string) (BannedIdents, error) {
 
 // ReadBannedFunctions reads banned function calls from all config files
 // and concatenates them into a map.
-func ReadBannedFunctions(files []string) (BannedIdents, error) {
-	fns := make(BannedIdents)
+func ReadBannedFunctions(files []string) (BannedApis, error) {
+	fns := make(BannedApis)
 
 	for _, file := range files {
 		config, err := unmarshalCfg(file)
@@ -79,40 +72,38 @@ func ReadBannedFunctions(files []string) (BannedIdents, error) {
 	return fns, nil
 }
 
-// config struct which contains an array of banned imports and function calls.
+// config represents contents of a configuration file passed to the linter.
 type config struct {
-	Imports   []BannedIdent `json:"imports"`
-	Functions []BannedIdent `json:"functions"`
+	Imports   []BannedApi `json:"imports"`
+	Functions []BannedApi `json:"functions"`
 }
 
-// unmarshalCfg reads JSON object from a file and converts it to a config struct.
-func unmarshalCfg(file string) (*config, error) {
-	if !fileExists(file) {
-		return nil, errors.New("file does not exist or is a directory")
-	}
-
-	cfg, err := os.Open(file)
+// unmarshalCfg reads JSON object from a file and converts it to a bannedAPIs struct.
+func unmarshalCfg(filename string) (*config, error) {
+	f, err := readFile(filename)
 	if err != nil {
 		return nil, err
 	}
-	defer cfg.Close()
+	defer f.Close()
 
-	var config config
-	bytes, _ := ioutil.ReadAll(cfg)
-	err = json.Unmarshal(bytes, &config)
+	var cfg config
+	d := json.NewDecoder(f)
+	err = d.Decode(&cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	return &config, nil
+	return &cfg, nil
 }
 
-// fileExists checks if a file exists and is not a directory before we
-// try using it to prevent further errors.
-func fileExists(filename string) bool {
+func readFile(filename string) (*os.File, error) {
 	info, err := os.Stat(filename)
 	if os.IsNotExist(err) {
-		return false
+		return nil, errors.New("file does not exist")
 	}
-	return !info.IsDir()
+	if info.IsDir() {
+		return nil, errors.New("file is a directory")
+	}
+
+	return os.Open(filename)
 }
