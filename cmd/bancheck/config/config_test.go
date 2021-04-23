@@ -25,7 +25,7 @@ import (
 func TestReadConfigs(t *testing.T) {
 	tests := []struct {
 		desc  string
-		files map[string]string // fake workspace files
+		files map[string]string
 		want  *Config
 	}{
 		{
@@ -237,8 +237,8 @@ var bannedApiCmp = func(b1, b2 BannedApi) bool { return b1.Msg < b2.Msg }
 func TestConfigErrors(t *testing.T) {
 	tests := []struct {
 		desc     string
-		files    map[string]string // fake workspace files
-		fileName string            // file name to read
+		files    map[string]string
+		fileName string
 	}{
 		{
 			desc:     "file does not exist",
@@ -275,10 +275,10 @@ func TestConfigErrors(t *testing.T) {
 			cfg, err := ReadConfigs([]string{file})
 
 			if cfg != nil {
-				t.Errorf("ReadConfigs(%q) got %v, wanted nil", cfg, test.fileName)
+				t.Errorf("ReadConfigs() got %v, wanted nil", cfg)
 			}
 			if err == nil {
-				t.Errorf("ReadBannedImports(%q) succeeded but wanted error", test.fileName)
+				t.Errorf("ReadConfigs() got %v, wanted error", cfg)
 			}
 		})
 	}
