@@ -25,12 +25,14 @@ type Config struct {
 	Functions []BannedAPI `json:"functions"`
 }
 
+// BannedAPI represents an identifier (e.g. import, function call) that should not be used.
 type BannedAPI struct {
 	Name       string      `json:"name"` // fully qualified identifier name
 	Msg        string      `json:"msg"`  // additional information e.g. rationale for banning
 	Exemptions []Exemption `json:"exemptions"`
 }
 
+// Exemption represents a location that should be exempted from checking for banned APIs.
 type Exemption struct {
 	Justification string `json:"justification"`
 	AllowedDir    string `json:"allowedDir"`
