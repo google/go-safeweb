@@ -19,25 +19,27 @@ import (
 	"os"
 )
 
+// Config represents a configuration passed to the linter.
+type Config struct {
+	Imports   []BannedApi `json:"imports"`
+	Functions []BannedApi `json:"functions"`
+}
+
 type BannedApi struct {
 	Name       string      `json:"name"` // fully qualified identifier name
 	Msg        string      `json:"msg"`  // additional information e.g. rationale for banning
 	Exemptions []Exemption `json:"exemptions"`
 }
 
-// BannedApis is a map of identifier names to a list of all corresponding
-// BannedApi entries with additional information.
-type BannedApis map[string][]BannedApi
-
 type Exemption struct {
 	Justification string `json:"justification"`
 	AllowedDir    string `json:"allowedDir"`
 }
 
-// ReadBannedImports reads banned imports from all config files
-// and concatenates them into one object.
-func ReadBannedImports(files []string) (BannedApis, error) {
-	imports := make(BannedApis)
+// ReadConfigs reads banned Apis from all files.
+func ReadConfigs(files []string) (*Config, error) {
+	var imports []BannedApi
+	var fns []BannedApi
 
 	for _, file := range files {
 		config, err := readCfg(file)
@@ -45,41 +47,15 @@ func ReadBannedImports(files []string) (BannedApis, error) {
 			return nil, err
 		}
 
-		for _, i := range config.Imports {
-			imports[i.Name] = append(imports[i.Name], i)
-		}
+		imports = append(imports, config.Imports...)
+		fns = append(fns, config.Functions...)
 	}
 
-	return imports, nil
+	return &Config{Imports: imports, Functions: fns}, nil
 }
 
-// ReadBannedFunctions reads banned function calls from all config files
-// and concatenates them into a map.
-func ReadBannedFunctions(files []string) (BannedApis, error) {
-	fns := make(BannedApis)
-
-	for _, file := range files {
-		config, err := readCfg(file)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, fn := range config.Functions {
-			fns[fn.Name] = append(fns[fn.Name], fn)
-		}
-	}
-
-	return fns, nil
-}
-
-// config represents contents of a configuration file passed to the linter.
-type config struct {
-	Imports   []BannedApi `json:"imports"`
-	Functions []BannedApi `json:"functions"`
-}
-
-func readCfg(filename string) (*config, error) {
-	f, err := readFile(filename)
+func readCfg(filename string) (*Config, error) {
+	f, err := openFile(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +64,7 @@ func readCfg(filename string) (*config, error) {
 	return decodeCfg(f)
 }
 
-func readFile(filename string) (*os.File, error) {
+func openFile(filename string) (*os.File, error) {
 	info, err := os.Stat(filename)
 	if os.IsNotExist(err) {
 		return nil, errors.New("file does not exist")
@@ -100,10 +76,9 @@ func readFile(filename string) (*os.File, error) {
 	return os.Open(filename)
 }
 
-func decodeCfg(f *os.File) (*config, error) {
-	var cfg config
-	d := json.NewDecoder(f)
-	err := d.Decode(&cfg)
+func decodeCfg(f *os.File) (*Config, error) {
+	var cfg Config
+	err := json.NewDecoder(f).Decode(&cfg)
 	if err != nil {
 		return nil, err
 	}
