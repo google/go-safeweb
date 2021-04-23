@@ -21,11 +21,11 @@ import (
 
 // Config represents a configuration passed to the linter.
 type Config struct {
-	Imports   []BannedApi `json:"imports"`
-	Functions []BannedApi `json:"functions"`
+	Imports   []BannedAPI `json:"imports"`
+	Functions []BannedAPI `json:"functions"`
 }
 
-type BannedApi struct {
+type BannedAPI struct {
 	Name       string      `json:"name"` // fully qualified identifier name
 	Msg        string      `json:"msg"`  // additional information e.g. rationale for banning
 	Exemptions []Exemption `json:"exemptions"`
@@ -36,10 +36,10 @@ type Exemption struct {
 	AllowedDir    string `json:"allowedDir"`
 }
 
-// ReadConfigs reads banned Apis from all files.
+// ReadConfigs reads banned APIs from all files.
 func ReadConfigs(files []string) (*Config, error) {
-	var imports []BannedApi
-	var fns []BannedApi
+	var imports []BannedAPI
+	var fns []BannedAPI
 
 	for _, file := range files {
 		config, err := readCfg(file)

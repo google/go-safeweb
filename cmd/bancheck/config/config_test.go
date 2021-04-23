@@ -64,7 +64,7 @@ func TestReadConfigs(t *testing.T) {
 				}
 				`,
 			},
-			want: &Config{Imports: []BannedApi{
+			want: &Config{Imports: []BannedAPI{
 				{
 					Name: "legacyconversions",
 					Msg:  "Sample message",
@@ -97,7 +97,7 @@ func TestReadConfigs(t *testing.T) {
 				}
 				`,
 			},
-			want: &Config{Imports: []BannedApi{
+			want: &Config{Imports: []BannedAPI{
 				{Name: "import1", Msg: "msg1"}, {Name: "import2", Msg: "msg2"},
 			}},
 		},
@@ -117,7 +117,7 @@ func TestReadConfigs(t *testing.T) {
 				}
 				`,
 			},
-			want: &Config{Functions: []BannedApi{{
+			want: &Config{Functions: []BannedAPI{{
 				Name: "safehttp.NewServeMuxConfig",
 				Msg:  "Sample message",
 				Exemptions: []Exemption{
@@ -127,6 +127,54 @@ func TestReadConfigs(t *testing.T) {
 					},
 				},
 			}}},
+		},
+		{
+			desc: "file with banned imports and functions",
+			files: map[string]string{
+				"file.json": `
+				{
+					"imports": [{
+						"name": "legacyconversions",
+						"msg": "Sample message",
+						"exemptions": [{
+							"justification": "My justification",
+							"allowedDir": "subdirs/vetted/..."
+						}]
+					}],
+					"functions": [{
+						"name": "safehttp.NewServeMuxConfig",
+						"msg": "Sample message",
+						"exemptions": [{
+							"justification": "My justification",
+							"allowedDir": "subdirs/vetted/..."
+						}]
+					}]
+				}
+				`,
+			},
+			want: &Config{
+				Imports: []BannedAPI{
+					{
+						Name: "legacyconversions",
+						Msg:  "Sample message",
+						Exemptions: []Exemption{
+							{
+								Justification: "My justification",
+								AllowedDir:    "subdirs/vetted/...",
+							},
+						},
+					}},
+				Functions: []BannedAPI{{
+					Name: "safehttp.NewServeMuxConfig",
+					Msg:  "Sample message",
+					Exemptions: []Exemption{
+						{
+							Justification: "My justification",
+							AllowedDir:    "subdirs/vetted/...",
+						},
+					},
+				}},
+			},
 		},
 		{
 			desc: "multiple files with functions",
@@ -148,7 +196,7 @@ func TestReadConfigs(t *testing.T) {
 				}
 				`,
 			},
-			want: &Config{Functions: []BannedApi{
+			want: &Config{Functions: []BannedAPI{
 				{Name: "function1", Msg: "msg1"}, {Name: "function2", Msg: "msg2"},
 			}},
 		},
@@ -181,7 +229,7 @@ func TestReadConfigs(t *testing.T) {
 				`,
 			},
 			want: &Config{
-				Functions: []BannedApi{
+				Functions: []BannedAPI{
 					{
 						Name: "function",
 						Msg:  "Banned by team x",
@@ -225,14 +273,14 @@ func TestReadConfigs(t *testing.T) {
 			if err != nil {
 				t.Errorf("ReadConfigs() got err: %v want: nil", err)
 			}
-			if diff := cmp.Diff(cfg, test.want, cmpopts.SortSlices(bannedApiCmp)); diff != "" {
+			if diff := cmp.Diff(cfg, test.want, cmpopts.SortSlices(BannedAPICmp)); diff != "" {
 				t.Errorf("config mismatch (-want +got):\n%s", diff)
 			}
 		})
 	}
 }
 
-var bannedApiCmp = func(b1, b2 BannedApi) bool { return b1.Msg < b2.Msg }
+var BannedAPICmp = func(b1, b2 BannedAPI) bool { return b1.Msg < b2.Msg }
 
 func TestConfigErrors(t *testing.T) {
 	tests := []struct {
