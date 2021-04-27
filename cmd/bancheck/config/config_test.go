@@ -58,7 +58,7 @@ func TestReadConfigs(t *testing.T) {
 						"msg": "Sample message",
 						"exemptions": [{
 							"justification": "My justification",
-							"allowedDir": "subdirs/vetted/..."
+							"allowedPkg": "subdirs/vetted/..."
 						}]
 					}]
 				}
@@ -71,7 +71,7 @@ func TestReadConfigs(t *testing.T) {
 					Exemptions: []Exemption{
 						{
 							Justification: "My justification",
-							AllowedDir:    "subdirs/vetted/...",
+							AllowedPkg:    "subdirs/vetted/...",
 						},
 					},
 				}},
@@ -111,7 +111,7 @@ func TestReadConfigs(t *testing.T) {
 						"msg": "Sample message",
 						"exemptions": [{
 							"justification": "My justification",
-							"allowedDir": "subdirs/vetted/..."
+							"allowedPkg": "subdirs/vetted/..."
 						}]
 					}]
 				}
@@ -123,7 +123,7 @@ func TestReadConfigs(t *testing.T) {
 				Exemptions: []Exemption{
 					{
 						Justification: "My justification",
-						AllowedDir:    "subdirs/vetted/...",
+						AllowedPkg:    "subdirs/vetted/...",
 					},
 				},
 			}}},
@@ -138,7 +138,7 @@ func TestReadConfigs(t *testing.T) {
 						"msg": "Sample message",
 						"exemptions": [{
 							"justification": "My justification",
-							"allowedDir": "subdirs/vetted/..."
+							"allowedPkg": "subdirs/vetted/..."
 						}]
 					}],
 					"functions": [{
@@ -146,7 +146,7 @@ func TestReadConfigs(t *testing.T) {
 						"msg": "Sample message",
 						"exemptions": [{
 							"justification": "My justification",
-							"allowedDir": "subdirs/vetted/..."
+							"allowedPkg": "subdirs/vetted/..."
 						}]
 					}]
 				}
@@ -160,7 +160,7 @@ func TestReadConfigs(t *testing.T) {
 						Exemptions: []Exemption{
 							{
 								Justification: "My justification",
-								AllowedDir:    "subdirs/vetted/...",
+								AllowedPkg:    "subdirs/vetted/...",
 							},
 						},
 					}},
@@ -170,7 +170,7 @@ func TestReadConfigs(t *testing.T) {
 					Exemptions: []Exemption{
 						{
 							Justification: "My justification",
-							AllowedDir:    "subdirs/vetted/...",
+							AllowedPkg:    "subdirs/vetted/...",
 						},
 					},
 				}},
@@ -210,7 +210,7 @@ func TestReadConfigs(t *testing.T) {
 						"msg": "Banned by team x",
 						"exemptions": [{
 							"justification": "My justification",
-							"allowedDir": "subdirs/vetted/..."
+							"allowedPkg": "subdirs/vetted/..."
 						}]
 					}]
 				}
@@ -222,7 +222,7 @@ func TestReadConfigs(t *testing.T) {
 						"msg": "Banned by team y",
 						"exemptions": [{
 							"justification": "#yolo",
-							"allowedDir": "otherdir/legacy/..."
+							"allowedPkg": "otherdir/legacy/..."
 						}]
 					}]
 				}
@@ -236,7 +236,7 @@ func TestReadConfigs(t *testing.T) {
 						Exemptions: []Exemption{
 							{
 								Justification: "My justification",
-								AllowedDir:    "subdirs/vetted/...",
+								AllowedPkg:    "subdirs/vetted/...",
 							},
 						},
 					},
@@ -246,7 +246,7 @@ func TestReadConfigs(t *testing.T) {
 						Exemptions: []Exemption{
 							{
 								Justification: "#yolo",
-								AllowedDir:    "otherdir/legacy/...",
+								AllowedPkg:    "otherdir/legacy/...",
 							},
 						},
 					},
