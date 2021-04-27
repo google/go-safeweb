@@ -35,7 +35,7 @@ type BannedAPI struct {
 // Exemption represents a location that should be exempted from checking for banned APIs.
 type Exemption struct {
 	Justification string `json:"justification"`
-	AllowedDir    string `json:"allowedDir"`
+	AllowedPkg    string `json:"allowedPkg"`
 }
 
 // ReadConfigs reads banned APIs from all files.
