@@ -35,7 +35,7 @@ type BannedAPI struct {
 // Exemption represents a location that should be exempted from checking for banned APIs.
 type Exemption struct {
 	Justification string `json:"justification"`
-	AllowedPkg    string `json:"allowedPkg"`
+	AllowedPkg    string `json:"allowedPkg"` // Uses Go RegExp https://golang.org/pkg/regexp/syntax
 }
 
 // ReadConfigs reads banned APIs from all files.
