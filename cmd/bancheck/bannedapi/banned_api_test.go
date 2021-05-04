@@ -11,7 +11,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package analyzers
+package bannedapi
 
 import (
 	"path/filepath"
@@ -126,10 +126,10 @@ func TestBannedAPIAnalyzer(t *testing.T) {
 				"main/test.go": `
 				package main
 
-				import allowed "fmt" // want "Banned API found \"fmt\". Additional info: Banned by team A"
+				import renamed "fmt" // want "Banned API found \"fmt\". Additional info: Banned by team A"
 
 				func main() {
-					allowed.Printf("Hello")
+					renamed.Printf("Hello")
 				}
 				`,
 			},
@@ -234,8 +234,8 @@ func TestBannedAPIAnalyzer(t *testing.T) {
 				}
 			}
 
-			a := NewBannedAPIAnalyzer()
-			a.Flags.Set("config", strings.Join(configFiles, ","))
+			a := NewAnalyzer()
+			a.Flags.Set("configs", strings.Join(configFiles, ","))
 			analysistest.Run(t, dir, a, "main")
 		})
 	}
