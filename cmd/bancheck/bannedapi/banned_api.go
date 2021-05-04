@@ -11,7 +11,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package analyzers
+
+package bannedapi
 
 import (
 	"errors"
@@ -26,10 +27,10 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
-// NewBannedAPIAnalyzer returns an analyzer that checks for usage of banned APIs.
-func NewBannedAPIAnalyzer() *analysis.Analyzer {
+// NewAnalyzer returns an analyzer that checks for usage of banned APIs.
+func NewAnalyzer() *analysis.Analyzer {
 	fs := flag.NewFlagSet("", flag.ExitOnError)
-	fs.String("config", "", "Config files with banned APIs separated by a comma")
+	fs.String("configs", "", "Config files with banned APIs separated by a comma")
 
 	a := &analysis.Analyzer{
 		Name:  "bannedAPI",
@@ -42,9 +43,9 @@ func NewBannedAPIAnalyzer() *analysis.Analyzer {
 }
 
 func checkBannedAPIs(pass *analysis.Pass) (interface{}, error) {
-	cfgFiles := pass.Analyzer.Flags.Lookup("config").Value.(flag.Getter).Get().(string)
+	cfgFiles := pass.Analyzer.Flags.Lookup("configs").Value.String()
 	if cfgFiles == "" {
-		return nil, errors.New("please, provide a config file")
+		return nil, errors.New("missing config files")
 	}
 
 	cfg, err := config.ReadConfigs(strings.Split(cfgFiles, ","))
@@ -87,21 +88,23 @@ func checkBannedFunctions(pass *analysis.Pass, bannedFns map[string][]config.Ban
 	return nil, nil
 }
 
-func reportIfBanned(APIname string, bannedAPIs map[string][]config.BannedAPI, position token.Pos, pass *analysis.Pass) error {
-	if bannedAPICfgs, isBanned := bannedAPIs[APIname]; isBanned {
-		pkgAllowed, err := isPkgAllowed(pass.Pkg, bannedAPICfgs)
-		if err != nil {
-			return err
-		}
-
-		if !pkgAllowed {
-			for _, bannedAPICfg := range bannedAPICfgs {
-				pass.Report(analysis.Diagnostic{
-					Pos:     position,
-					Message: fmt.Sprintf("Banned API found %q. Additional info: %s", APIname, bannedAPICfg.Msg),
-				})
-			}
-		}
+func reportIfBanned(apiName string, bannedAPIs map[string][]config.BannedAPI, position token.Pos, pass *analysis.Pass) error {
+	bannedAPICfgs, isBanned := bannedAPIs[apiName]
+	if !isBanned {
+		return nil
+	}
+	pkgAllowed, err := isPkgAllowed(pass.Pkg, bannedAPICfgs)
+	if err != nil {
+		return err
+	}
+	if pkgAllowed {
+		return nil
+	}
+	for _, bannedAPICfg := range bannedAPICfgs {
+		pass.Report(analysis.Diagnostic{
+			Pos:     position,
+			Message: fmt.Sprintf("Banned API found %q. Additional info: %s", apiName, bannedAPICfg.Msg),
+		})
 	}
 	return nil
 }
