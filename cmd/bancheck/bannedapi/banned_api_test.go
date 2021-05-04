@@ -150,10 +150,10 @@ func TestBannedAPIAnalyzer(t *testing.T) {
 				"main/test.go": `
 				package main
 
-				import allowed "fmt"
+				import renamed "fmt"
 
 				func main() {
-					allowed.Printf("Hello") // want "Banned API found \"fmt.Printf\". Additional info: Banned by team A"
+					renamed.Printf("Hello") // want "Banned API found \"fmt.Printf\". Additional info: Banned by team A"
 				}
 				`,
 			},
