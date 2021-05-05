@@ -18,7 +18,6 @@ import "bytes"
 
 const (
 	statusOK                 = "HTTP/1.1 200 OK"
-	statusTooManyHostHeaders = "HTTP/1.1 400 Bad Request: too many Host headers"
 	statusNotImplemented     = "HTTP/1.1 501 Not Implemented"
 	statusBadRequest         = "HTTP/1.1 400 Bad Request"
 	statusInvalidHeaderName  = "HTTP/1.1 400 Bad Request: invalid header name"
