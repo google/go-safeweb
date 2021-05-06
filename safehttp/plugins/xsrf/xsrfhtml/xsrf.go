@@ -84,7 +84,7 @@ func (it *Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingReq
 		return w.WriteError(safehttp.StatusUnauthorized)
 	}
 
-	if ok := xsrftoken.Valid(tok, it.SecretAppKey, cookieID.Value(), r.URL.Path()); !ok {
+	if ok := xsrftoken.Valid(tok, it.SecretAppKey, cookieID.Value(), r.URL.Host()); !ok {
 		return w.WriteError(safehttp.StatusForbidden)
 	}
 
@@ -125,7 +125,7 @@ func (it *Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.Inco
 		return
 	}
 
-	tok := xsrftoken.Generate(it.SecretAppKey, cookieID.Value(), r.URL.Path())
+	tok := xsrftoken.Generate(it.SecretAppKey, cookieID.Value(), r.URL.Host())
 	if tmplResp.FuncMap == nil {
 		tmplResp.FuncMap = map[string]interface{}{}
 	}

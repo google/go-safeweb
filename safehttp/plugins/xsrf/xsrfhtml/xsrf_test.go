@@ -25,25 +25,25 @@ import (
 
 var (
 	formTokenTests = []struct {
-		name, cookieVal, actionID string
-		wantStatus                safehttp.StatusCode
+		name, cookieVal, host string
+		wantStatus            safehttp.StatusCode
 	}{
 		{
 			name:       "Valid token",
 			cookieVal:  "abcdef",
-			actionID:   "/pizza",
+			host:       "go.dev",
 			wantStatus: safehttp.StatusOK,
 		},
 		{
-			name:       "Invalid actionID in token generation",
+			name:       "Invalid host in token generation",
 			cookieVal:  "abcdef",
-			actionID:   "/spaghetti",
+			host:       "google.com",
 			wantStatus: safehttp.StatusForbidden,
 		},
 		{
 			name:       "Invalid cookie value in token generation",
 			cookieVal:  "evilvalue",
-			actionID:   "/pizza",
+			host:       "go.dev",
 			wantStatus: safehttp.StatusForbidden,
 		},
 	}
@@ -53,8 +53,8 @@ func TestTokenPost(t *testing.T) {
 	for _, test := range formTokenTests {
 		t.Run(test.name, func(t *testing.T) {
 			fakeRW, rr := safehttptest.NewFakeResponseWriter()
-			tok := xsrftoken.Generate("testSecretAppKey", test.cookieVal, test.actionID)
-			req := safehttptest.NewRequest(safehttp.MethodPost, "https://foo.com/pizza", strings.NewReader(TokenKey+"="+tok))
+			tok := xsrftoken.Generate("testSecretAppKey", test.cookieVal, test.host)
+			req := safehttptest.NewRequest(safehttp.MethodPost, "https://go.dev/", strings.NewReader(TokenKey+"="+tok))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 			req.Header.Set("Cookie", cookieIDKey+"=abcdef")
 
@@ -72,13 +72,13 @@ func TestTokenMultipart(t *testing.T) {
 	for _, test := range formTokenTests {
 		t.Run(test.name, func(t *testing.T) {
 			fakeRW, rr := safehttptest.NewFakeResponseWriter()
-			tok := xsrftoken.Generate("testSecretAppKey", test.cookieVal, test.actionID)
+			tok := xsrftoken.Generate("testSecretAppKey", test.cookieVal, test.host)
 			b := "--123\r\n" +
 				"Content-Disposition: form-data; name=\"xsrf-token\"\r\n" +
 				"\r\n" +
 				tok + "\r\n" +
 				"--123--\r\n"
-			req := safehttptest.NewRequest(safehttp.MethodPost, "https://foo.com/pizza", strings.NewReader(b))
+			req := safehttptest.NewRequest(safehttp.MethodPost, "https://go.dev/", strings.NewReader(b))
 			req.Header.Set("Content-Type", `multipart/form-data; boundary="123"`)
 			req.Header.Set("Cookie", cookieIDKey+"=abcdef")
 
