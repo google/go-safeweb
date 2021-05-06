@@ -91,37 +91,34 @@ func checkBannedFunctions(pass *analysis.Pass, bannedFns map[string][]config.Ban
 }
 
 func reportIfBanned(apiName string, bannedAPIs map[string][]config.BannedAPI, position token.Pos, pass *analysis.Pass) error {
-	bannedAPICfgs, isBanned := bannedAPIs[apiName]
-	if !isBanned {
-		return nil
-	}
-	pkgAllowed, err := isPkgAllowed(pass.Pkg, bannedAPICfgs)
-	if err != nil {
-		return err
-	}
-	if pkgAllowed {
-		return nil
-	}
-	for _, bannedAPICfg := range bannedAPICfgs {
+	for _, banCfg := range bannedAPIs[apiName] {
+		if apiName != banCfg.Name {
+			return nil
+		}
+		pkgAllowed, err := isPkgAllowed(pass.Pkg, banCfg)
+		if err != nil {
+			return err
+		}
+		if pkgAllowed {
+			continue
+		}
 		pass.Report(analysis.Diagnostic{
 			Pos:     position,
-			Message: fmt.Sprintf("Banned API found %q. Additional info: %s", apiName, bannedAPICfg.Msg),
+			Message: fmt.Sprintf("Banned API found %q. Additional info: %s", apiName, banCfg.Msg),
 		})
 	}
 	return nil
 }
 
 // isPkgAllowed checks if the Go package should be exempted from reporting banned API usages.
-func isPkgAllowed(pkg *types.Package, bannedAPI []config.BannedAPI) (bool, error) {
-	for _, fn := range bannedAPI {
-		for _, e := range fn.Exemptions {
-			match, err := filepath.Match(e.AllowedPkg, pkg.Path())
-			if err != nil {
-				return false, err
-			}
-			if match {
-				return true, nil
-			}
+func isPkgAllowed(pkg *types.Package, bannedAPI config.BannedAPI) (bool, error) {
+	for _, e := range bannedAPI.Exemptions {
+		match, err := filepath.Match(e.AllowedPkg, pkg.Path())
+		if err != nil {
+			return false, err
+		}
+		if match {
+			return true, nil
 		}
 	}
 	return false, nil
