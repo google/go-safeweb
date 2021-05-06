@@ -68,20 +68,24 @@ const (
 // Multiple handlers can be registered for a single pattern, as long as they
 // handle different HTTP methods.
 type ServeMux struct {
-	mux *http.ServeMux
+	mux        *http.ServeMux
+	handlerMap map[string]http.Handler
 }
 
-func registerHandlers(mux *http.ServeMux, handlers map[string]map[string]handlerConfig, methodNotAllowed handlerConfig) {
+func handlerMap(handlers map[string]map[string]handlerConfig, methodNotAllowed handlerConfig) map[string]http.Handler {
+	m := make(map[string]http.Handler)
 	for pattern, handlersPerMethod := range handlers {
 		handlersPerMethod := handlersPerMethod
-		mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
+		fn := func(w http.ResponseWriter, r *http.Request) {
 			cfg, ok := handlersPerMethod[r.Method]
 			if !ok {
 				cfg = methodNotAllowed
 			}
 			processRequest(cfg, w, r)
-		})
+		}
+		m[pattern] = http.HandlerFunc(fn)
 	}
+	return m
 }
 
 // ServeHTTP dispatches the request to the handler whose method matches the
@@ -206,9 +210,13 @@ func (s *ServeMuxConfig) Mux() *ServeMux {
 		Handler:      s.methodNotAllowedHandler.handler,
 		Interceptors: configureInterceptors(s.interceptors, s.methodNotAllowedHandler.cfgs),
 	}
-	m := http.NewServeMux()
-	registerHandlers(m, handlers, methodNotAllowed)
-	return &ServeMux{mux: m}
+
+	mux := http.NewServeMux()
+	m := handlerMap(handlers, methodNotAllowed)
+	for pattern, handler := range m {
+		mux.Handle(pattern, handler)
+	}
+	return &ServeMux{mux: mux, handlerMap: m}
 }
 
 func configureInterceptors(interceptors []Interceptor, cfgs []InterceptorConfig) []configuredInterceptor {
