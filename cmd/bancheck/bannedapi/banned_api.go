@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package bannedapi provides the tools for doing static analysis
+// and checking for usage of banned APIs.
 package bannedapi
 
 import (
