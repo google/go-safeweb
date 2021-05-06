@@ -219,6 +219,46 @@ func TestBannedAPIAnalyzer(t *testing.T) {
 				`,
 			},
 		},
+		{
+			desc: "Banned API in one of many config files",
+			files: map[string]string{
+				"team_a_config.json": `
+				{
+					"functions": [
+						{
+							"name": "fmt.Printf",
+							"msg": "Banned by team A",
+							"exemptions": [
+								{
+									"justification": "#yolo",
+									"allowedPkg": "main"
+								}
+							]
+						}
+					]
+				}
+				`,
+				"team_b_config.json": `
+				{
+					"functions": [
+						{
+							"name": "fmt.Printf",
+							"msg": "Banned by team B for realz"
+						}
+					]
+				}
+				`,
+				"main/test.go": `
+				package main
+
+				import "fmt"
+
+				func main() {
+					fmt.Printf("Hello") // want "Banned API found \"fmt.Printf\". Additional info: Banned by team B for realz"
+				}
+				`,
+			},
+		},
 	} {
 		t.Run(test.desc, func(t *testing.T) {
 			dir, cleanup, err := analysistest.WriteFiles(test.files)
