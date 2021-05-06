@@ -123,6 +123,26 @@
 //
 // TODO
 //
+// Incremental Adoption
+//
+// In order to migrate your service using http.Handlers to the safehttp package,
+// we recommend you start doing that one endpoint at a time. Use
+// RegisteredHandler to do this.
+//
+//  safeMuxConfig := /* configured ServeMuxConfig, including interceptors */
+//  safeMuxConfig.Handle("/bar", safehttp.MethodGET, barGETSafeHandler)
+//  safeMuxConfig.Handle("/bar", safehttp.MethodPOST, barPOSTSafeHandler)
+//  safeMuxConfig.Handle("/xyz", safehttp.MethodPOST, xyzSafeHandler)
+//  safeMux := safeMuxConfig.Mux()
+//
+//  // old, not yet migrated
+//  http.Handle("/foo", fooHandler)
+//
+//  // new, migrated
+//  http.Handle("/bar", safehttp.RegisteredHandler(safeMux, "/bar"))
+//  http.Handle("/xyz", safehttp.RegisteredHandler(safeMux, "/xyz"))
+//
+//
 // Restricting Risky APIs
 //
 // TODO
