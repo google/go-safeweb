@@ -19,8 +19,8 @@ package htmlinject
 import (
 	"embed"
 	"fmt"
+	"io"
 	"io/fs"
-	"io/ioutil"
 	"path/filepath"
 
 	"github.com/google/safehtml/template"
@@ -58,7 +58,11 @@ func loadFilesFS(tpl *template.Template, lcfg LoadConfig, fsys fs.FS, filenames 
 	}
 	for _, fnts := range filenames {
 		fn := fnts.String()
-		b, err := ioutil.ReadFile(fn)
+		f, err := fsys.Open(fn)
+		if err != nil {
+			return nil, err
+		}
+		b, err := io.ReadAll(f)
 		if err != nil {
 			return nil, err
 		}
