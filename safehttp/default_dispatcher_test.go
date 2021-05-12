@@ -126,7 +126,17 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 				return d.Write(w, safehttp.RedirectResponse{Request: r, Location: "/anotherpath", Code: safehttp.StatusFound})
 			},
 			wantHeaders: map[string][]string{"Location": {"/anotherpath"}},
+			wantStatus:  safehttp.StatusFound,
 			wantBody:    "<a href=\"/anotherpath\">Found</a>.\n\n",
+		},
+		{
+			name: "No Content Response",
+			write: func(w http.ResponseWriter) error {
+				d := &safehttp.DefaultDispatcher{}
+				return d.Write(w, safehttp.NoContentResponse{})
+			},
+			wantBody:   "",
+			wantStatus: safehttp.StatusNoContent,
 		},
 	}
 	for _, tt := range tests {
@@ -147,6 +157,15 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 				if diff := cmp.Diff(want, got); diff != "" {
 					t.Errorf("response header %q: -want +got %s", k, diff)
 				}
+			}
+
+			wantStatus := tt.wantStatus
+			if wantStatus == 0 {
+				wantStatus = 200
+			}
+
+			if got := rw.Code; got != int(wantStatus) {
+				t.Errorf("Status: got %d, want %d", got, wantStatus)
 			}
 		})
 	}
