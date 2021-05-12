@@ -15,7 +15,6 @@
 package safehttp
 
 import (
-	"fmt"
 	"net/http"
 )
 
@@ -118,21 +117,6 @@ func (f *flight) WriteError(resp ErrorResponse) Result {
 	if err := f.cfg.Dispatcher.Error(f.rw, resp); err != nil {
 		panic(err)
 	}
-	return Result{}
-}
-
-// Redirect responds with a redirect to the given url, using code as the status code.
-//
-// If the ResponseWriter has already been written to, then this method will panic.
-func (f *flight) Redirect(r *IncomingRequest, url string, code StatusCode) Result {
-	if code < 300 || code >= 400 {
-		panic(fmt.Sprintf("wrong method called: redirect with status %d", code))
-	}
-	if f.written {
-		panic("ResponseWriter was already written to")
-	}
-	f.written = true
-	http.Redirect(f.rw, r.req, url, int(code))
 	return Result{}
 }
 

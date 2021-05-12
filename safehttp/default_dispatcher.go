@@ -77,6 +77,9 @@ func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 		rw.Header().Set("Content-Type", x.ContentType())
 		// The http package will take care of writing the file body.
 		return nil
+	case RedirectResponse:
+		http.Redirect(rw, x.Request.req, x.Location, int(x.Code))
+		return nil
 	default:
 		return fmt.Errorf("%T is not a safe response type and it cannot be written", resp)
 	}

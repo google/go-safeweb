@@ -128,9 +128,6 @@ func TestFlightDoubleWritePanics(t *testing.T) {
 		"WriteError": func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 			return w.WriteError(safehttp.StatusPreconditionFailed)
 		},
-		"Redirect": func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-			return w.Redirect(r, "google.com", safehttp.StatusPermanentRedirect)
-		},
 	}
 
 	for firstWriteName, firstWrite := range writeFuncs {

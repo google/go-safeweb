@@ -21,6 +21,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/safehtml"
 	safetemplate "github.com/google/safehtml/template"
@@ -116,6 +117,17 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 			},
 			wantBody: ")]}',\n{\"field\":\"myField\"}\n",
 		},
+		{
+			name: "Redirect Response",
+			write: func(w http.ResponseWriter) error {
+				d := &safehttp.DefaultDispatcher{}
+				req := httptest.NewRequest("GET", "/path", nil)
+				r := safehttp.NewIncomingRequest(req)
+				return d.Write(w, safehttp.RedirectResponse{Request: r, Location: "/anotherpath", Code: safehttp.StatusFound})
+			},
+			wantHeaders: map[string][]string{"Location": {"/anotherpath"}},
+			wantBody:    "<a href=\"/anotherpath\">Found</a>.\n\n",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -128,6 +140,13 @@ func TestDefaultDispatcherValidResponse(t *testing.T) {
 
 			if gotBody := rw.Body.String(); tt.wantBody != gotBody {
 				t.Errorf("response body: got %q, want %q", gotBody, tt.wantBody)
+			}
+
+			for k, want := range tt.wantHeaders {
+				got := rw.Header().Values(k)
+				if diff := cmp.Diff(want, got); diff != "" {
+					t.Errorf("response header %q: -want +got %s", k, diff)
+				}
 			}
 		})
 	}
