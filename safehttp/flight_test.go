@@ -124,7 +124,6 @@ func TestFlightDoubleWritePanics(t *testing.T) {
 		"Write": func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 			return w.Write(safehtml.HTMLEscaped("Hello"))
 		},
-		"NoContent": func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result { return w.NoContent() },
 		"WriteError": func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 			return w.WriteError(safehttp.StatusPreconditionFailed)
 		},

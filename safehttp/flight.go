@@ -70,7 +70,7 @@ func processRequest(cfg handlerConfig, rw http.ResponseWriter, req *http.Request
 	}
 	f.cfg.Handler.ServeHTTP(f, f.req)
 	if !f.written {
-		f.NoContent()
+		cfg.Dispatcher.Write(rw, NoContentResponse{})
 	}
 }
 
@@ -86,21 +86,6 @@ func (f *flight) Write(resp Response) Result {
 	if err := f.cfg.Dispatcher.Write(f.rw, resp); err != nil {
 		panic(err)
 	}
-	return Result{}
-}
-
-// NoContent responds with a 204 No Content response.
-//
-// If the ResponseWriter has already been written to, then this method will panic.
-func (f *flight) NoContent() Result {
-	// TODO: should NoContent call Write under the hood? Should the dispatcher
-	// handle this too?
-	if f.written {
-		panic("ResponseWriter was already written to")
-	}
-	f.written = true
-	f.commitPhase(NoContentResponse{})
-	f.rw.WriteHeader(int(StatusNoContent))
 	return Result{}
 }
 

@@ -80,6 +80,9 @@ func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 	case RedirectResponse:
 		http.Redirect(rw, x.Request.req, x.Location, int(x.Code))
 		return nil
+	case NoContentResponse:
+		rw.WriteHeader(int(StatusNoContent))
+		return nil
 	default:
 		return fmt.Errorf("%T is not a safe response type and it cannot be written", resp)
 	}

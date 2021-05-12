@@ -149,7 +149,7 @@ func (it *Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingReq
 	}
 
 	if status == safehttp.StatusNoContent {
-		return w.NoContent()
+		return w.Write(safehttp.NoContentResponse{})
 	}
 	return safehttp.NotWritten()
 }

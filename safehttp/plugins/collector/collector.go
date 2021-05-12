@@ -180,7 +180,7 @@ func handleDeprecatedCSPReports(h func(CSPReport), w safehttp.ResponseWriter, b 
 	}
 	h(rr)
 
-	return w.NoContent()
+	return w.Write(safehttp.NoContentResponse{})
 }
 
 var reportHandlers = map[string]func(json.RawMessage) (body interface{}, ok bool){
@@ -231,7 +231,7 @@ func handleReport(h func(Report), w safehttp.ResponseWriter, b []byte) safehttp.
 		return w.WriteError(safehttp.StatusBadRequest)
 	}
 
-	return w.NoContent()
+	return w.Write(safehttp.NoContentResponse{})
 }
 
 // cspViolationHandler parses reports of type csp-violation and returns a CSPReport.

@@ -102,8 +102,7 @@ func ExecuteNamedTemplateWithFuncs(w ResponseWriter, t Template, name string, da
 	return w.Write(&TemplateResponse{Template: t, Name: name, Data: data, FuncMap: fm})
 }
 
-// NoContentResponse is sent to the commit phase when it's initiated from
-// ResponseWriter.NoContent.
+// NoContentResponse is used to write a "No Content" response.
 type NoContentResponse struct{}
 
 // RedirectResponse is used to generate redirect responses.

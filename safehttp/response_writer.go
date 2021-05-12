@@ -26,11 +26,6 @@ type ResponseWriter interface {
 	// Write writes a safe response.
 	Write(resp Response) Result
 
-	// NoContent responds with a 204 No Content response.
-	//
-	// If the ResponseWriter has already been written to, then this method panics.
-	NoContent() Result
-
 	// WriteError writes an error response (400-599).
 	//
 	// If the ResponseWriter has already been written to, then this method panics.
