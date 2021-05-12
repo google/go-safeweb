@@ -100,7 +100,7 @@ func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 			return w.WriteError(safehttp.StatusInternalServerError)
 		}
 		u.Scheme = "https"
-		return w.Redirect(r, u.String(), safehttp.StatusMovedPermanently)
+		return safehttp.Redirect(w, r, u.String(), safehttp.StatusMovedPermanently)
 	}
 
 	var value strings.Builder

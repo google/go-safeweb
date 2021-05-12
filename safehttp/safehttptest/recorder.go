@@ -23,10 +23,10 @@ import (
 
 // FakeResponseWriter creates a fake safehttp.ResponseWriter implementation.
 //
-// It does no error checking nor runs interceptors.
+// It performs no error checking nor runs interceptors.
 type FakeResponseWriter struct {
 	// The Dispatcher implementation
-	Dispatcher safehttp.Dispatcher
+	Dispatcher *FakeDispatcher
 
 	// ResponseWriter is only used for calls to Dispatcher. Calls to AddCookie()
 	// do not affect it.
@@ -38,21 +38,26 @@ type FakeResponseWriter struct {
 
 	// Response headers.
 	Headers safehttp.Header
-
-	// The redirect URL.
-	RedirectURL string
 }
 
 // FakeDispatcher provides a minimal implementation of the Dispatcher to be used for testing Interceptors.
-type FakeDispatcher struct{}
+type FakeDispatcher struct {
+	Written    safehttp.Response
+	Dispatcher safehttp.Dispatcher
+}
 
-// Write is not implemented.
-func (d FakeDispatcher) Write(rw http.ResponseWriter, resp safehttp.Response) error {
-	panic("not implemented") // TODO: Implement
+// Write records the written responses and calls Dispatcher.Write.
+// If Dispatcher is nil, the default one is used.
+func (d *FakeDispatcher) Write(rw http.ResponseWriter, resp safehttp.Response) error {
+	d.Written = resp
+	if d.Dispatcher != nil {
+		return d.Dispatcher.Write(rw, resp)
+	}
+	return safehttp.DefaultDispatcher{}.Write(rw, resp)
 }
 
 // Error writes just the status code.
-func (d FakeDispatcher) Error(rw http.ResponseWriter, resp safehttp.ErrorResponse) error {
+func (d *FakeDispatcher) Error(rw http.ResponseWriter, resp safehttp.ErrorResponse) error {
 	rw.WriteHeader(int(resp.Code()))
 	return nil
 }
@@ -62,7 +67,7 @@ func (d FakeDispatcher) Error(rw http.ResponseWriter, resp safehttp.ErrorRespons
 func NewFakeResponseWriter() (*FakeResponseWriter, *httptest.ResponseRecorder) {
 	recorder := httptest.NewRecorder()
 	return &FakeResponseWriter{
-		Dispatcher:     FakeDispatcher{},
+		Dispatcher:     &FakeDispatcher{},
 		ResponseWriter: recorder,
 		Headers:        safehttp.NewHeader(recorder.HeaderMap),
 	}, recorder
@@ -99,18 +104,10 @@ func (frw *FakeResponseWriter) NoContent() safehttp.Result {
 	return safehttp.Result{}
 }
 
-// WrriteError forwards the error response to Dispatcher.WriteError.
+// WriteError forwards the error response to Dispatcher.WriteError.
 func (frw *FakeResponseWriter) WriteError(resp safehttp.ErrorResponse) safehttp.Result {
 	if err := frw.Dispatcher.Error(frw.ResponseWriter, resp); err != nil {
 		panic(err)
 	}
-	return safehttp.Result{}
-}
-
-// Redirect saves the URL in RedirectURL and writes the MovedPermentantly status
-// code.
-func (frw *FakeResponseWriter) Redirect(r *safehttp.IncomingRequest, url string, code safehttp.StatusCode) safehttp.Result {
-	frw.RedirectURL = url
-	frw.ResponseWriter.WriteHeader(int(safehttp.StatusMovedPermanently))
 	return safehttp.Result{}
 }

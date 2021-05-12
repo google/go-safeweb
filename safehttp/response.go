@@ -15,6 +15,7 @@
 package safehttp
 
 import (
+	"fmt"
 	"io"
 )
 
@@ -104,3 +105,23 @@ func ExecuteNamedTemplateWithFuncs(w ResponseWriter, t Template, name string, da
 // NoContentResponse is sent to the commit phase when it's initiated from
 // ResponseWriter.NoContent.
 type NoContentResponse struct{}
+
+// RedirectResponse is used to generate redirect responses.
+type RedirectResponse struct {
+	// Code is the status to use for the redirect.
+	Code StatusCode
+	// Location is the value to use for the redirect Location.
+	Location string
+	// Request is the matching request for which this response is being written.
+	// It is used to build the redirect response.
+	Request *IncomingRequest
+}
+
+// Redirect creates a RedirectResponse and writes it to w.
+// If the given code is not a valid Redirect code this function will panic.
+func Redirect(w ResponseWriter, r *IncomingRequest, location string, code StatusCode) Result {
+	if code < 300 || code >= 400 {
+		panic(fmt.Sprintf("wrong method called: redirect with status %d", code))
+	}
+	return w.Write(RedirectResponse{Code: code, Location: location, Request: r})
+}

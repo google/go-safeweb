@@ -459,8 +459,13 @@ func TestCORSAfterRedirect(t *testing.T) {
 			if want, got := safehttp.StatusMovedPermanently, safehttp.StatusCode(rr.Code); got != want {
 				t.Errorf("rr.Code got: %v want: %v", got, want)
 			}
-			if got, want := fakeRW.RedirectURL, "https://spaghetti.com/carbonara"; got != want {
-				t.Errorf("RedirectURL got %q, want %q", got, want)
+			resp := fakeRW.Dispatcher.Written
+			redir, ok := resp.(safehttp.RedirectResponse)
+			if !ok {
+				t.Fatalf("got %T, wanted a RedirectResponse", resp)
+			}
+			if got, want := redir.Location, "https://spaghetti.com/carbonara"; got != want {
+				t.Errorf("RedirectResponse.Location got %q, want %q", got, want)
 			}
 		})
 	}

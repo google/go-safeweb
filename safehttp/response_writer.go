@@ -35,11 +35,6 @@ type ResponseWriter interface {
 	//
 	// If the ResponseWriter has already been written to, then this method panics.
 	WriteError(resp ErrorResponse) Result
-
-	// Redirect responds with a redirect to the given url, using code as the status code.
-	//
-	// If the ResponseWriter has already been written to, then this method panics.
-	Redirect(r *IncomingRequest, url string, code StatusCode) Result
 }
 
 // ResponseHeadersWriter is used to alter the HTTP response headers.

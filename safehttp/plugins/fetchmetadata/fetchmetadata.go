@@ -152,7 +152,7 @@ func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, 
 	if !p.checkNavigationIsolationPolicy(r) {
 		rejected = true
 		if p.RedirectURL != nil {
-			return w.Redirect(r, p.RedirectURL.String(), safehttp.StatusMovedPermanently)
+			return safehttp.Redirect(w, r, p.RedirectURL.String(), safehttp.StatusMovedPermanently)
 		}
 	}
 

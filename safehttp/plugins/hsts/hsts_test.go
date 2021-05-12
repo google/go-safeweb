@@ -58,8 +58,15 @@ func TestHSTSReject(t *testing.T) {
 				t.Errorf("rr.Code got: %v want: %v", gotStatus, tt.wantStatus)
 			}
 
-			if got, want := fakeRW.RedirectURL, tt.wantRedirect; got != want {
-				t.Errorf("RedirectURL got %q, want %q", got, want)
+			if tt.wantRedirect != "" {
+				resp := fakeRW.Dispatcher.Written
+				redir, ok := resp.(safehttp.RedirectResponse)
+				if !ok {
+					t.Fatalf("got %T, wanted a RedirectResponse", resp)
+				}
+				if got, want := redir.Location, tt.wantRedirect; got != want {
+					t.Errorf("RedirectResponse.Location got %q, want %q", got, want)
+				}
 			}
 		})
 	}
