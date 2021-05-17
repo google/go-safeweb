@@ -104,3 +104,19 @@ func TestRegisteredHandler(t *testing.T) {
 		})
 	}
 }
+
+func TestRegisteredHandler_StrictPatterns(t *testing.T) {
+	mb := safehttp.NewServeMuxConfig(nil)
+
+	mb.Handle("/foo/", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+		return w.Write(safehtml.HTMLEscaped("Homepage!"))
+	}))
+	safeMux := mb.Mux()
+
+	if safehttp.RegisteredHandler(safeMux, "/foo/") == nil {
+		t.Error(`RegisteredHandler(_, "/foo/") got nil, want non-nil`)
+	}
+	if safehttp.RegisteredHandler(safeMux, "/foo/subpath") != nil {
+		t.Error(`RegisteredHandler(_, "/foo/subpath") got non-nil, want nil`)
+	}
+}
