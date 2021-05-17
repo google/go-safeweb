@@ -94,7 +94,7 @@ func ExecuteTemplateWithFuncs(w ResponseWriter, t Template, data interface{}, fm
 	return ExecuteNamedTemplateWithFuncs(w, t, "", data, fm)
 }
 
-// ExecuteTemplateWithFuncs creates a TemplateResponse from the provided
+// ExecuteNamedTemplateWithFuncs creates a TemplateResponse from the provided
 // Template, its data and the name to function mappings and calls the Write
 // function of the ResponseWriter, passing the response.
 // Leaving name empty is valid if the template does not have associated templates.

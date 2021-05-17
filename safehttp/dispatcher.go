@@ -46,6 +46,6 @@ type Dispatcher interface {
 	Error(rw http.ResponseWriter, resp ErrorResponse) error
 }
 
-func WriteTextError(rw http.ResponseWriter, resp ErrorResponse) {
+func writeTextError(rw http.ResponseWriter, resp ErrorResponse) {
 	http.Error(rw, http.StatusText(int(resp.Code())), int(resp.Code()))
 }

@@ -55,9 +55,8 @@ func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 		if len(x.FuncMap) == 0 {
 			if x.Name == "" {
 				return t.Execute(rw, x.Data)
-			} else {
-				return t.ExecuteTemplate(rw, x.Name, x.Data)
 			}
+			return t.ExecuteTemplate(rw, x.Name, x.Data)
 		}
 		cloned, err := t.Clone()
 		if err != nil {
@@ -66,9 +65,8 @@ func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 		cloned = cloned.Funcs(x.FuncMap)
 		if x.Name == "" {
 			return cloned.Execute(rw, x.Data)
-		} else {
-			return cloned.ExecuteTemplate(rw, x.Name, x.Data)
 		}
+		return cloned.ExecuteTemplate(rw, x.Name, x.Data)
 	case safehtml.HTML:
 		rw.Header().Set("Content-Type", "text/html; charset=utf-8")
 		_, err := io.WriteString(rw, x.String())
@@ -93,6 +91,6 @@ func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 // Error sets the Content-Type to "text/plain; charset=utf-8" through calling
 // WriteTextError.
 func (DefaultDispatcher) Error(rw http.ResponseWriter, resp ErrorResponse) error {
-	WriteTextError(rw, resp)
+	writeTextError(rw, resp)
 	return nil
 }

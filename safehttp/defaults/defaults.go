@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Pacakge defaults provides ready to use, safe, pre-configured instances of safehttp types.
+// Package defaults provides ready to use, safe, pre-configured instances of safehttp types.
 package defaults
 
 import (
