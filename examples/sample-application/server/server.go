@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build go1.16
+
 // Package server TODO(clap|kele) describe this as what the users would normally have to write.
 package server
 
