@@ -1,0 +1,90 @@
+<!--
+  Copyright 2020 Google LLC
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+  https://www.apache.org/licenses/LICENSE-2.0
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+
+
+<!--
+  This template is considered safe when used with the
+  https://pkg.go.dev/github.com/google/safehtml/template package. According to
+  the Threat Model
+  (https://pkg.go.dev/github.com/google/safehtml/template#hdr-Threat_model), we
+  trust that this template itself doesn't contain user generated data. When the
+  template is executed with runtime data, contextual autosanitization is
+  performed to prevent from code injection vulnerabilities.
+-->
+<html>
+
+  <head>
+    <title>Go Safe Web sample application</title>
+    <link rel="stylesheet" href="/static/styles.css">
+
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Roboto:wght@300&display=swap">
+    <!-- This script will automatically be injected with a nonce that matches
+      the one in the CSP header. -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        const textarea = document.getElementsByName('text')[0];
+        document.getElementById('meta-btn')
+          .addEventListener('click', function addMetadata(event) {
+            event.preventDefault();
+            const user = event.target.dataset.user;
+            const date = new Date().toLocaleString(undefined, {
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: 'numeric',
+              hour12: false,
+            });
+            textarea.value = `${textarea.value}\n${user}\n${date}`;
+          });
+      });
+    </script>
+  </head>
+
+  <body>
+    <h2> Hello {{.user}}! Here are your notes </h2>
+    <form action="/logout" method="post">
+      <div class="padded">
+        <button type="submit">Logout</button>
+      </div>
+    </form>
+
+    <!-- TODO(clap): style these. -->
+    <dl class="padded">
+      {{ range .notes }}
+      <dt>{{.Title}}</dt>
+      <dd><pre>{{.Text}}</pre></dd>
+      <br>
+      {{ end}}
+    </dl>
+
+    <!-- TODO(clap): add some client-side JS to help with the note generation. -->
+
+    <form action="/notes" method="post" id="newnote">
+      <div class="padded">
+        <label for="title"><b>Title</b></label>
+        <input type="text" placeholder="Title" name="title" required>
+
+        <label for="text"><b>Text</b></label>
+        <br>
+        <textarea name="text" class="full-width" form="newnote"></textarea>
+
+        <button type="submit">Save</button>
+        <button data-user="{{.user}}" id="meta-btn">Add metadata</button>
+      </div>
+    </form>
+  </body>
+
+</html>
