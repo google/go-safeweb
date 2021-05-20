@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// +build go1.16
+
 // Package secure TODO(clap|kele): describe the assumptions we are under, e.g.
 // this package is vetted by a security team and that no one else can instantiate
 // a servemux config or serve it.
