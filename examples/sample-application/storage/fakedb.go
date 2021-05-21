@@ -26,10 +26,10 @@ import (
 )
 
 // Note: a real program would connect to a real DB using
-// "github.com/google/go-safeweb/safesql". This is just a simple storage
+// github.com/google/go-safeweb/safesql. This is just a simple storage
 // implementation to demonstrate the web framework.
 
-// Please ignore the content of this file.
+// Please ignore the contents of this file.
 
 type Note struct {
 	Title, Text string
