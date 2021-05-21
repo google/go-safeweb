@@ -23,7 +23,7 @@ import (
 
 // RequestLogger is used for logging Fetch Metadata policy violations;
 type RequestLogger interface {
-	Log(ir *safehttp.IncomingRequest)
+	Log(ir *safehttp.IncomingRequest, navigationIsolation bool)
 }
 
 var (
@@ -41,11 +41,12 @@ var (
 	}
 )
 
-// Plugin implements Fetch Metadata functionality.
+// Interceptor implements Fetch Metadata functionality.
+// A pointer to the zero value for Interceptor is safe and ready to use.
 //
 // See https://www.w3.org/TR/fetch-metadata/ and
 // https://web.dev/fetch-metadata/  for more details.
-type Plugin struct {
+type Interceptor struct {
 	// NavIsolation indicates whether the Navigation Isolation Policy should
 	// be applied to the request before the Resource Isolation Policy as an
 	// additional layer of checking. This provides a way to mitigate
@@ -57,27 +58,14 @@ type Plugin struct {
 	NavIsolation bool
 	// RedirectURL can optionally indicate an URL to which the user can be
 	// redirected in case the Navigation Isolation policy rejects the request.
-	RedirectURL   *safehttp.URL
-	Logger        RequestLogger
-	reportOnly    bool
-	corsProtected map[string]bool
+	RedirectURL *safehttp.URL
+	Logger      RequestLogger
+	reportOnly  bool
 }
 
-var _ safehttp.Interceptor = &Plugin{}
+var _ safehttp.Interceptor = &Interceptor{}
 
-// NewInterceptor creates a new Fetch Metadata plugin in enforce mode that will apply
-// the Resource Isolation Policy by default. The user can provide a set of
-// endpoints that will not be protected. Any request targeted to those endpoints
-// will be allowed by default without the policies being applied.
-func NewInterceptor(endpoints ...string) *Plugin {
-	m := map[string]bool{}
-	for _, e := range endpoints {
-		m[e] = true
-	}
-	return &Plugin{corsProtected: m}
-}
-
-func (p *Plugin) checkResourceIsolationPolicy(r *safehttp.IncomingRequest) bool {
+func (p *Interceptor) checkResourceIsolationPolicy(r *safehttp.IncomingRequest) bool {
 	h := r.Header
 	if h.Get("Sec-Fetch-Site") != "cross-site" {
 		// The request is allowed to pass because one of the following applies:
@@ -107,7 +95,7 @@ func (p *Plugin) checkResourceIsolationPolicy(r *safehttp.IncomingRequest) bool 
 	return false
 }
 
-func (p *Plugin) checkNavigationIsolationPolicy(r *safehttp.IncomingRequest) bool {
+func (p *Interceptor) checkNavigationIsolationPolicy(r *safehttp.IncomingRequest) bool {
 	if h := r.Header; p.NavIsolation && h.Get("Sec-Fetch-Site") == "cross-site" && navigationalModes[h.Get("Sec-Fetch-Mode")] {
 		return false
 	}
@@ -117,7 +105,7 @@ func (p *Plugin) checkNavigationIsolationPolicy(r *safehttp.IncomingRequest) boo
 // SetReportOnly sets the Fetch Metadata policy mode to "report". This will
 // allow requests that violate the policy to pass, but will report the violation
 // using the Logger. The method will panic if Logger is nil.
-func (p *Plugin) SetReportOnly() {
+func (p *Interceptor) SetReportOnly() {
 	if p.Logger == nil {
 		panic("logging service required for Fetch Metadata report mode")
 	}
@@ -126,7 +114,7 @@ func (p *Plugin) SetReportOnly() {
 
 // SetEnforce sets the Fetch Metadata policy mode to "enforce". This will reject
 // any requests that violates the policy provided by the plugin.
-func (p *Plugin) SetEnforce() {
+func (p *Interceptor) SetEnforce() {
 	p.reportOnly = false
 }
 
@@ -138,37 +126,55 @@ func (p *Plugin) SetEnforce() {
 // the  violation is reported. If a redirectURL was provided and the Navigation
 // Isolation Policy is enabled and fails, the IncomingRequest will be
 // redirected to redirectURL.
-func (p *Plugin) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
-	// TODO(mihalimara22): Remove and disable using configurations when those
-	// have been implemented
-	if p.corsProtected[r.URL.Path()] {
-		// The request is targeted to an endpoint on which Fetch Metadata
-		// policies are disabled because it is CORS-protected so we don't apply
-		// the policies.
+func (p *Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
+	rejected := false
+	nav := false
+
+	if !p.checkNavigationIsolationPolicy(r) {
+		rejected = true
+		nav = true
+	}
+
+	if !p.checkResourceIsolationPolicy(r) {
+		rejected = true
+	}
+
+	if !rejected {
+		// Both Navigation Isolation and Resource Isolation are happy.
 		return safehttp.NotWritten()
 	}
 
-	rejected := false
-	if !p.checkNavigationIsolationPolicy(r) {
-		rejected = true
-		if p.RedirectURL != nil {
-			return safehttp.Redirect(w, r, p.RedirectURL.String(), safehttp.StatusMovedPermanently)
+	// Overridden to be disabled.
+	if d, ok := cfg.(Disable); ok {
+		if !d.SkipReporting && p.Logger != nil {
+			p.Logger.Log(r, nav)
 		}
+		return safehttp.NotWritten()
 	}
 
-	if rejected || !p.checkResourceIsolationPolicy(r) {
-		if p.Logger != nil {
-			p.Logger.Log(r)
-		}
-		if p.reportOnly {
-			return safehttp.NotWritten()
-		}
-		return w.WriteError(safehttp.StatusForbidden)
+	if p.Logger != nil {
+		p.Logger.Log(r, nav)
 	}
-
-	return safehttp.NotWritten()
+	if p.reportOnly {
+		return safehttp.NotWritten()
+	}
+	if nav && p.RedirectURL != nil {
+		return safehttp.Redirect(w, r, p.RedirectURL.String(), safehttp.StatusSeeOther)
+	}
+	return w.WriteError(safehttp.StatusForbidden)
 }
 
 // Commit is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (p *Plugin) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) {
+func (p *Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) {
+}
+
+// Disable disables Fetch Metadata protection and switches it to report-only.
+type Disable struct {
+	// SkipReporting also disables reporting.
+	SkipReporting bool
+}
+
+func (Disable) Match(i safehttp.Interceptor) bool {
+	_, ok := i.(*Interceptor)
+	return ok
 }

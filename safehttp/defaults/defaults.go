@@ -47,7 +47,7 @@ func ServeMuxConfig(hosts []string, xsrfKey string) (*safehttp.ServeMuxConfig, e
 	// TODO(clap): add a report-uri once we support reporting.
 	// TODO(clap): find a way to make the FramingPolicy here work together with the Framing plugin once we have it.
 	c.Intercept(csp.Default(""))
-	c.Intercept(fetchmetadata.NewInterceptor())
+	c.Intercept(&fetchmetadata.Interceptor{})
 	c.Intercept(hostcheck.New(hosts...))
 	c.Intercept(hsts.Default())
 	c.Intercept(staticheaders.Interceptor{})
