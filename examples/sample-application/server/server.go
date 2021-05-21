@@ -14,7 +14,14 @@
 
 // +build go1.16
 
-// Package server TODO(clap|kele) describe this as what the users would normally have to write.
+// Package server implements the application server.
+//
+// This is the piece that a product team owns and implements. They use APIs from
+// go-safeweb/examples/sample-application/secure and Go Safe
+// Web to configure the HTTP handlers.
+//
+// If strictly necessary, the product team might use restricted APIs using
+// security-reviewed exemptions (e.g. with go-safeweb/cmd/banchek).
 package server
 
 import (
@@ -41,7 +48,7 @@ var templates *template.Template
 func init() {
 	tplSrc := template.TrustedSourceFromConstant("templates/*.tpl.html")
 	var err error
-	// Automatically inject CSP nonces and XSRF tokens placeholders.
+	// htmlinject automatically injects CSP nonces and XSRF tokens placeholders.
 	templates, err = htmlinject.LoadGlobEmbed(nil, htmlinject.LoadConfig{}, tplSrc, templatesFS)
 	if err != nil {
 		panic(err)
@@ -129,12 +136,12 @@ func logoutHandler(deps *serverDeps) safehttp.Handler {
 	})
 }
 
-var invalidAuthErr responses.Error = responses.NewError(
-	safehttp.StatusBadRequest,
-	template.MustParseAndExecuteToHTML("Please specify a username and a password, both must be non-empty and your password must match the one you use to register."),
-)
-
 func postLoginHandler(deps *serverDeps) safehttp.Handler {
+	invalidAuthErr := responses.NewError(
+		safehttp.StatusBadRequest,
+		template.MustParseAndExecuteToHTML("Please specify a username and a password, both must be non-empty and your password must match the one you use to register."),
+	)
+
 	// Always return the same error to not leak the existence of a user.
 	return safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		form, err := r.PostForm()
