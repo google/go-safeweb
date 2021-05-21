@@ -49,7 +49,7 @@ func NewMuxConfig() *safehttp.ServeMuxConfig {
 
 	c.Intercept(coop.Default(""))
 	c.Intercept(csp.Default(""))
-	c.Intercept(fetchmetadata.NewInterceptor(""))
+	c.Intercept(&fetchmetadata.Interceptor{})
 	c.Intercept(staticheaders.Interceptor{})
 	return c
 }

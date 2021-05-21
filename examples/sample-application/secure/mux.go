@@ -35,7 +35,7 @@ func NewMuxConfig(db *storage.DB, addr string) *safehttp.ServeMuxConfig {
 	c := safehttp.NewServeMuxConfig(dispatcher{})
 	c.Intercept(coop.Default(""))
 	c.Intercept(csp.Default(""))
-	c.Intercept(fetchmetadata.NewInterceptor())
+	c.Intercept(&fetchmetadata.Interceptor{})
 	c.Intercept(hostcheck.New(addr))
 	c.Intercept(hsts.Default())
 	c.Intercept(staticheaders.Interceptor{})
