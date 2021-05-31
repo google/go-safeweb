@@ -158,6 +158,11 @@ func (it *Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingReq
 func (it *Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 }
 
+// Match returns false since there are no supported configurations.
+func (*Interceptor) Match(safehttp.InterceptorConfig) bool {
+	return false
+}
+
 func appendToVary(w safehttp.ResponseWriter, val string) {
 	h := w.Header()
 	if curr := h.Get("Vary"); curr != "" {

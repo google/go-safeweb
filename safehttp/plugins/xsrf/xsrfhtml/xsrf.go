@@ -131,3 +131,8 @@ func (it *Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.Inco
 	}
 	tmplResp.FuncMap[htmlinject.XSRFTokensDefaultFuncName] = func() string { return tok }
 }
+
+// Match returns false since there are no supported configurations.
+func (*Interceptor) Match(safehttp.InterceptorConfig) bool {
+	return false
+}

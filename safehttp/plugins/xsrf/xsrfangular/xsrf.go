@@ -112,3 +112,8 @@ func (it *Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.Inco
 		panic("cannot add token cookie")
 	}
 }
+
+// Match returns false since there are no supported configurations.
+func (*Interceptor) Match(safehttp.InterceptorConfig) bool {
+	return false
+}

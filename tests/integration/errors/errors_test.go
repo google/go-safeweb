@@ -119,7 +119,11 @@ func (it interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 	return safehttp.NotWritten()
 }
 
-func (it interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) {
+func (interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) {
+}
+
+func (interceptor) Match(safehttp.InterceptorConfig) bool {
+	return false
 }
 
 func TestCustomErrorsInBefore(t *testing.T) {

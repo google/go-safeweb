@@ -223,16 +223,8 @@ func configureInterceptors(interceptors []Interceptor, cfgs []InterceptorConfig)
 	for _, it := range interceptors {
 		var matches []InterceptorConfig
 		for _, c := range cfgs {
-			if c.Match(it) {
+			if it.Match(c) {
 				matches = append(matches, c)
-			}
-			wrapped, ok := it.(WrappedInterceptor)
-			for ok {
-				inner := wrapped.Unwrap()
-				if c.Match(inner) {
-					matches = append(matches, c)
-				}
-				wrapped, ok = inner.(WrappedInterceptor)
 			}
 		}
 

@@ -443,7 +443,7 @@ func TestDisable(t *testing.T) {
 				Logger:       logger,
 				NavIsolation: true,
 			}
-			p.Before(fakeRW, req, fetchmetadata.Disable{})
+			p.Before(fakeRW, req, fetchmetadata.Disable("testing", false))
 
 			if want, got := safehttp.StatusOK, safehttp.StatusCode(rr.Code); want != got {
 				t.Errorf("rr.Code got: %v want: %v", got, want)
@@ -502,7 +502,7 @@ func TestDisableSkipLogger(t *testing.T) {
 				Logger:       logger,
 				NavIsolation: true,
 			}
-			p.Before(fakeRW, req, fetchmetadata.Disable{SkipReporting: true})
+			p.Before(fakeRW, req, fetchmetadata.Disable("testing", true))
 
 			if want, got := safehttp.StatusOK, safehttp.StatusCode(rr.Code); want != got {
 				t.Errorf("rr.Code got: %v want: %v", got, want)

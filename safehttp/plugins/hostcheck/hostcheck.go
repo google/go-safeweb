@@ -53,3 +53,8 @@ func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 // Commit is a no-op, required to satisfy the safehttp.Interceptor interface.
 func (Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) {
 }
+
+// Match returns false since there are no supported configurations.
+func (Interceptor) Match(safehttp.InterceptorConfig) bool {
+	return false
+}

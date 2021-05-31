@@ -40,6 +40,10 @@ func (p panickingInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safeht
 	}
 }
 
+func (panickingInterceptor) Match(safehttp.InterceptorConfig) bool {
+	return false
+}
+
 func TestFlightInterceptorPanic(t *testing.T) {
 	tests := []struct {
 		desc        string

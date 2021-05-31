@@ -36,7 +36,7 @@ func TestBefore(t *testing.T) {
 		{
 			name:           "No policies, override on header",
 			interceptor:    NewInterceptor(),
-			overrider:      Override(Policy{Mode: SameOrigin}),
+			overrider:      Override("testing", Policy{Mode: SameOrigin}),
 			wantOverridden: want{enf: []string{"same-origin"}},
 		},
 		{
@@ -55,7 +55,7 @@ func TestBefore(t *testing.T) {
 				ReportOnly:     true,
 			},
 			),
-			overrider: Override(Policy{
+			overrider: Override("testing", Policy{
 				Mode:           SameOrigin,
 				ReportingGroup: "coop-so",
 				ReportOnly:     true,
