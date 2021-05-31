@@ -32,10 +32,21 @@ type Interceptor interface {
 	Commit(w ResponseHeadersWriter, r *IncomingRequest, resp Response, cfg InterceptorConfig)
 }
 
+// WrappedInterceptor is a wrapped interceptor.
+// This can be used to decorate an already existing interceptor and still allow
+// its native configurations to match with it.
+type WrappedInterceptor interface {
+	Interceptor
+	// Unwrap returns the wrapped interceptor.
+	Unwrap() Interceptor
+}
+
 // InterceptorConfig is a configuration of an interceptor.
 type InterceptorConfig interface {
 	// Match checks whether this InterceptorConfig is meant to be applied to the
 	// given Interceptor.
+	// If the Interceptor implements WrappedInterceptor the framework will take care of calling
+	// Match for all the nested interceptors.
 	Match(Interceptor) bool
 }
 
