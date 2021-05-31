@@ -28,6 +28,7 @@ import (
 // DefaultMaxAge is used as default cache duration for report groups and will make them last 7 days.
 const DefaultMaxAge = 7 * 24 * 60 * 60
 
+// ReportToHeaderKey is the HTTP header key for the Reporting API.
 const ReportToHeaderKey = "Report-To"
 
 // Endpoint is the Go representation of the endpoints values as specified

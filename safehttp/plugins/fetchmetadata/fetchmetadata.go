@@ -174,6 +174,7 @@ type Disable struct {
 	SkipReporting bool
 }
 
+// Match matches this config to *Interceptor.
 func (Disable) Match(i safehttp.Interceptor) bool {
 	_, ok := i.(*Interceptor)
 	return ok
