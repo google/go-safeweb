@@ -79,7 +79,7 @@ type Interceptor struct {
 }
 
 // NewInterceptor instantiates a new Interceptor for the given groups.
-func NewInterceptor(groups []Group) Interceptor {
+func NewInterceptor(groups ...Group) Interceptor {
 	var i Interceptor
 	for _, r := range groups {
 		buf, err := json.Marshal(r)

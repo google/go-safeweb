@@ -104,7 +104,7 @@ func TestBefore(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fakeRW, rr := safehttptest.NewFakeResponseWriter()
 			req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
-			i := reportingapi.NewInterceptor(tt.cfg)
+			i := reportingapi.NewInterceptor(tt.cfg...)
 			i.Before(fakeRW, req, nil)
 			got := rr.Header().Values("Report-To")
 			if diff := cmp.Diff(tt.want, got, sortStringSlices); diff != "" {
