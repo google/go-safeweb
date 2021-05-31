@@ -213,6 +213,10 @@ func (p setHeaderInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.Inco
 func (p setHeaderInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 }
 
+func (setHeaderInterceptor) Match(safehttp.InterceptorConfig) bool {
+	return false
+}
+
 type internalErrorInterceptor struct{}
 
 func (internalErrorInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
@@ -220,6 +224,10 @@ func (internalErrorInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.In
 }
 
 func (internalErrorInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
+}
+
+func (internalErrorInterceptor) Match(safehttp.InterceptorConfig) bool {
+	return false
 }
 
 type claimHeaderInterceptor struct {
@@ -237,6 +245,10 @@ func (p *claimHeaderInterceptor) Before(w safehttp.ResponseWriter, r *safehttp.I
 func (p *claimHeaderInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 }
 
+func (claimHeaderInterceptor) Match(safehttp.InterceptorConfig) bool {
+	return false
+}
+
 func claimInterceptorSetHeader(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, value string) {
 	f := r.Context().Value(claimCtxKey{}).(func([]string))
 	f([]string{value})
@@ -250,6 +262,10 @@ func (committerInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.Incomi
 
 func (committerInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
 	w.Header().Set("foo", "bar")
+}
+
+func (committerInterceptor) Match(safehttp.InterceptorConfig) bool {
+	return false
 }
 
 type setHeaderErroringInterceptor struct{}
@@ -383,11 +399,6 @@ type setHeaderConfig struct {
 	value string
 }
 
-func (setHeaderConfig) Match(i safehttp.Interceptor) bool {
-	_, ok := i.(setHeaderConfigInterceptor)
-	return ok
-}
-
 type setHeaderConfigInterceptor struct{}
 
 func (p setHeaderConfigInterceptor) Before(w safehttp.ResponseWriter, _ *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
@@ -411,6 +422,11 @@ func (p setHeaderConfigInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *
 	w.Header().Set(name, value)
 }
 
+func (setHeaderConfigInterceptor) Match(cfg safehttp.InterceptorConfig) bool {
+	_, ok := cfg.(setHeaderConfig)
+	return ok
+}
+
 type noInterceptorConfig struct{}
 
 type wrappedInterceptor struct {
@@ -425,8 +441,8 @@ func (wi wrappedInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehtt
 	wi.w.Commit(w, r, resp, cfg)
 }
 
-func (wi wrappedInterceptor) Unwrap() safehttp.Interceptor {
-	return wi.w
+func (wi wrappedInterceptor) Match(cfg safehttp.InterceptorConfig) bool {
+	return wi.w.Match(cfg)
 }
 
 func (noInterceptorConfig) Match(i safehttp.Interceptor) bool {
@@ -526,6 +542,10 @@ func (interceptorOne) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.Incom
 	w.Header().Set("Commit1", "a")
 }
 
+func (interceptorOne) Match(safehttp.InterceptorConfig) bool {
+	return false
+}
+
 type interceptorTwo struct{}
 
 func (interceptorTwo) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
@@ -543,6 +563,10 @@ func (interceptorTwo) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.Incom
 	w.Header().Set("Commit2", "b")
 }
 
+func (interceptorTwo) Match(safehttp.InterceptorConfig) bool {
+	return false
+}
+
 type interceptorThree struct{}
 
 func (interceptorThree) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
@@ -558,6 +582,10 @@ func (interceptorThree) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.Inc
 		panic("server bug")
 	}
 	w.Header().Set("Commit3", "c")
+}
+
+func (interceptorThree) Match(safehttp.InterceptorConfig) bool {
+	return false
 }
 
 func TestMuxDeterministicInterceptorOrder(t *testing.T) {
@@ -689,13 +717,13 @@ func (ip *methodNotAllowedInterceptor) Commit(w safehttp.ResponseHeadersWriter, 
 	w.Header().Set("Commit-Interceptor", cfg.commit)
 }
 
-type methodNotAllowedInterceptorConfig struct {
-	before, commit string
+func (*methodNotAllowedInterceptor) Match(cfg safehttp.InterceptorConfig) bool {
+	_, ok := cfg.(methodNotAllowedInterceptorConfig)
+	return ok
 }
 
-func (methodNotAllowedInterceptorConfig) Match(ip safehttp.Interceptor) bool {
-	_, ok := ip.(*methodNotAllowedInterceptor)
-	return ok
+type methodNotAllowedInterceptorConfig struct {
+	before, commit string
 }
 
 func TestMuxMethodNotAllowedCustom(t *testing.T) {

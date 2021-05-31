@@ -85,6 +85,11 @@ func (ip Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.Incom
 	}
 }
 
+func (Interceptor) Match(cfg safehttp.InterceptorConfig) bool {
+	_, ok := cfg.(Skip)
+	return ok
+}
+
 // User retrieves the user.
 func User(r *safehttp.IncomingRequest) string {
 	return ctxUser(r.Context())
@@ -125,9 +130,3 @@ func CreateSession(r *safehttp.IncomingRequest, user string) {
 // https://github.com/google/go-safeweb/blob/master/cmd/bancheck tool to enforce
 // this.
 type Skip struct{}
-
-func (Skip) Match(i safehttp.Interceptor) bool {
-	// This configuration only applies to the auth plugin.
-	_, ok := i.(Interceptor)
-	return ok
-}

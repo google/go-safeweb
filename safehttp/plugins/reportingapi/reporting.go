@@ -25,6 +25,8 @@ import (
 	"github.com/google/go-safeweb/safehttp"
 )
 
+var _ safehttp.Interceptor = Interceptor{}
+
 // DefaultMaxAge is used as default cache duration for report groups and will make them last 7 days.
 const DefaultMaxAge = 7 * 24 * 60 * 60
 
@@ -101,5 +103,10 @@ func (i Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingReque
 }
 
 // Commit is a no-op, required to satisfy the safehttp.Interceptor interface.
-func (i Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) {
+func (Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) {
+}
+
+// Match returns false since there are no supported configurations.
+func (Interceptor) Match(safehttp.InterceptorConfig) bool {
+	return false
 }

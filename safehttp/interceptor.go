@@ -30,25 +30,13 @@ type Interceptor interface {
 	// is written to the ResponseWriter, then the Commit phases from the
 	// remaining interceptors won't execute.
 	Commit(w ResponseHeadersWriter, r *IncomingRequest, resp Response, cfg InterceptorConfig)
+
+	// Match checks whether the given config is meant to be applied to the Interceptor.
+	Match(InterceptorConfig) bool
 }
 
-// WrappedInterceptor is a wrapped interceptor.
-// This can be used to decorate an already existing interceptor and still allow
-// its native configurations to match with it.
-type WrappedInterceptor interface {
-	Interceptor
-	// Unwrap returns the wrapped interceptor.
-	Unwrap() Interceptor
-}
-
-// InterceptorConfig is a configuration of an interceptor.
-type InterceptorConfig interface {
-	// Match checks whether this InterceptorConfig is meant to be applied to the
-	// given Interceptor.
-	// If the Interceptor implements WrappedInterceptor the framework will take care of calling
-	// Match for all the nested interceptors.
-	Match(Interceptor) bool
-}
+// InterceptorConfig is a configuration for an interceptor.
+type InterceptorConfig interface{}
 
 // configuredInterceptor holds an interceptor together with its configuration.
 type configuredInterceptor struct {

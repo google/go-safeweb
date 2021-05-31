@@ -290,3 +290,8 @@ func (it Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.Incom
 	}
 	tmplResp.FuncMap[htmlinject.CSPNoncesDefaultFuncName] = func() string { return nonce }
 }
+
+// Match returns false since there are no supported configurations.
+func (Interceptor) Match(safehttp.InterceptorConfig) bool {
+	return false
+}

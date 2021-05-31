@@ -19,6 +19,8 @@ import (
 	"github.com/google/go-safeweb/safehttp"
 )
 
+var _ safehttp.Interceptor = Interceptor{}
+
 // Mode represents a COOP mode.
 type Mode string
 
@@ -94,16 +96,16 @@ func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 func (it Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) {
 }
 
+// Match recognizes Overriders as COOP configurations.
+func (it Interceptor) Match(cfg safehttp.InterceptorConfig) bool {
+	_, ok := cfg.(Overrider)
+	return ok
+}
+
 // Overrider is a safehttp.InterceptorConfig that allows to override COOP for a specific handler.
 type Overrider serializedPolicies
 
 // Override creates an Overrider with the given policies.
-func Override(policies ...Policy) Overrider {
+func Override(reason string, policies ...Policy) Overrider {
 	return Overrider(serializePolicies(policies...))
-}
-
-// Match recognizes just this package Interceptor.
-func (p Overrider) Match(i safehttp.Interceptor) bool {
-	_, ok := i.(Interceptor)
-	return ok
 }

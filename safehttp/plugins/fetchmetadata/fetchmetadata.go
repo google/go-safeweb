@@ -145,8 +145,8 @@ func (p *Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 	}
 
 	// Overridden to be disabled.
-	if d, ok := cfg.(Disable); ok {
-		if !d.SkipReporting && p.Logger != nil {
+	if d, ok := cfg.(disable); ok {
+		if !d.skipReporting && p.Logger != nil {
 			p.Logger.Log(r, nav)
 		}
 		return safehttp.NotWritten()
@@ -168,14 +168,18 @@ func (p *Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 func (p *Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) {
 }
 
-// Disable disables Fetch Metadata protection and switches it to report-only.
-type Disable struct {
-	// SkipReporting also disables reporting.
-	SkipReporting bool
+// Match recongnizes configs to disable fetch metadata protection.
+func (*Interceptor) Match(cfg safehttp.InterceptorConfig) bool {
+	_, ok := cfg.(disable)
+	return ok
 }
 
-// Match matches this config to *Interceptor.
-func (Disable) Match(i safehttp.Interceptor) bool {
-	_, ok := i.(*Interceptor)
-	return ok
+type disable struct {
+	skipReporting bool
+}
+
+// Disable returns a configuration that disables Fetch Metadata protection and switches it to report-only.
+// If skipReporting is true, it will also disable reporting.
+func Disable(reason string, skipReporting bool) safehttp.InterceptorConfig {
+	return disable{skipReporting: skipReporting}
 }
