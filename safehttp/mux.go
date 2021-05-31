@@ -147,8 +147,7 @@ type handlerRegistration struct {
 // InterceptorConfigs can be passed in order to modify the behavior of the
 // interceptors on a registered handler. Passing an InterceptorConfig whose
 // corresponding Interceptor was not installed will produce no effect. If
-// multiple configurations are passed for the same Interceptor, only the first
-// one will take effect.
+// multiple configurations are passed for the same Interceptor, Mux will panic.
 func (s *ServeMuxConfig) Handle(pattern string, method string, h Handler, cfgs ...InterceptorConfig) {
 	s.handlers = append(s.handlers, handlerRegistration{
 		pattern: pattern,
@@ -222,14 +221,32 @@ func (s *ServeMuxConfig) Mux() *ServeMux {
 func configureInterceptors(interceptors []Interceptor, cfgs []InterceptorConfig) []configuredInterceptor {
 	var its []configuredInterceptor
 	for _, it := range interceptors {
-		var cfg InterceptorConfig
+		var matches []InterceptorConfig
 		for _, c := range cfgs {
 			if c.Match(it) {
-				// TODO: there should be a validation check that there is at
-				// most one config per interceptor.
-				cfg = c
-				break
+				matches = append(matches, c)
 			}
+			wrapped, ok := it.(WrappedInterceptor)
+			for ok {
+				inner := wrapped.Unwrap()
+				if c.Match(inner) {
+					matches = append(matches, c)
+				}
+				wrapped, ok = inner.(WrappedInterceptor)
+			}
+		}
+
+		if len(matches) > 1 {
+			msg := fmt.Sprintf("multiple configurations specified for interceptor %T: ", it)
+			for _, match := range matches {
+				msg += fmt.Sprintf("%#v", match)
+			}
+			panic(msg)
+		}
+
+		var cfg InterceptorConfig
+		if len(matches) == 1 {
+			cfg = matches[0]
 		}
 		its = append(its, configuredInterceptor{interceptor: it, config: cfg})
 	}

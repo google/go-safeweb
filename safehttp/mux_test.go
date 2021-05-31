@@ -413,6 +413,22 @@ func (p setHeaderConfigInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *
 
 type noInterceptorConfig struct{}
 
+type wrappedInterceptor struct {
+	w safehttp.Interceptor
+}
+
+func (wi wrappedInterceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
+	return wi.w.Before(w, r, cfg)
+}
+
+func (wi wrappedInterceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, cfg safehttp.InterceptorConfig) {
+	wi.w.Commit(w, r, resp, cfg)
+}
+
+func (wi wrappedInterceptor) Unwrap() safehttp.Interceptor {
+	return wi.w
+}
+
 func (noInterceptorConfig) Match(i safehttp.Interceptor) bool {
 	return false
 }
@@ -420,15 +436,17 @@ func (noInterceptorConfig) Match(i safehttp.Interceptor) bool {
 func TestMuxInterceptorConfigs(t *testing.T) {
 	tests := []struct {
 		name        string
+		interceptor safehttp.Interceptor
 		config      safehttp.InterceptorConfig
 		wantStatus  safehttp.StatusCode
 		wantHeaders map[string][]string
 		wantBody    string
 	}{
 		{
-			name:       "SetHeaderInterceptor with config",
-			config:     setHeaderConfig{name: "Foo", value: "Bar"},
-			wantStatus: safehttp.StatusOK,
+			name:        "SetHeaderInterceptor with config",
+			interceptor: setHeaderConfigInterceptor{},
+			config:      setHeaderConfig{name: "Foo", value: "Bar"},
+			wantStatus:  safehttp.StatusOK,
 			wantHeaders: map[string][]string{
 				"Content-Type": {"text/html; charset=utf-8"},
 				"Commit-Foo":   {"Bar"},
@@ -437,9 +455,22 @@ func TestMuxInterceptorConfigs(t *testing.T) {
 			wantBody: "&lt;h1&gt;Hello World!&lt;/h1&gt;",
 		},
 		{
-			name:       "SetHeaderInterceptor with mismatching config",
-			config:     noInterceptorConfig{},
-			wantStatus: safehttp.StatusOK,
+			name:        "Wrapped SetHeaderInterceptor with config",
+			interceptor: wrappedInterceptor{w: setHeaderConfigInterceptor{}},
+			config:      setHeaderConfig{name: "Foo", value: "Bar"},
+			wantStatus:  safehttp.StatusOK,
+			wantHeaders: map[string][]string{
+				"Content-Type": {"text/html; charset=utf-8"},
+				"Commit-Foo":   {"Bar"},
+				"Foo":          {"Bar"},
+			},
+			wantBody: "&lt;h1&gt;Hello World!&lt;/h1&gt;",
+		},
+		{
+			name:        "SetHeaderInterceptor with mismatching config",
+			interceptor: setHeaderConfigInterceptor{},
+			config:      noInterceptorConfig{},
+			wantStatus:  safehttp.StatusOK,
 			wantHeaders: map[string][]string{
 				"Content-Type": {"text/html; charset=utf-8"},
 				"Pizza":        {"Hawaii"},
@@ -452,7 +483,7 @@ func TestMuxInterceptorConfigs(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mb := safehttp.NewServeMuxConfig(nil)
-			mb.Intercept(setHeaderConfigInterceptor{})
+			mb.Intercept(tt.interceptor)
 
 			registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
