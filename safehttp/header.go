@@ -16,6 +16,7 @@ package safehttp
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"net/textproto"
 )
@@ -151,7 +152,7 @@ func (h Header) writableHeader(name string) error {
 		return errors.New("can't write to Set-Cookie header")
 	}
 	if h.claimed[name] {
-		return errors.New("claimed header")
+		return fmt.Errorf("claimed header: %s", name)
 	}
 	return nil
 }
