@@ -89,6 +89,9 @@ func (fsrw *fileServerResponseWriter) WriteHeader(statusCode int) {
 			// Skip setting the Content-Type. The Dispatcher handles it.
 			continue
 		}
+		if headers.IsClaimed(k) {
+			continue
+		}
 		headers.Del(k)
 		for _, vv := range v {
 			headers.Add(k, vv)
