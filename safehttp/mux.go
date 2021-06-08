@@ -170,11 +170,15 @@ func defaultMethotNotAllowed(w ResponseWriter, req *IncomingRequest) Result {
 	return w.WriteError(StatusMethodNotAllowed)
 }
 
-// Intercept installs an Interceptor.
+// Intercept installs the given interceptors.
 //
-// Interceptors order is undetermined and should not be relied on.
-func (s *ServeMuxConfig) Intercept(i Interceptor) {
-	s.interceptors = append(s.interceptors, i)
+// Interceptors order is respected and interceptors are always run in the
+// order they've been installed.
+//
+// Calling Intercept multiple times is valid. Interceptors that are added last
+// will run last.
+func (s *ServeMuxConfig) Intercept(is ...Interceptor) {
+	s.interceptors = append(s.interceptors, is...)
 }
 
 // Mux returns the ServeMux with a copy of the current configuration.
