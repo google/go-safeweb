@@ -206,9 +206,9 @@ func TestBefore(t *testing.T) {
 				t.Errorf("h.Values(\"Content-Security-Policy-Report-Only\") mismatch (-want +got):\n%s", diff)
 			}
 
-			v := safehttp.FlightValues(req.Context()).Get(nonceCtxKey{})
+			v := safehttp.FlightValues(req.Context()).Get(nonceKey{})
 			if v == nil {
-				t.Fatalf("req.Context().Value(ctxKey{}) got: nil want: %q", tt.wantNonce)
+				t.Fatalf("FlightValues(...).Get(nonceKey{}) got: nil want: %q", tt.wantNonce)
 			}
 			if got := v.(string); got != tt.wantNonce {
 				t.Errorf("v.(string) got: %q want: %q", got, tt.wantNonce)
@@ -240,7 +240,7 @@ func TestPanicWhileGeneratingNonce(t *testing.T) {
 
 func TestValidNonce(t *testing.T) {
 	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
-	safehttp.FlightValues(req.Context()).Put(nonceCtxKey{}, "nonce")
+	safehttp.FlightValues(req.Context()).Put(nonceKey{}, "nonce")
 	n, err := Nonce(req.Context())
 	if err != nil {
 		t.Errorf("Nonce(ctx) got err: %v want: nil", err)
@@ -267,7 +267,7 @@ func TestNonceEmptyContext(t *testing.T) {
 func TestCommitNonce(t *testing.T) {
 	fakeRW, rr := safehttptest.NewFakeResponseWriter()
 	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
-	safehttp.FlightValues(req.Context()).Put(nonceCtxKey{}, "pizza")
+	safehttp.FlightValues(req.Context()).Put(nonceKey{}, "pizza")
 
 	it := Interceptor{}
 	tr := &safehttp.TemplateResponse{}
@@ -302,7 +302,7 @@ func TestCommitNonce(t *testing.T) {
 func TestCommitMissingNonce(t *testing.T) {
 	fakeRW, _ := safehttptest.NewFakeResponseWriter()
 	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
-	safehttp.FlightValues(req.Context()).Put(nonceCtxKey{}, nil /* missing nonce */)
+	safehttp.FlightValues(req.Context()).Put(nonceKey{}, nil /* missing nonce */)
 
 	it := Interceptor{}
 	tr := &safehttp.TemplateResponse{}

@@ -164,6 +164,10 @@ func (r *IncomingRequest) Context() context.Context {
 	return r.req.Context()
 }
 
+// WithContext returns a shallow copy of the request with its context changed to
+// ctx. The provided ctx must be non-nil.
+//
+// This is similar to the net/http.Request.WithContext method.
 func (r *IncomingRequest) WithContext(ctx context.Context) *IncomingRequest {
 	r2 := new(IncomingRequest)
 	*r2 = *r

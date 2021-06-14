@@ -233,11 +233,11 @@ type claimHeaderInterceptor struct {
 	headerToClaim string
 }
 
-type claimCtxKey struct{}
+type claimKey struct{}
 
 func (p *claimHeaderInterceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
 	f := w.Header().Claim(p.headerToClaim)
-	safehttp.FlightValues(r.Context()).Put(claimCtxKey{}, f)
+	safehttp.FlightValues(r.Context()).Put(claimKey{}, f)
 	return safehttp.NotWritten()
 }
 
@@ -249,7 +249,7 @@ func (claimHeaderInterceptor) Match(safehttp.InterceptorConfig) bool {
 }
 
 func claimInterceptorSetHeader(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, value string) {
-	f := safehttp.FlightValues(r.Context()).Get(claimCtxKey{}).(func([]string))
+	f := safehttp.FlightValues(r.Context()).Get(claimKey{}).(func([]string))
 	f([]string{value})
 }
 
