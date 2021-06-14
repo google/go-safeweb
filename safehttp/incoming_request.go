@@ -35,8 +35,11 @@ type IncomingRequest struct {
 	TLS *tls.ConnectionState
 	// URL specifies the URL that is parsed from the Request-Line. For most requests,
 	// only URL.Path() will return a non-empty result. (See RFC 7230, Section 5.3)
-	URL                *URL
-	req                *http.Request
+	URL *URL
+	req *http.Request
+
+	// The fields below are kept as pointers to allow cloning through
+	// IncomingRequest.WithContext. Otherwise, we'd need to copy locks.
 	postParseOnce      *sync.Once
 	multipartParseOnce *sync.Once
 }
