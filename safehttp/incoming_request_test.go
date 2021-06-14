@@ -15,13 +15,11 @@
 package safehttp_test
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/safehttptest"
 )
@@ -140,65 +138,6 @@ func TestIncomingRequestCookies(t *testing.T) {
 		})
 
 	}
-}
-
-type pizza struct {
-	val string
-}
-
-type pizzaKey string
-
-func TestRequestSetValidContextWithValue(t *testing.T) {
-	tests := []struct {
-		name    string
-		key     pizzaKey
-		wantVal *pizza
-		wantOk  bool
-	}{
-		{
-			name:    "Value set for key",
-			key:     pizzaKey("1234"),
-			wantOk:  true,
-			wantVal: &pizza{val: "margeritta"},
-		},
-		{
-			name:    "Value not set for key",
-			key:     pizzaKey("5678"),
-			wantOk:  false,
-			wantVal: nil,
-		},
-	}
-	for _, test := range tests {
-		req := httptest.NewRequest(safehttp.MethodGet, "/", nil)
-		ir := safehttp.NewIncomingRequest(req)
-		ctx := context.WithValue(ir.Context(), pizzaKey("1234"), &pizza{val: "margeritta"})
-		ir.SetContext(ctx)
-
-		got, ok := ir.Context().Value(test.key).(*pizza)
-		if ok != test.wantOk {
-			t.Errorf("type match: got %v, want %v", ok, test.wantOk)
-		}
-		if diff := cmp.Diff(test.wantVal, got, cmp.AllowUnexported(pizza{})); diff != "" {
-			t.Errorf("ir.Context().Value(test.key): mismatch (-want +got): \n%s", diff)
-		}
-	}
-}
-
-func TestRequestSetNilContext(t *testing.T) {
-	req := httptest.NewRequest(safehttp.MethodGet, "/", nil)
-	ir := safehttp.NewIncomingRequest(req)
-
-	defer func() {
-		if r := recover(); r != nil {
-			return
-		}
-		t.Errorf(`ir.SetContext(nil): expected panic`)
-	}()
-
-	// Avoids a linter complaint about a nil context being passed as argument.
-	// In this case, we explicitly want to test that a nil context results in an error.
-	var nilContext context.Context
-	ir.SetContext(nilContext)
 }
 
 func TestIncomingRequestPostForm(t *testing.T) {

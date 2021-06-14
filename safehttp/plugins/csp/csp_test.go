@@ -15,7 +15,6 @@
 package csp
 
 import (
-	"context"
 	"errors"
 	"os"
 	"testing"
@@ -207,7 +206,7 @@ func TestBefore(t *testing.T) {
 				t.Errorf("h.Values(\"Content-Security-Policy-Report-Only\") mismatch (-want +got):\n%s", diff)
 			}
 
-			v := req.Context().Value(ctxKey{})
+			v := safehttp.FlightValues(req.Context()).Get(nonceCtxKey{})
 			if v == nil {
 				t.Fatalf("req.Context().Value(ctxKey{}) got: nil want: %q", tt.wantNonce)
 			}
@@ -240,8 +239,9 @@ func TestPanicWhileGeneratingNonce(t *testing.T) {
 }
 
 func TestValidNonce(t *testing.T) {
-	ctx := context.WithValue(context.Background(), ctxKey{}, "nonce")
-	n, err := Nonce(ctx)
+	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
+	safehttp.FlightValues(req.Context()).Put(nonceCtxKey{}, "nonce")
+	n, err := Nonce(req.Context())
 	if err != nil {
 		t.Errorf("Nonce(ctx) got err: %v want: nil", err)
 	}
@@ -252,8 +252,9 @@ func TestValidNonce(t *testing.T) {
 }
 
 func TestNonceEmptyContext(t *testing.T) {
-	ctx := context.Background()
-	n, err := Nonce(ctx)
+	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
+	safehttp.FlightValues(req.Context()) // not putting nonce
+	n, err := Nonce(req.Context())
 	if err == nil {
 		t.Error("Nonce(ctx) got err: nil want: error")
 	}
@@ -266,7 +267,7 @@ func TestNonceEmptyContext(t *testing.T) {
 func TestCommitNonce(t *testing.T) {
 	fakeRW, rr := safehttptest.NewFakeResponseWriter()
 	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
-	req.SetContext(context.WithValue(req.Context(), ctxKey{}, "pizza"))
+	safehttp.FlightValues(req.Context()).Put(nonceCtxKey{}, "pizza")
 
 	it := Interceptor{}
 	tr := &safehttp.TemplateResponse{}
@@ -301,7 +302,7 @@ func TestCommitNonce(t *testing.T) {
 func TestCommitMissingNonce(t *testing.T) {
 	fakeRW, _ := safehttptest.NewFakeResponseWriter()
 	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
-	req.SetContext(context.Background())
+	safehttp.FlightValues(req.Context()).Put(nonceCtxKey{}, nil /* missing nonce */)
 
 	it := Interceptor{}
 	tr := &safehttp.TemplateResponse{}

@@ -15,7 +15,6 @@
 package safehttp_test
 
 import (
-	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -238,7 +237,7 @@ type claimCtxKey struct{}
 
 func (p *claimHeaderInterceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, cfg safehttp.InterceptorConfig) safehttp.Result {
 	f := w.Header().Claim(p.headerToClaim)
-	r.SetContext(context.WithValue(r.Context(), claimCtxKey{}, f))
+	safehttp.FlightValues(r.Context()).Put(claimCtxKey{}, f)
 	return safehttp.NotWritten()
 }
 
@@ -250,7 +249,7 @@ func (claimHeaderInterceptor) Match(safehttp.InterceptorConfig) bool {
 }
 
 func claimInterceptorSetHeader(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, value string) {
-	f := r.Context().Value(claimCtxKey{}).(func([]string))
+	f := safehttp.FlightValues(r.Context()).Get(claimCtxKey{}).(func([]string))
 	f([]string{value})
 }
 

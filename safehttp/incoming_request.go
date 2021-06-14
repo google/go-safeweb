@@ -37,8 +37,8 @@ type IncomingRequest struct {
 	// only URL.Path() will return a non-empty result. (See RFC 7230, Section 5.3)
 	URL                *URL
 	req                *http.Request
-	postParseOnce      sync.Once
-	multipartParseOnce sync.Once
+	postParseOnce      *sync.Once
+	multipartParseOnce *sync.Once
 }
 
 // NewIncomingRequest creates an IncomingRequest
@@ -47,11 +47,15 @@ func NewIncomingRequest(req *http.Request) *IncomingRequest {
 	if req == nil {
 		return nil
 	}
+	req = req.WithContext(context.WithValue(req.Context(),
+		flightValuesCtxKey{}, &flightValues{m: map[interface{}]interface{}{}}))
 	return &IncomingRequest{
-		req:    req,
-		Header: NewHeader(req.Header),
-		TLS:    req.TLS,
-		URL:    &URL{url: req.URL},
+		req:                req,
+		Header:             NewHeader(req.Header),
+		TLS:                req.TLS,
+		URL:                &URL{url: req.URL},
+		postParseOnce:      &sync.Once{},
+		multipartParseOnce: &sync.Once{},
 	}
 }
 
@@ -160,11 +164,9 @@ func (r *IncomingRequest) Context() context.Context {
 	return r.req.Context()
 }
 
-// SetContext sets the context of the safehttp.IncomingRequest to ctx. The
-// provided context must be non-nil, otherwise the method will panic.
-func (r *IncomingRequest) SetContext(ctx context.Context) {
-	if ctx == nil {
-		panic("nil context")
-	}
-	r.req = r.req.WithContext(ctx)
+func (r *IncomingRequest) WithContext(ctx context.Context) *IncomingRequest {
+	r2 := new(IncomingRequest)
+	*r2 = *r
+	r2.req = r2.req.WithContext(ctx)
+	return r2
 }

@@ -47,7 +47,7 @@ func (ip Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 	// Identify the user.
 	user := ip.userFromCookie(r)
 	if user != "" {
-		r.SetContext(ctxWithUser(r.Context(), user))
+		putUser(r.Context(), user)
 	}
 
 	if _, ok := cfg.(Skip); ok {
@@ -112,7 +112,7 @@ func (ip Interceptor) userFromCookie(r *safehttp.IncomingRequest) string {
 // Implementation details: to interact with the interceptor, passes data through
 // the IncomingRequest's context.
 func ClearSession(r *safehttp.IncomingRequest) {
-	r.SetContext(ctxWithSessionAction(r.Context(), clearSess))
+	putSessionAction(r.Context(), clearSess)
 }
 
 // CreateSession creates a session.
@@ -120,8 +120,8 @@ func ClearSession(r *safehttp.IncomingRequest) {
 // Implementation details: to interact with the interceptor, passes data through
 // the IncomingRequest's context.
 func CreateSession(r *safehttp.IncomingRequest, user string) {
-	r.SetContext(ctxWithSessionAction(r.Context(), setSess))
-	r.SetContext(ctxWithUser(r.Context(), user))
+	putSessionAction(r.Context(), setSess)
+	putUser(r.Context(), user)
 }
 
 // Skip allows to mark an endpoint to skip auth checks.
