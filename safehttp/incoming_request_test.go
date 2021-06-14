@@ -183,6 +183,23 @@ func TestRequestWithContext(t *testing.T) {
 	}
 }
 
+func TestRequestSetNilContext(t *testing.T) {
+	req := httptest.NewRequest(safehttp.MethodGet, "/", nil)
+	ir := safehttp.NewIncomingRequest(req)
+
+	defer func() {
+		if r := recover(); r != nil {
+			return
+		}
+		t.Errorf(`ir.SetContext(nil): expected panic`)
+	}()
+
+	// Avoids a linter complaint about a nil context being passed as argument.
+	// In this case, we explicitly want to test that a nil context results in an error.
+	var nilContext context.Context
+	ir.WithContext(nilContext)
+}
+
 func TestIncomingRequestPostForm(t *testing.T) {
 	methods := []string{
 		safehttp.MethodPost,
