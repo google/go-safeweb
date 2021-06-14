@@ -15,11 +15,13 @@
 package safehttp_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/safehttptest"
 )
@@ -137,6 +139,47 @@ func TestIncomingRequestCookies(t *testing.T) {
 			}
 		})
 
+	}
+}
+
+type pizza struct {
+	val string
+}
+
+type pizzaKey string
+
+func TestRequestWithContext(t *testing.T) {
+	tests := []struct {
+		name    string
+		key     pizzaKey
+		wantVal *pizza
+		wantOk  bool
+	}{
+		{
+			name:    "Value set for key",
+			key:     pizzaKey("1234"),
+			wantOk:  true,
+			wantVal: &pizza{val: "margeritta"},
+		},
+		{
+			name:    "Value not set for key",
+			key:     pizzaKey("5678"),
+			wantOk:  false,
+			wantVal: nil,
+		},
+	}
+	for _, test := range tests {
+		req := httptest.NewRequest(safehttp.MethodGet, "/", nil)
+		ir := safehttp.NewIncomingRequest(req)
+		ir = ir.WithContext(context.WithValue(ir.Context(), pizzaKey("1234"), &pizza{val: "margeritta"}))
+
+		got, ok := ir.Context().Value(test.key).(*pizza)
+		if ok != test.wantOk {
+			t.Errorf("type match: got %v, want %v", ok, test.wantOk)
+		}
+		if diff := cmp.Diff(test.wantVal, got, cmp.AllowUnexported(pizza{})); diff != "" {
+			t.Errorf("ir.Context().Value(test.key): mismatch (-want +got): \n%s", diff)
+		}
 	}
 }
 
