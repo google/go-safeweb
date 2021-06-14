@@ -37,13 +37,11 @@ const (
 )
 
 func putSessionAction(ctx context.Context, action sessionAction) {
-	m := safehttp.FlightValues(ctx)
-	m.Put(changeSessKey, action)
+	safehttp.FlightValues(ctx).Put(changeSessKey, action)
 }
 
 func ctxSessionAction(ctx context.Context) sessionAction {
-	m := safehttp.FlightValues(ctx)
-	v := m.Get(changeSessKey)
+	v := safehttp.FlightValues(ctx).Get(changeSessKey)
 	action, ok := v.(sessionAction)
 	if !ok {
 		return ""
@@ -52,13 +50,11 @@ func ctxSessionAction(ctx context.Context) sessionAction {
 }
 
 func putUser(ctx context.Context, user string) {
-	m := safehttp.FlightValues(ctx)
-	m.Put(userKey, user)
+	safehttp.FlightValues(ctx).Put(userKey, user)
 }
 
 func ctxUser(ctx context.Context) string {
-	m := safehttp.FlightValues(ctx)
-	v := m.Get(userKey)
+	v := safehttp.FlightValues(ctx).Get(userKey)
 	user, ok := v.(string)
 	if !ok {
 		return ""
