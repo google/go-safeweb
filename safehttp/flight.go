@@ -15,6 +15,7 @@
 package safehttp
 
 import (
+	"context"
 	"net/http"
 )
 
@@ -141,4 +142,38 @@ type Result struct{}
 // is run. When this is returned by a Handler, a 204 No Content response is written.
 func NotWritten() Result {
 	return Result{}
+}
+
+type flightValues struct {
+	m map[interface{}]interface{}
+}
+
+func (fv flightValues) Put(key, value interface{}) {
+	fv.m[key] = value
+}
+
+func (fv flightValues) Get(key interface{}) interface{} {
+	return fv.m[key]
+}
+
+// Map is a key/value map.
+type Map interface {
+	// Put inserts a key/value pair into the map. If the key already exists in
+	// the map, it's value is replaced.
+	Put(key, value interface{})
+	// Get returns a value for a given key in the map. If the entry with a given
+	// key does not exist, nil is returned.
+	Get(key interface{}) interface{}
+}
+
+type flightValuesCtxKey struct{}
+
+// FlightValues returns a map associated with the given request processing flight.
+// Use it if your interceptors need state that has the lifetime of the request.
+func FlightValues(ctx context.Context) Map {
+	v := ctx.Value(flightValuesCtxKey{})
+	if v == nil {
+		return nil
+	}
+	return v.(Map)
 }

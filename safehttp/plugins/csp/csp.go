@@ -58,12 +58,12 @@ type Policy interface {
 	Serialize(nonce string) string
 }
 
-type ctxKey struct{}
+type nonceCtxKey struct{}
 
 // Nonce retrieves the nonce from the given context. If there is no nonce stored
 // in the context, an error will be returned.
 func Nonce(ctx context.Context) (string, error) {
-	v := ctx.Value(ctxKey{})
+	v := safehttp.FlightValues(ctx).Get(nonceCtxKey{})
 	if v == nil {
 		return "", errors.New("no nonce in context")
 	}
@@ -248,7 +248,7 @@ func Default(reportURI string) Interceptor {
 // Content-Security-Policy-Report-Only header.
 func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
 	nonce := generateNonce()
-	r.SetContext(context.WithValue(r.Context(), ctxKey{}, nonce))
+	safehttp.FlightValues(r.Context()).Put(nonceCtxKey{}, nonce)
 
 	var CSPs []string
 	for _, p := range it.Enforce {

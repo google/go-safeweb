@@ -19,6 +19,9 @@ package safehttp
 // See the documentation for ServeMux.ServeHTTP to understand how interceptors
 // are run, what happens in case of errors during request processing (i.e. which
 // interceptor methods are guaranteed to be run) etc.
+//
+// Interceptors keep their state across many requests and their methods can be
+// called concurrently. If you need per-request state, use FlightValues.
 type Interceptor interface {
 	// Before runs before the IncomingRequest is sent to the handler. If a
 	// response is written to the ResponseWriter, then the remaining

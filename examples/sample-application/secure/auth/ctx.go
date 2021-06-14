@@ -16,7 +16,11 @@
 
 package auth
 
-import "context"
+import (
+	"context"
+
+	"github.com/google/go-safeweb/safehttp"
+)
 
 type ctxKey string
 
@@ -32,12 +36,14 @@ const (
 	setSess   sessionAction = "set"
 )
 
-func ctxWithSessionAction(ctx context.Context, action sessionAction) context.Context {
-	return context.WithValue(ctx, changeSessCtx, action)
+func putSessionAction(ctx context.Context, action sessionAction) {
+	m := safehttp.FlightValues(ctx)
+	m.Put(changeSessCtx, action)
 }
 
 func ctxSessionAction(ctx context.Context) sessionAction {
-	v := ctx.Value(changeSessCtx)
+	m := safehttp.FlightValues(ctx)
+	v := m.Get(changeSessCtx)
 	action, ok := v.(sessionAction)
 	if !ok {
 		return ""
@@ -45,12 +51,14 @@ func ctxSessionAction(ctx context.Context) sessionAction {
 	return action
 }
 
-func ctxWithUser(ctx context.Context, user string) context.Context {
-	return context.WithValue(ctx, userCtx, user)
+func putUser(ctx context.Context, user string) {
+	m := safehttp.FlightValues(ctx)
+	m.Put(userCtx, user)
 }
 
 func ctxUser(ctx context.Context) string {
-	v := ctx.Value(userCtx)
+	m := safehttp.FlightValues(ctx)
+	v := m.Get(userCtx)
 	user, ok := v.(string)
 	if !ok {
 		return ""
