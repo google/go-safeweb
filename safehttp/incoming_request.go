@@ -51,7 +51,7 @@ func NewIncomingRequest(req *http.Request) *IncomingRequest {
 		return nil
 	}
 	req = req.WithContext(context.WithValue(req.Context(),
-		flightValuesCtxKey{}, &flightValues{m: map[interface{}]interface{}{}}))
+		flightValuesCtxKey{}, flightValues{m: make(map[interface{}]interface{})}))
 	return &IncomingRequest{
 		req:                req,
 		Header:             NewHeader(req.Header),

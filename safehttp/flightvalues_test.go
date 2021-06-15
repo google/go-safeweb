@@ -31,8 +31,8 @@ func (ip *safeHeadersInterceptor) Before(w safehttp.ResponseWriter, r *safehttp.
 	// We claim the header here in order to protect it from being tampered. The
 	// only way to set it is through a helper method exposed by this package. It
 	// only allows for setting safe values.
-	h := w.Header().Claim("Super-Safe-Header")
-	safehttp.FlightValues(r.Context()).Put(safeHeaderKey{}, h)
+	setter := w.Header().Claim("Super-Safe-Header")
+	safehttp.FlightValues(r.Context()).Put(safeHeaderKey{}, setter)
 	return safehttp.NotWritten()
 }
 
@@ -58,7 +58,8 @@ func SetHeaderSafely(ctx context.Context, level int) {
 	default:
 		value = "Safe"
 	}
-	safehttp.FlightValues(ctx).Get(safeHeaderKey{}).(func([]string))([]string{value})
+	setter := safehttp.FlightValues(ctx).Get(safeHeaderKey{}).(func([]string))
+	setter([]string{value})
 }
 
 func handlerInteractingWithTheInterceptor(w safehttp.ResponseWriter, req *safehttp.IncomingRequest) safehttp.Result {
