@@ -75,15 +75,8 @@ type ServeMux struct {
 func handlerMap(handlers map[string]map[string]handlerConfig, methodNotAllowed handlerConfig) map[string]http.Handler {
 	m := make(map[string]http.Handler)
 	for pattern, handlersPerMethod := range handlers {
-		handlersPerMethod := handlersPerMethod
-		fn := func(w http.ResponseWriter, r *http.Request) {
-			cfg, ok := handlersPerMethod[r.Method]
-			if !ok {
-				cfg = methodNotAllowed
-			}
-			processRequest(cfg, w, r)
-		}
-		m[pattern] = http.HandlerFunc(fn)
+		handlersPerMethod := handlersPerMethod // local capture
+		m[pattern] = &registeredHandler{methods: handlersPerMethod, methodNotAllowed: methodNotAllowed}
 	}
 	return m
 }
@@ -220,6 +213,19 @@ func (s *ServeMuxConfig) Mux() *ServeMux {
 		mux.Handle(pattern, handler)
 	}
 	return &ServeMux{mux: mux, handlerMap: m}
+}
+
+type registeredHandler struct {
+	methods          map[string]handlerConfig
+	methodNotAllowed handlerConfig
+}
+
+func (rh *registeredHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	cfg, ok := rh.methods[r.Method]
+	if !ok {
+		cfg = rh.methodNotAllowed
+	}
+	processRequest(cfg, w, r)
 }
 
 func configureInterceptors(interceptors []Interceptor, cfgs []InterceptorConfig) []configuredInterceptor {
