@@ -28,6 +28,7 @@ func TestServeMuxInstallXSRF(t *testing.T) {
 	mb := safehttp.NewServeMuxConfig(nil)
 	it := xsrfhtml.Interceptor{SecretAppKey: "testSecretAppKey"}
 	mb.Intercept(&it)
+	mux := mb.Mux()
 
 	handler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		fns := map[string]interface{}{
@@ -37,13 +38,13 @@ func TestServeMuxInstallXSRF(t *testing.T) {
 
 		return safehttp.ExecuteTemplateWithFuncs(w, t, "Content", fns)
 	})
-	mb.Handle("/bar", safehttp.MethodGet, handler)
+	mux.Handle("/bar", safehttp.MethodGet, handler)
 
 	rr := httptest.NewRecorder()
 
 	req := httptest.NewRequest(safehttp.MethodGet, "https://foo.com/bar", nil)
 
-	mb.Mux().ServeHTTP(rr, req)
+	mux.ServeHTTP(rr, req)
 
 	if got, want := rr.Code, safehttp.StatusOK; got != int(want) {
 		t.Errorf("rr.Code got: %v want: %v", got, int(want))

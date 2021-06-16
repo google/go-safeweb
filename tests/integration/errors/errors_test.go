@@ -55,8 +55,9 @@ func (m myDispatcher) Error(rw http.ResponseWriter, resp safehttp.ErrorResponse)
 // error responses go through the commit phase.
 func TestCustomErrors(t *testing.T) {
 	mb := safehttp.NewServeMuxConfig(myDispatcher{})
+	mux := mb.Mux()
 
-	mb.Handle("/compute", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+	mux.Handle("/compute", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		qs, err := r.URL.Query()
 		if err != nil {
 			return w.WriteError(safehttp.StatusBadRequest)
@@ -71,13 +72,11 @@ func TestCustomErrors(t *testing.T) {
 		return w.Write(safehtml.HTMLEscaped(fmt.Sprintf("Result: %d", a*a)))
 	}))
 
-	m := mb.Mux()
-
 	t.Run("correct request", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		req := httptest.NewRequest(safehttp.MethodGet, "https://foo.com/compute?a=3", nil)
-		m.ServeHTTP(rr, req)
+		mux.ServeHTTP(rr, req)
 
 		if got, want := rr.Code, safehttp.StatusOK; got != int(want) {
 			t.Errorf("rr.Code got: %v want: %v", got, want)
@@ -92,7 +91,7 @@ func TestCustomErrors(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		req := httptest.NewRequest(safehttp.MethodGet, "https://foo.com/compute?foo=3", nil)
-		m.ServeHTTP(rr, req)
+		mux.ServeHTTP(rr, req)
 
 		if got, want := rr.Code, safehttp.StatusBadRequest; got != int(want) {
 			t.Errorf("rr.Code got: %v want: %v", got, want)
@@ -129,17 +128,17 @@ func (interceptor) Match(safehttp.InterceptorConfig) bool {
 func TestCustomErrorsInBefore(t *testing.T) {
 	mb := safehttp.NewServeMuxConfig(myDispatcher{})
 	mb.Intercept(interceptor{errBefore: true})
+	mux := mb.Mux()
 
-	mb.Handle("/compute", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+	mux.Handle("/compute", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return w.Write(safehtml.HTMLEscaped("the handler code doesn't matter in this test case"))
 	}))
 
-	m := mb.Mux()
 	t.Run("error in Before", func(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		req := httptest.NewRequest(safehttp.MethodGet, "https://foo.com/compute?a=3", nil)
-		m.ServeHTTP(rr, req)
+		mux.ServeHTTP(rr, req)
 
 		if got, want := rr.Code, safehttp.StatusForbidden; got != int(want) {
 			t.Errorf("rr.Code got: %v want: %v", got, want)

@@ -28,7 +28,9 @@ import (
 
 func TestAccessIncomingHeaders(t *testing.T) {
 	mb := safehttp.NewServeMuxConfig(nil)
-	mb.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+	mux := mb.Mux()
+
+	mux.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 		if got, want := ir.Header.Get("A"), "B"; got != want {
 			t.Errorf(`ir.Header.Get("A") got: %v want: %v`, got, want)
 		}
@@ -44,22 +46,21 @@ func TestAccessIncomingHeaders(t *testing.T) {
 	}
 
 	rw := httptest.NewRecorder()
-	mux := mb.Mux()
 	mux.ServeHTTP(rw, req)
 }
 
 func TestChangingResponseHeaders(t *testing.T) {
 	mb := safehttp.NewServeMuxConfig(nil)
-	mb.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+	mux := mb.Mux()
+
+	mux.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 		rw.Header().Set("pIZZA", "Pasta")
 		return rw.Write(safehtml.HTMLEscaped("hello"))
 	}))
 
 	req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/", nil)
-
 	rw := httptest.NewRecorder()
 
-	mux := mb.Mux()
 	mux.ServeHTTP(rw, req)
 
 	want := []string{"Pasta"}

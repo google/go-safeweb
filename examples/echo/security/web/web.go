@@ -21,7 +21,6 @@ package web
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/google/go-safeweb/safehttp/plugins/coop"
 	"github.com/google/go-safeweb/safehttp/plugins/cors"
@@ -44,41 +43,30 @@ import (
 //
 // Warning: XSRF protection is currently missing due to
 // https://github.com/google/go-safeweb/issues/171.
-func NewMuxConfig() *safehttp.ServeMuxConfig {
+func NewMuxConfig(addr string) *safehttp.ServeMuxConfig {
 	c := &safehttp.ServeMuxConfig{}
 
 	c.Intercept(coop.Default(""))
 	c.Intercept(csp.Default(""))
 	c.Intercept(&fetchmetadata.Interceptor{})
 	c.Intercept(staticheaders.Interceptor{})
+
+	c.Intercept(hsts.Default())
+	c.Intercept(cors.Default())
+	c.Intercept(hostcheck.New(addr))
 	return c
 }
 
-// ListenAndServe starts an HTTP server on the given address.
-// In addition to the security mechanisms applied by NewMuxConfig, it also adds:
-//
-//  - HSTS
-//  - CORS
-//  - Host checking (against DNS rebinding and request smuggling)
-//
-// If you need to start an HTTP on a localhost for development purposes, you'll
-// likely need to disable some of these protections. Use ListenAndServeDev
-// instead.
-func ListenAndServe(addr string, mc *safehttp.ServeMuxConfig) error {
-	mc.Intercept(hsts.Default())
-	mc.Intercept(cors.Default())
-	mc.Intercept(hostcheck.New(addr))
-	return http.ListenAndServe(addr, mc.Mux())
-}
+func NewMuxConfigDev(port int) *safehttp.ServeMuxConfig {
+	c := &safehttp.ServeMuxConfig{}
 
-// ListenAndServeDev starts a HTTP server on localhost:port for development
-// purposes. Most notably, it doesn't include some of the security mechanisms
-// that ListenAndServe provides.
-//
-// Important: the host checking plugin will accept only requests coming to
-// localhost:port, not e.g. 127.0.0.1:port.
-func ListenAndServeDev(port int, mc *safehttp.ServeMuxConfig) error {
+	c.Intercept(coop.Default(""))
+	c.Intercept(csp.Default(""))
+	c.Intercept(&fetchmetadata.Interceptor{})
+	c.Intercept(staticheaders.Interceptor{})
+
 	addr := fmt.Sprintf("localhost:%d", port)
-	mc.Intercept(hostcheck.New(addr))
-	return http.ListenAndServe(addr, mc.Mux())
+	c.Intercept(hostcheck.New(addr))
+	// No HSTS, no CORS
+	return c
 }

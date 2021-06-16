@@ -161,20 +161,6 @@ type handlerRegistration struct {
 	cfgs    []InterceptorConfig
 }
 
-func (s *ServeMuxConfig) Handle(pattern string, method string, h Handler, cfgs ...InterceptorConfig) {
-	s.handlers = append(s.handlers, struct {
-		pattern string
-		method  string
-		h       Handler
-		cfgs    []InterceptorConfig
-	}{
-		pattern: pattern,
-		method:  method,
-		h:       h,
-		cfgs:    cfgs,
-	})
-}
-
 // HandleMethodNotAllowed registers a handler that runs when a given method is
 // not allowed for a registered path.
 func (s *ServeMuxConfig) HandleMethodNotAllowed(h Handler, cfgs ...InterceptorConfig) {

@@ -27,11 +27,12 @@ import (
 
 func TestRegisteredHandler(t *testing.T) {
 	mb := safehttp.NewServeMuxConfig(nil)
+	safeMux := mb.Mux()
 
-	mb.Handle("/abc", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+	safeMux.Handle("/abc", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return w.Write(safehtml.HTMLEscaped("Welcome!"))
 	}))
-	mb.Handle("/abc", safehttp.MethodPost, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+	safeMux.Handle("/abc", safehttp.MethodPost, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		f, err := r.PostForm()
 		if err != nil {
 			return w.WriteError(safehttp.StatusBadRequest)
@@ -42,11 +43,9 @@ func TestRegisteredHandler(t *testing.T) {
 		}
 		return w.Write(safehtml.HTMLEscaped(fmt.Sprintf("Added %s.", animal)))
 	}))
-	mb.Handle("/def", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+	safeMux.Handle("/def", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return w.Write(safehtml.HTMLEscaped("Bye!"))
 	}))
-
-	safeMux := mb.Mux()
 
 	mux := http.NewServeMux()
 	mux.Handle("/abc", safehttp.RegisteredHandler(safeMux, "/abc"))
@@ -107,11 +106,11 @@ func TestRegisteredHandler(t *testing.T) {
 
 func TestRegisteredHandler_StrictPatterns(t *testing.T) {
 	mb := safehttp.NewServeMuxConfig(nil)
+	safeMux := mb.Mux()
 
-	mb.Handle("/foo/", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+	safeMux.Handle("/foo/", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return w.Write(safehtml.HTMLEscaped("Homepage!"))
 	}))
-	safeMux := mb.Mux()
 
 	if safehttp.RegisteredHandler(safeMux, "/foo/") == nil {
 		t.Error(`RegisteredHandler(_, "/foo/") got nil, want non-nil`)

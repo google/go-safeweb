@@ -21,6 +21,7 @@ package main
 
 import (
 	"log"
+	"net/http"
 	"time"
 
 	"github.com/google/safehtml"
@@ -33,15 +34,15 @@ import (
 var start time.Time
 
 func main() {
-	mc := web.NewMuxConfig()
+	m := web.NewMuxConfigDev(8080).Mux()
 
-	mc.Handle("/echo", safehttp.MethodGet, safehttp.HandlerFunc(echo))
-	mc.Handle("/uptime", safehttp.MethodGet, safehttp.HandlerFunc(uptime))
+	m.Handle("/echo", safehttp.MethodGet, safehttp.HandlerFunc(echo))
+	m.Handle("/uptime", safehttp.MethodGet, safehttp.HandlerFunc(uptime))
 
 	start = time.Now()
 	log.Println("Visit http://localhost:8080")
 	log.Println("Listening on localhost:8080...")
-	log.Fatal(web.ListenAndServeDev(8080, mc))
+	log.Fatal(http.ListenAndServe("localhost:8080", m))
 }
 
 func echo(w safehttp.ResponseWriter, req *safehttp.IncomingRequest) safehttp.Result {

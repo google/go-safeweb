@@ -76,10 +76,10 @@ func handlerInteractingWithTheInterceptor(w safehttp.ResponseWriter, req *safeht
 func TestHandlerInteractingWithInterceptor(t *testing.T) {
 	mb := safehttp.NewServeMuxConfig(nil)
 	mb.Intercept(&safeHeadersInterceptor{})
-
-	mb.Handle("/safety", safehttp.MethodGet, safehttp.HandlerFunc(handlerInteractingWithTheInterceptor))
-
 	m := mb.Mux()
+
+	m.Handle("/safety", safehttp.MethodGet, safehttp.HandlerFunc(handlerInteractingWithTheInterceptor))
+
 	rr := httptest.NewRecorder()
 
 	req := httptest.NewRequest(safehttp.MethodGet, "https://foo.com/safety?level=2", nil)

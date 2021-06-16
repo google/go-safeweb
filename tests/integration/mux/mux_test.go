@@ -72,12 +72,14 @@ func TestMuxDefaultDispatcher(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			mb := safehttp.NewServeMuxConfig(nil)
-			mb.Handle("/pizza", safehttp.MethodGet, tt.handler)
+			mux := mb.Mux()
+
+			mux.Handle("/pizza", safehttp.MethodGet, tt.handler)
 
 			rw := httptest.NewRecorder()
-
 			req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/pizza", nil)
-			mb.Mux().ServeHTTP(rw, req)
+
+			mux.ServeHTTP(rw, req)
 
 			if wantStatus := safehttp.StatusOK; rw.Code != int(wantStatus) {
 				t.Errorf("rw.Code: got %v want %v", rw.Code, wantStatus)
@@ -128,11 +130,11 @@ func TestMuxDefaultDispatcherUnsafeResponses(t *testing.T) {
 			t.Skip()
 
 			mb := safehttp.NewServeMuxConfig(nil)
-			mb.Handle("/pizza", safehttp.MethodGet, tt.handler)
 			mux := mb.Mux()
 
-			rw := httptest.NewRecorder()
+			mux.Handle("/pizza", safehttp.MethodGet, tt.handler)
 
+			rw := httptest.NewRecorder()
 			req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/pizza", nil)
 
 			mux.ServeHTTP(rw, req)

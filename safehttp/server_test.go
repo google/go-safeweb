@@ -30,13 +30,13 @@ func TestServer(t *testing.T) {
 	l := requesttesting.NewFakeListener()
 	defer l.Close()
 
-	cfg := NewServeMuxConfig(nil)
-	cfg.Handle("/", "GET", HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
+	mux := NewServeMuxConfig(nil).Mux()
+	mux.Handle("/", "GET", HandlerFunc(func(w ResponseWriter, r *IncomingRequest) Result {
 		return w.Write(safehtml.HTMLEscaped("response"))
 	}))
 	rtim := 10 * time.Second
 	s := Server{
-		Mux:         cfg.Mux(),
+		Mux:         mux,
 		ReadTimeout: rtim,
 	}
 	go s.Serve(l)

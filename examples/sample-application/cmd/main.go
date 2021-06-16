@@ -45,9 +45,9 @@ func main() {
 	db := storage.NewDB()
 
 	addr := net.JoinHostPort("localhost", strconv.Itoa(*port))
-	cfg := secure.NewMuxConfig(db, addr)
-	server.Load(db, cfg)
+	mux := secure.NewMuxConfig(db, addr).Mux()
+	server.Load(db, mux)
 
 	log.Printf("Listening on %q", addr)
-	log.Fatal(http.ListenAndServe(addr, cfg.Mux()))
+	log.Fatal(http.ListenAndServe(addr, mux))
 }

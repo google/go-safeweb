@@ -57,15 +57,15 @@ func TestMuxOneHandlerOneRequest(t *testing.T) {
 	for _, tt := range test {
 		t.Run(tt.name, func(t *testing.T) {
 			mb := safehttp.NewServeMuxConfig(nil)
+			mux := mb.Mux()
 
 			h := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 			})
-			mb.Handle("/", safehttp.MethodGet, h)
+			mux.Handle("/", safehttp.MethodGet, h)
 
 			rw := httptest.NewRecorder()
 
-			mux := mb.Mux()
 			mux.ServeHTTP(rw, tt.req)
 
 			if rw.Code != int(tt.wantStatus) {
@@ -119,9 +119,10 @@ func TestMuxServeTwoHandlers(t *testing.T) {
 	}
 
 	mb := safehttp.NewServeMuxConfig(nil)
-	mb.Handle("/bar", safehttp.MethodGet, tests[0].hf)
-	mb.Handle("/bar", safehttp.MethodPost, tests[1].hf)
 	mux := mb.Mux()
+
+	mux.Handle("/bar", safehttp.MethodGet, tests[0].hf)
+	mux.Handle("/bar", safehttp.MethodPost, tests[1].hf)
 
 	for _, test := range tests {
 		rw := httptest.NewRecorder()
@@ -166,9 +167,9 @@ func TestMuxRegisterCorrectHandlerAllPaths(t *testing.T) {
 	}
 
 	mb := safehttp.NewServeMuxConfig(nil)
-	mb.Handle("/get", safehttp.MethodGet, tests[0].hf)
-	mb.Handle("/get2", safehttp.MethodGet, tests[1].hf)
 	mux := mb.Mux()
+	mux.Handle("/get", safehttp.MethodGet, tests[0].hf)
+	mux.Handle("/get2", safehttp.MethodGet, tests[1].hf)
 
 	for _, test := range tests {
 		rw := httptest.NewRecorder()
@@ -182,11 +183,12 @@ func TestMuxRegisterCorrectHandlerAllPaths(t *testing.T) {
 
 func TestMuxHandleSameMethodTwice(t *testing.T) {
 	mb := safehttp.NewServeMuxConfig(nil)
+	mux := mb.Mux()
 
 	registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 	})
-	mb.Handle("/bar", safehttp.MethodGet, registeredHandler)
+	mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -195,8 +197,7 @@ func TestMuxHandleSameMethodTwice(t *testing.T) {
 		t.Errorf(`mux.Handle("/bar", MethodGet, registeredHandler) expected panic`)
 	}()
 
-	mb.Handle("/bar", safehttp.MethodGet, registeredHandler)
-	mb.Mux()
+	mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
 }
 
 type setHeaderInterceptor struct {
@@ -293,12 +294,13 @@ func TestMuxInterceptors(t *testing.T) {
 					name:  "Foo",
 					value: "bar",
 				})
+				mux := mb.Mux()
 
 				registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 				})
-				mb.Handle("/bar", safehttp.MethodGet, registeredHandler)
-				return mb.Mux()
+				mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
+				return mux
 			}(),
 			wantStatus: safehttp.StatusOK,
 			wantHeaders: map[string][]string{
@@ -312,13 +314,14 @@ func TestMuxInterceptors(t *testing.T) {
 			mux: func() *safehttp.ServeMux {
 				mb := safehttp.NewServeMuxConfig(nil)
 				mb.Intercept(internalErrorInterceptor{})
+				mux := mb.Mux()
 
 				registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 				})
-				mb.Handle("/bar", safehttp.MethodGet, registeredHandler)
+				mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
 
-				return mb.Mux()
+				return mux
 			}(),
 			wantStatus: safehttp.StatusInternalServerError,
 			wantHeaders: map[string][]string{
@@ -332,14 +335,15 @@ func TestMuxInterceptors(t *testing.T) {
 			mux: func() *safehttp.ServeMux {
 				mb := safehttp.NewServeMuxConfig(nil)
 				mb.Intercept(&claimHeaderInterceptor{headerToClaim: "Foo"})
+				mux := mb.Mux()
 
 				registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					claimInterceptorSetHeader(w, r, "bar")
 					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 				})
-				mb.Handle("/bar", safehttp.MethodGet, registeredHandler)
+				mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
 
-				return mb.Mux()
+				return mux
 			}(),
 			wantStatus: safehttp.StatusOK,
 			wantHeaders: map[string][]string{
@@ -353,13 +357,14 @@ func TestMuxInterceptors(t *testing.T) {
 			mux: func() *safehttp.ServeMux {
 				mb := safehttp.NewServeMuxConfig(nil)
 				mb.Intercept(committerInterceptor{})
+				mux := mb.Mux()
 
 				registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 				})
-				mb.Handle("/bar", safehttp.MethodGet, registeredHandler)
+				mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
 
-				return mb.Mux()
+				return mux
 			}(),
 			wantStatus: safehttp.StatusOK,
 			wantHeaders: map[string][]string{
@@ -373,7 +378,6 @@ func TestMuxInterceptors(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			rw := httptest.NewRecorder()
-
 			req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/bar", nil)
 
 			tt.mux.ServeHTTP(rw, req)
@@ -499,17 +503,16 @@ func TestMuxInterceptorConfigs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mb := safehttp.NewServeMuxConfig(nil)
 			mb.Intercept(tt.interceptor)
+			mux := mb.Mux()
 
 			registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 			})
-			mb.Handle("/bar", safehttp.MethodGet, registeredHandler, tt.config)
+			mux.Handle("/bar", safehttp.MethodGet, registeredHandler, tt.config)
 
 			rw := httptest.NewRecorder()
-
 			req := httptest.NewRequest("GET", "http://foo.com/bar", nil)
 
-			mux := mb.Mux()
 			mux.ServeHTTP(rw, req)
 
 			if rw.Code != int(tt.wantStatus) {
@@ -592,17 +595,16 @@ func TestMuxDeterministicInterceptorOrder(t *testing.T) {
 	mb.Intercept(interceptorOne{})
 	mb.Intercept(interceptorTwo{})
 	mb.Intercept(interceptorThree{})
+	mux := mb.Mux()
 
 	registeredHandler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 	})
-	mb.Handle("/bar", safehttp.MethodGet, registeredHandler)
+	mux.Handle("/bar", safehttp.MethodGet, registeredHandler)
 
 	rw := httptest.NewRecorder()
-
 	req := httptest.NewRequest("GET", "http://foo.com/bar", nil)
 
-	mux := mb.Mux()
 	mux.ServeHTTP(rw, req)
 
 	if want := safehttp.StatusOK; rw.Code != int(want) {
@@ -630,12 +632,12 @@ func TestMuxHandlerReturnsNotWritten(t *testing.T) {
 	h := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return safehttp.NotWritten()
 	})
-	mb.Handle("/bar", safehttp.MethodGet, h)
-	req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/bar", nil)
+	mux := mb.Mux()
+	mux.Handle("/bar", safehttp.MethodGet, h)
 
+	req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/bar", nil)
 	rw := httptest.NewRecorder()
 
-	mux := mb.Mux()
 	mux.ServeHTTP(rw, req)
 
 	if want := safehttp.StatusNoContent; rw.Code != int(want) {
@@ -651,15 +653,15 @@ func TestMuxHandlerReturnsNotWritten(t *testing.T) {
 
 func TestMuxMethodNotAllowedDefaults(t *testing.T) {
 	mb := safehttp.NewServeMuxConfig(nil)
+	mux := mb.Mux()
 
 	h := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		panic("not tested")
 	})
-	mb.Handle("/", safehttp.MethodGet, h)
+	mux.Handle("/", safehttp.MethodGet, h)
 
 	rw := httptest.NewRecorder()
 
-	mux := mb.Mux()
 	mux.ServeHTTP(rw, httptest.NewRequest(safehttp.MethodPost, "http://foo.com/", nil))
 
 	if got, want := rw.Code, int(safehttp.StatusMethodNotAllowed); got != want {
@@ -728,17 +730,17 @@ type methodNotAllowedInterceptorConfig struct {
 func TestMuxMethodNotAllowedCustom(t *testing.T) {
 	mb := safehttp.NewServeMuxConfig(&methodNotAllowedDispatcher{})
 	mb.Intercept(&methodNotAllowedInterceptor{})
-
-	mb.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-		panic("not tested")
-	}))
 	mb.HandleMethodNotAllowed(safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 		return rw.WriteError(&methodNotAllowedError{"custom message"})
 	}), methodNotAllowedInterceptorConfig{before: "foo", commit: "bar"})
+	mux := mb.Mux()
+
+	mux.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+		panic("not tested")
+	}))
 
 	rw := httptest.NewRecorder()
 
-	mux := mb.Mux()
 	mux.ServeHTTP(rw, httptest.NewRequest(safehttp.MethodPost, "http://foo.com/", nil))
 
 	if got, want := rw.Code, int(safehttp.StatusMethodNotAllowed); got != want {

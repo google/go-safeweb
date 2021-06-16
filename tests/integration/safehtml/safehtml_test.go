@@ -25,7 +25,9 @@ import (
 
 func TestHandleRequestWrite(t *testing.T) {
 	mb := safehttp.NewServeMuxConfig(nil)
-	mb.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+	mux := mb.Mux()
+
+	mux.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 		return rw.Write(safehtml.HTMLEscaped("<h1>Escaped, so not really a heading</h1>"))
 	}))
 
@@ -33,7 +35,7 @@ func TestHandleRequestWrite(t *testing.T) {
 
 	rw := httptest.NewRecorder()
 
-	mb.Mux().ServeHTTP(rw, req)
+	mux.ServeHTTP(rw, req)
 
 	body := rw.Body.String()
 
@@ -44,7 +46,9 @@ func TestHandleRequestWrite(t *testing.T) {
 
 func TestHandleRequestWriteTemplate(t *testing.T) {
 	mb := safehttp.NewServeMuxConfig(nil)
-	mb.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
+	mux := mb.Mux()
+
+	mux.Handle("/", safehttp.MethodGet, safehttp.HandlerFunc(func(rw safehttp.ResponseWriter, ir *safehttp.IncomingRequest) safehttp.Result {
 		return safehttp.ExecuteTemplate(rw, template.Must(template.New("name").Parse("<h1>{{ . }}</h1>")), "This is an actual heading, though.")
 	}))
 
@@ -52,7 +56,7 @@ func TestHandleRequestWriteTemplate(t *testing.T) {
 
 	rw := httptest.NewRecorder()
 
-	mb.Mux().ServeHTTP(rw, req)
+	mux.ServeHTTP(rw, req)
 
 	body := rw.Body.String()
 

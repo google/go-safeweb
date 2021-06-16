@@ -37,18 +37,19 @@ func main() {
 	addr := net.JoinHostPort(host, port)
 	var mc safehttp.ServeMuxConfig
 	mc.Intercept(csp.Default(""))
+	mux := mc.Mux()
 
 	safeTmplSrc, _ := template.TrustedSourceFromConstantDir("", template.TrustedSource{}, "safe.html")
 	safeTmpl := template.Must(htmlinject.LoadFiles(nil, htmlinject.LoadConfig{}, safeTmplSrc))
-	mc.Handle("/safe", safehttp.MethodGet, safehttp.HandlerFunc(handleTemplate(safeTmpl)))
+	mux.Handle("/safe", safehttp.MethodGet, safehttp.HandlerFunc(handleTemplate(safeTmpl)))
 
 	unsafeTmplSrc, _ := template.TrustedSourceFromConstantDir("", template.TrustedSource{}, "unsafe.html")
 	unsafeTmpl := template.Must(htmlinject.LoadFiles(nil, htmlinject.LoadConfig{}, unsafeTmplSrc))
-	mc.Handle("/unsafe", safehttp.MethodGet, safehttp.HandlerFunc(handleTemplate(unsafeTmpl)))
+	mux.Handle("/unsafe", safehttp.MethodGet, safehttp.HandlerFunc(handleTemplate(unsafeTmpl)))
 
 	log.Printf("Visit http://%s\n", addr)
 	log.Printf("Listening on %s...\n", addr)
-	log.Fatal(http.ListenAndServe(addr, mc.Mux()))
+	log.Fatal(http.ListenAndServe(addr, mux))
 }
 
 func handleTemplate(tmpl safehttp.Template) func(w safehttp.ResponseWriter, req *safehttp.IncomingRequest) safehttp.Result {
