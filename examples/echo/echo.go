@@ -20,6 +20,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -34,15 +35,17 @@ import (
 var start time.Time
 
 func main() {
-	m := web.NewMuxConfigDev(8080).Mux()
+	port := 8080
+	addr := fmt.Sprintf("localhost:%d", port)
+	m := web.NewMuxConfigDev(port).Mux()
 
 	m.Handle("/echo", safehttp.MethodGet, safehttp.HandlerFunc(echo))
 	m.Handle("/uptime", safehttp.MethodGet, safehttp.HandlerFunc(uptime))
 
 	start = time.Now()
-	log.Println("Visit http://localhost:8080")
-	log.Println("Listening on localhost:8080...")
-	log.Fatal(http.ListenAndServe("localhost:8080", m))
+	log.Printf("Visit http://%s\n", addr)
+	log.Printf("Listening on %s...\n", addr)
+	log.Fatal(http.ListenAndServe(addr, m))
 }
 
 func echo(w safehttp.ResponseWriter, req *safehttp.IncomingRequest) safehttp.Result {

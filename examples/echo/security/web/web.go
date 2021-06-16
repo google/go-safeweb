@@ -40,6 +40,9 @@ import (
 //  - Cross-Origin-Opener-Policy
 //  - Content-Security-Policy
 //  - Fetch Metadata
+//  - HSTS
+//  - CORS
+//  - Host checking (against DNS rebinding and request smuggling)
 //
 // Warning: XSRF protection is currently missing due to
 // https://github.com/google/go-safeweb/issues/171.
@@ -57,6 +60,20 @@ func NewMuxConfig(addr string) *safehttp.ServeMuxConfig {
 	return c
 }
 
+// NewMuxConfigDev returns a ServeMuxConfig with a set of interceptors already
+// installed for security reasons.
+// These include:
+//
+//  - Cross-Origin-Opener-Policy
+//  - Content-Security-Policy
+//  - Fetch Metadata
+//  - Host checking (against DNS rebinding and request smuggling)
+//
+// It DOES NOT include HSTS or CORS, as these are difficult to setup in a
+// development environment.
+//
+// Important: the host checking plugin will accept only requests coming to
+// localhost:port, not e.g. 127.0.0.1:port.
 func NewMuxConfigDev(port int) *safehttp.ServeMuxConfig {
 	c := &safehttp.ServeMuxConfig{}
 
@@ -68,5 +85,6 @@ func NewMuxConfigDev(port int) *safehttp.ServeMuxConfig {
 	addr := fmt.Sprintf("localhost:%d", port)
 	c.Intercept(hostcheck.New(addr))
 	// No HSTS, no CORS
+
 	return c
 }
