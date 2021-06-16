@@ -65,13 +65,14 @@ func TestFlightInterceptorPanic(t *testing.T) {
 		t.Run(tc.desc, func(t *testing.T) {
 			mb := safehttp.NewServeMuxConfig(nil)
 			mb.Intercept(tc.interceptor)
-			mb.Handle("/search", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+			mux := mb.Mux()
+
+			mux.Handle("/search", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 				// IMPORTANT: We are setting the header here and expecting to be
 				// cleared if a panic occurs.
 				w.Header().Set("foo", "bar")
 				return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 			}))
-			mux := mb.Mux()
 
 			req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/search", nil)
 			rw := httptest.NewRecorder()
@@ -99,13 +100,14 @@ func TestFlightInterceptorPanic(t *testing.T) {
 
 func TestFlightHandlerPanic(t *testing.T) {
 	mb := safehttp.NewServeMuxConfig(nil)
-	mb.Handle("/search", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+	mux := mb.Mux()
+
+	mux.Handle("/search", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		// IMPORTANT: We are setting the header here and expecting to be
 		// cleared if a panic occurs.
 		w.Header().Set("foo", "bar")
 		panic("handler")
 	}))
-	mux := mb.Mux()
 
 	req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/search", nil)
 	rw := httptest.NewRecorder()
@@ -137,13 +139,13 @@ func TestFlightDoubleWritePanics(t *testing.T) {
 		for secondWriteName, secondWrite := range writeFuncs {
 			t.Run(fmt.Sprintf("%s->%s", firstWriteName, secondWriteName), func(t *testing.T) {
 				mb := safehttp.NewServeMuxConfig(nil)
-				mb.Handle("/search", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+				mux := mb.Mux()
+				mux.Handle("/search", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 					firstWrite(w, r)
 					secondWrite(w, r) // this should panic
 					t.Fatal("should never reach this point")
 					return safehttp.Result{}
 				}))
-				mux := mb.Mux()
 
 				req := httptest.NewRequest(safehttp.MethodGet, "http://foo.com/search", nil)
 				rw := httptest.NewRecorder()

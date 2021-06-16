@@ -59,20 +59,20 @@ type serverDeps struct {
 	db *storage.DB
 }
 
-func Load(db *storage.DB, cfg *safehttp.ServeMuxConfig) {
+func Load(db *storage.DB, mux *safehttp.ServeMux) {
 	deps := &serverDeps{
 		db: db,
 	}
 
 	// Private endpoints, only accessible to authenticated users (default).
-	cfg.Handle("/notes/", "GET", getNotesHandler(deps))
-	cfg.Handle("/notes", "POST", postNotesHandler(deps))
-	cfg.Handle("/logout", "POST", logoutHandler(deps))
+	mux.Handle("/notes/", "GET", getNotesHandler(deps))
+	mux.Handle("/notes", "POST", postNotesHandler(deps))
+	mux.Handle("/logout", "POST", logoutHandler(deps))
 
 	// Public enpoints, no auth checks performed.
-	cfg.Handle("/login", "POST", postLoginHandler(deps), auth.Skip{})
-	cfg.Handle("/static/", "GET", safehttp.FileServerEmbed(staticFiles), auth.Skip{})
-	cfg.Handle("/", "GET", indexHandler(deps), auth.Skip{})
+	mux.Handle("/login", "POST", postLoginHandler(deps), auth.Skip{})
+	mux.Handle("/static/", "GET", safehttp.FileServerEmbed(staticFiles), auth.Skip{})
+	mux.Handle("/", "GET", indexHandler(deps), auth.Skip{})
 }
 
 func getNotesHandler(deps *serverDeps) safehttp.Handler {

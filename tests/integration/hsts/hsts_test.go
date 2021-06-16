@@ -27,18 +27,18 @@ import (
 
 func TestHSTSServeMuxInstall(t *testing.T) {
 	mb := safehttp.NewServeMuxConfig(nil)
-
 	mb.Intercept(hsts.Default())
+	mux := mb.Mux()
+
 	handler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return w.Write(safehtml.HTMLEscaped("<h1>Hello World!</h1>"))
 	})
-	mb.Handle("/asdf", safehttp.MethodGet, handler)
+	mux.Handle("/asdf", safehttp.MethodGet, handler)
 
 	rw := httptest.NewRecorder()
-
 	req := httptest.NewRequest(http.MethodGet, "https://foo.com/asdf", nil)
 
-	mb.Mux().ServeHTTP(rw, req)
+	mux.ServeHTTP(rw, req)
 
 	if want := safehttp.StatusOK; rw.Code != int(want) {
 		t.Errorf("rw.Code got: %v want: %v", rw.Code, want)
@@ -59,18 +59,18 @@ func TestHSTSServeMuxInstall(t *testing.T) {
 
 func TestHSTSOnErrors(t *testing.T) {
 	mb := safehttp.NewServeMuxConfig(nil)
-
 	mb.Intercept(hsts.Default())
+	mux := mb.Mux()
+
 	handler := safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 		return w.WriteError(safehttp.StatusNotFound)
 	})
-	mb.Handle("/asdf", safehttp.MethodGet, handler)
+	mux.Handle("/asdf", safehttp.MethodGet, handler)
 
 	rw := httptest.NewRecorder()
-
 	req := httptest.NewRequest(http.MethodGet, "https://foo.com/asdf", nil)
 
-	mb.Mux().ServeHTTP(rw, req)
+	mux.ServeHTTP(rw, req)
 
 	if want := safehttp.StatusNotFound; rw.Code != int(want) {
 		t.Errorf("rw.Code got: %v want: %v", rw.Code, want)

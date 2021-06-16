@@ -33,7 +33,8 @@ func TestDevMode(t *testing.T) {
 		}
 		const resp = "response"
 		cfg, _ := defaults.ServeMuxConfig([]string{"test.host.example"}, "test-xsrf-key")
-		cfg.Handle("/test", "GET", safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
+		mux := cfg.Mux()
+		mux.Handle("/test", "GET", safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
 			form, err := r.URL.Query()
 			if err != nil {
 				t.Errorf("Cannot parse GET form: %v", err)
@@ -45,7 +46,6 @@ func TestDevMode(t *testing.T) {
 			w.AddCookie(safehttp.NewCookie("test", "insecure"))
 			return w.Write(safehtml.HTMLEscaped(resp))
 		}))
-		mux := cfg.Mux()
 		w := httptest.NewRecorder()
 		r := httptest.NewRequest("GET", "https://test.host.example/test?test=true", nil)
 		mux.ServeHTTP(w, r)

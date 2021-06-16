@@ -44,13 +44,13 @@ func TestServeMuxInstallCSP(t *testing.T) {
 
 		return safehttp.ExecuteTemplateWithFuncs(w, t, "Content", fns)
 	})
-	mb.Handle("/bar", safehttp.MethodGet, handler)
+	mux := mb.Mux()
+	mux.Handle("/bar", safehttp.MethodGet, handler)
 
 	rr := httptest.NewRecorder()
 
 	req := httptest.NewRequest(safehttp.MethodGet, "https://foo.com/bar", nil)
 
-	mux := mb.Mux()
 	mux.ServeHTTP(rr, req)
 
 	if err != nil {
