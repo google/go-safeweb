@@ -196,7 +196,7 @@ func (s *ServeMuxConfig) Mux() *ServeMux {
 
 // Clone creates a copy of the current config.
 // This can be used to create several instances of Mux that share the same set of
-// plugins and some common handlers.
+// plugins.
 func (s *ServeMuxConfig) Clone() *ServeMuxConfig {
 	c := &ServeMuxConfig{
 		dispatcher:       s.dispatcher,
