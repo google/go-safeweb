@@ -69,16 +69,7 @@ const (
 // handle different HTTP methods.
 type ServeMux struct {
 	mux        *http.ServeMux
-	handlerMap map[string]http.Handler
-}
-
-func handlerMap(handlers map[string]map[string]handlerConfig, methodNotAllowed handlerConfig) map[string]http.Handler {
-	m := make(map[string]http.Handler)
-	for pattern, handlersPerMethod := range handlers {
-		handlersPerMethod := handlersPerMethod // local capture
-		m[pattern] = &registeredHandler{methods: handlersPerMethod, methodNotAllowed: methodNotAllowed}
-	}
-	return m
+	handlerMap map[string]*registeredHandler
 }
 
 // ServeHTTP dispatches the request to the handler whose method matches the
@@ -184,38 +175,53 @@ func (s *ServeMuxConfig) Mux() *ServeMux {
 	if s.dispatcher == nil {
 		panic("Use NewServeMuxConfig instead of creating ServeMuxConfig using a composite literal.")
 	}
-	// pattern -> method -> handlerConfig
-	handlers := map[string]map[string]handlerConfig{}
-	for _, hr := range s.handlers {
-		if handlers[hr.pattern] == nil {
-			handlers[hr.pattern] = map[string]handlerConfig{}
-		}
-		if _, ok := handlers[hr.pattern][hr.method]; ok {
-			// TODO: this should be done in ServeMuxConfig.Handle, not here.
-			panic(fmt.Sprintf("double registration of (pattern = %q, method = %q)", hr.pattern, hr.method))
-		}
-		handlers[hr.pattern][hr.method] =
-			handlerConfig{
-				Dispatcher:   s.dispatcher,
-				Handler:      hr.handler,
-				Interceptors: configureInterceptors(s.interceptors, hr.cfgs),
-			}
-	}
+
 	methodNotAllowed := handlerConfig{
 		Dispatcher:   s.dispatcher,
 		Handler:      s.methodNotAllowedHandler.handler,
 		Interceptors: configureInterceptors(s.interceptors, s.methodNotAllowedHandler.cfgs),
 	}
 
+	handlers := map[string]*registeredHandler{}
+	for _, hr := range s.handlers {
+		if handlers[hr.pattern] == nil {
+			handlers[hr.pattern] = &registeredHandler{
+				pattern:          hr.pattern,
+				methodNotAllowed: methodNotAllowed,
+				methods:          make(map[string]handlerConfig),
+			}
+		}
+		handlers[hr.pattern].handleMethod(hr.method,
+			handlerConfig{
+				Dispatcher:   s.dispatcher,
+				Handler:      hr.handler,
+				Interceptors: configureInterceptors(s.interceptors, hr.cfgs),
+			})
+	}
+
 	mux := http.NewServeMux()
-	m := handlerMap(handlers, methodNotAllowed)
-	for pattern, handler := range m {
+	for pattern, handler := range handlers {
 		mux.Handle(pattern, handler)
 	}
-	return &ServeMux{mux: mux, handlerMap: m}
+	return &ServeMux{mux: mux, handlerMap: handlers}
+}
+
+// Clone creates a copy of the current config.
+// This can be used to create several instances of Mux that share the same set of
+// plugins and some common handlers.
+func (s *ServeMuxConfig) Clone() *ServeMuxConfig {
+	c := &ServeMuxConfig{
+		dispatcher:   s.dispatcher,
+		handlers:     make([]handlerRegistration, len(s.handlers)),
+		interceptors: make([]Interceptor, len(s.interceptors)),
+	}
+	copy(c.handlers, s.handlers)
+	copy(c.interceptors, s.interceptors)
+	return c
 }
 
 type registeredHandler struct {
+	pattern          string
 	methods          map[string]handlerConfig
 	methodNotAllowed handlerConfig
 }
@@ -226,6 +232,13 @@ func (rh *registeredHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		cfg = rh.methodNotAllowed
 	}
 	processRequest(cfg, w, r)
+}
+
+func (rh *registeredHandler) handleMethod(method string, cfg handlerConfig) {
+	if _, exists := rh.methods[method]; exists {
+		panic(fmt.Sprintf("double registration of (pattern = %q, method = %q)", rh.pattern, method))
+	}
+	rh.methods[method] = cfg
 }
 
 func configureInterceptors(interceptors []Interceptor, cfgs []InterceptorConfig) []configuredInterceptor {
@@ -253,18 +266,4 @@ func configureInterceptors(interceptors []Interceptor, cfgs []InterceptorConfig)
 		its = append(its, configuredInterceptor{interceptor: it, config: cfg})
 	}
 	return its
-}
-
-// Clone creates a copy of the current config.
-// This can be used to create several instances of Mux that share the same set of
-// plugins and some common handlers.
-func (s *ServeMuxConfig) Clone() *ServeMuxConfig {
-	c := &ServeMuxConfig{
-		dispatcher:   s.dispatcher,
-		handlers:     make([]handlerRegistration, len(s.handlers)),
-		interceptors: make([]Interceptor, len(s.interceptors)),
-	}
-	copy(c.handlers, s.handlers)
-	copy(c.interceptors, s.interceptors)
-	return c
 }
