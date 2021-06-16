@@ -132,12 +132,7 @@ func (m *ServeMux) Handle(pattern string, method string, h Handler, cfgs ...Inte
 
 // ServeMuxConfig is a builder for ServeMux.
 type ServeMuxConfig struct {
-	dispatcher Dispatcher
-	handlers   []struct {
-		pattern, method string
-		h               Handler
-		cfgs            []InterceptorConfig
-	}
+	dispatcher              Dispatcher
 	interceptors            []Interceptor
 	methodNotAllowedHandler handlerRegistration
 }
@@ -203,10 +198,6 @@ func (s *ServeMuxConfig) Mux() *ServeMux {
 		interceptors:            s.interceptors,
 		methodNotAllowedHandler: s.methodNotAllowedHandler,
 	}
-
-	for _, handler := range s.handlers {
-		m.Handle(handler.pattern, handler.method, handler.h, handler.cfgs...)
-	}
 	return m
 }
 
@@ -219,7 +210,6 @@ func (s *ServeMuxConfig) Clone() *ServeMuxConfig {
 		interceptors:            make([]Interceptor, len(s.interceptors)),
 		methodNotAllowedHandler: s.methodNotAllowedHandler,
 	}
-	copy(c.handlers, s.handlers)
 	copy(c.interceptors, s.interceptors)
 	return c
 }
