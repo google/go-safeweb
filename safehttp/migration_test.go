@@ -116,7 +116,7 @@ func TestRegisteredHandler_StrictPatterns(t *testing.T) {
 	if safehttp.RegisteredHandler(safeMux, "/foo/") == nil {
 		t.Error(`RegisteredHandler(_, "/foo/") got nil, want non-nil`)
 	}
-	if safehttp.RegisteredHandler(safeMux, "/foo/subpath") != nil {
-		t.Error(`RegisteredHandler(_, "/foo/subpath") got non-nil, want nil`)
+	if got := safehttp.RegisteredHandler(safeMux, "/foo/subpath"); got != nil {
+		t.Errorf(`RegisteredHandler(_, "/foo/subpath") got %v, want nil`, got)
 	}
 }
