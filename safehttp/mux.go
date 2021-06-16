@@ -100,6 +100,13 @@ func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	m.mux.ServeHTTP(w, r)
 }
 
+// Handle registers a handler for the given pattern and method. If a handler is
+// registered twice for the same pattern and method, Build will panic.
+//
+// InterceptorConfigs can be passed in order to modify the behavior of the
+// interceptors on a registered handler. Passing an InterceptorConfig whose
+// corresponding Interceptor was not installed will produce no effect. If
+// multiple configurations are passed for the same Interceptor, Mux will panic.
 func (m *ServeMux) Handle(pattern string, method string, h Handler, cfgs ...InterceptorConfig) {
 	methodNotAllowed := handlerConfig{
 		Dispatcher:   m.dispatcher,
@@ -150,19 +157,10 @@ func NewServeMuxConfig(disp Dispatcher) *ServeMuxConfig {
 }
 
 type handlerRegistration struct {
-	pattern string
-	method  string
 	handler Handler
 	cfgs    []InterceptorConfig
 }
 
-// Handle registers a handler for the given pattern and method. If a handler is
-// registered twice for the same pattern and method, Build will panic.
-//
-// InterceptorConfigs can be passed in order to modify the behavior of the
-// interceptors on a registered handler. Passing an InterceptorConfig whose
-// corresponding Interceptor was not installed will produce no effect. If
-// multiple configurations are passed for the same Interceptor, Mux will panic.
 func (s *ServeMuxConfig) Handle(pattern string, method string, h Handler, cfgs ...InterceptorConfig) {
 	s.handlers = append(s.handlers, struct {
 		pattern string
