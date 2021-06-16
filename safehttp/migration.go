@@ -32,7 +32,7 @@ import (
 // method will return the handler only when given "/foo/" as an argument, not
 // "/foo" nor "/foo/x".
 func RegisteredHandler(mux *ServeMux, pattern string) http.Handler {
-	if h, ok := mux.handlerMap[pattern]; ok {
+	if h, ok := mux.handlers[pattern]; ok {
 		return h
 	}
 	// Keep this. Otherwise mux.handlerMap[pattern] returns a

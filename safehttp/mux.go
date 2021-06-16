@@ -68,8 +68,12 @@ const (
 // Multiple handlers can be registered for a single pattern, as long as they
 // handle different HTTP methods.
 type ServeMux struct {
-	mux        *http.ServeMux
-	handlerMap map[string]*registeredHandler
+	mux      *http.ServeMux
+	handlers map[string]*registeredHandler
+
+	dispatcher              Dispatcher
+	interceptors            []Interceptor
+	methodNotAllowedHandler handlerRegistration
 }
 
 // ServeHTTP dispatches the request to the handler whose method matches the
@@ -96,10 +100,37 @@ func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	m.mux.ServeHTTP(w, r)
 }
 
+func (m *ServeMux) Handle(pattern string, method string, h Handler, cfgs ...InterceptorConfig) {
+	methodNotAllowed := handlerConfig{
+		Dispatcher:   m.dispatcher,
+		Handler:      m.methodNotAllowedHandler.handler,
+		Interceptors: configureInterceptors(m.interceptors, m.methodNotAllowedHandler.cfgs),
+	}
+
+	if m.handlers[pattern] == nil {
+		m.handlers[pattern] = &registeredHandler{
+			pattern:          pattern,
+			methodNotAllowed: methodNotAllowed,
+			methods:          make(map[string]handlerConfig),
+		}
+		m.mux.Handle(pattern, m.handlers[pattern])
+	}
+	m.handlers[pattern].handleMethod(method,
+		handlerConfig{
+			Dispatcher:   m.dispatcher,
+			Handler:      h,
+			Interceptors: configureInterceptors(m.interceptors, cfgs),
+		})
+}
+
 // ServeMuxConfig is a builder for ServeMux.
 type ServeMuxConfig struct {
-	dispatcher              Dispatcher
-	handlers                []handlerRegistration
+	dispatcher Dispatcher
+	handlers   []struct {
+		pattern, method string
+		h               Handler
+		cfgs            []InterceptorConfig
+	}
 	interceptors            []Interceptor
 	methodNotAllowedHandler handlerRegistration
 }
@@ -133,10 +164,15 @@ type handlerRegistration struct {
 // corresponding Interceptor was not installed will produce no effect. If
 // multiple configurations are passed for the same Interceptor, Mux will panic.
 func (s *ServeMuxConfig) Handle(pattern string, method string, h Handler, cfgs ...InterceptorConfig) {
-	s.handlers = append(s.handlers, handlerRegistration{
+	s.handlers = append(s.handlers, struct {
+		pattern string
+		method  string
+		h       Handler
+		cfgs    []InterceptorConfig
+	}{
 		pattern: pattern,
 		method:  method,
-		handler: h,
+		h:       h,
 		cfgs:    cfgs,
 	})
 }
@@ -176,34 +212,18 @@ func (s *ServeMuxConfig) Mux() *ServeMux {
 		panic("Use NewServeMuxConfig instead of creating ServeMuxConfig using a composite literal.")
 	}
 
-	methodNotAllowed := handlerConfig{
-		Dispatcher:   s.dispatcher,
-		Handler:      s.methodNotAllowedHandler.handler,
-		Interceptors: configureInterceptors(s.interceptors, s.methodNotAllowedHandler.cfgs),
+	m := &ServeMux{
+		mux:                     http.NewServeMux(),
+		handlers:                make(map[string]*registeredHandler),
+		dispatcher:              s.dispatcher,
+		interceptors:            s.interceptors,
+		methodNotAllowedHandler: s.methodNotAllowedHandler,
 	}
 
-	handlers := map[string]*registeredHandler{}
-	for _, hr := range s.handlers {
-		if handlers[hr.pattern] == nil {
-			handlers[hr.pattern] = &registeredHandler{
-				pattern:          hr.pattern,
-				methodNotAllowed: methodNotAllowed,
-				methods:          make(map[string]handlerConfig),
-			}
-		}
-		handlers[hr.pattern].handleMethod(hr.method,
-			handlerConfig{
-				Dispatcher:   s.dispatcher,
-				Handler:      hr.handler,
-				Interceptors: configureInterceptors(s.interceptors, hr.cfgs),
-			})
+	for _, handler := range s.handlers {
+		m.Handle(handler.pattern, handler.method, handler.h, handler.cfgs...)
 	}
-
-	mux := http.NewServeMux()
-	for pattern, handler := range handlers {
-		mux.Handle(pattern, handler)
-	}
-	return &ServeMux{mux: mux, handlerMap: handlers}
+	return m
 }
 
 // Clone creates a copy of the current config.
@@ -211,9 +231,9 @@ func (s *ServeMuxConfig) Mux() *ServeMux {
 // plugins and some common handlers.
 func (s *ServeMuxConfig) Clone() *ServeMuxConfig {
 	c := &ServeMuxConfig{
-		dispatcher:   s.dispatcher,
-		handlers:     make([]handlerRegistration, len(s.handlers)),
-		interceptors: make([]Interceptor, len(s.interceptors)),
+		dispatcher:              s.dispatcher,
+		interceptors:            make([]Interceptor, len(s.interceptors)),
+		methodNotAllowedHandler: s.methodNotAllowedHandler,
 	}
 	copy(c.handlers, s.handlers)
 	copy(c.interceptors, s.interceptors)
