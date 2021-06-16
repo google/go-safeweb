@@ -198,14 +198,12 @@ func (s *ServeMuxConfig) Mux() *ServeMux {
 // This can be used to create several instances of Mux that share the same set of
 // plugins.
 func (s *ServeMuxConfig) Clone() *ServeMuxConfig {
-	c := &ServeMuxConfig{
-		dispatcher:       s.dispatcher,
-		interceptors:     make([]Interceptor, len(s.interceptors)),
-		methodNotAllowed: s.methodNotAllowed,
+	return &ServeMuxConfig{
+		dispatcher:           s.dispatcher,
+		interceptors:         append([]Interceptor(nil), s.interceptors...),
+		methodNotAllowed:     s.methodNotAllowed,
+		methodNotAllowedCfgs: append([]InterceptorConfig(nil), s.methodNotAllowedCfgs...),
 	}
-	copy(c.interceptors, s.interceptors)
-	copy(c.methodNotAllowedCfgs, s.methodNotAllowedCfgs)
-	return c
 }
 
 type registeredHandler struct {
