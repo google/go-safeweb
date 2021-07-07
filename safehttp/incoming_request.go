@@ -33,9 +33,6 @@ type IncomingRequest struct {
 	// TLS is set just like this TLS field of the net/http.Request. For more information
 	// see https://pkg.go.dev/net/http?tab=doc#Request.
 	TLS *tls.ConnectionState
-	// URL specifies the URL that is parsed from the Request-Line. For most requests,
-	// only URL.Path() will return a non-empty result. (See RFC 7230, Section 5.3)
-	URL *URL
 	req *http.Request
 
 	// The fields below are kept as pointers to allow cloning through
@@ -56,7 +53,6 @@ func NewIncomingRequest(req *http.Request) *IncomingRequest {
 		req:                req,
 		Header:             NewHeader(req.Header),
 		TLS:                req.TLS,
-		URL:                &URL{url: req.URL},
 		postParseOnce:      &sync.Once{},
 		multipartParseOnce: &sync.Once{},
 	}
@@ -176,4 +172,10 @@ func (r *IncomingRequest) WithContext(ctx context.Context) *IncomingRequest {
 	*r2 = *r
 	r2.req = r2.req.WithContext(ctx)
 	return r2
+}
+
+// URL specifies the URL that is parsed from the Request-Line. For most requests,
+// only URL.Path() will return a non-empty result. (See RFC 7230, Section 5.3)
+func (r *IncomingRequest) URL() *URL {
+	return &URL{url: r.req.URL}
 }

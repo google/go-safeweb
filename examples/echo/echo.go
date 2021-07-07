@@ -49,7 +49,7 @@ func main() {
 }
 
 func echo(w safehttp.ResponseWriter, req *safehttp.IncomingRequest) safehttp.Result {
-	q, err := req.URL.Query()
+	q, err := req.URL().Query()
 	if err != nil {
 		return w.WriteError(safehttp.StatusBadRequest)
 	}
@@ -72,7 +72,7 @@ func uptime(w safehttp.ResponseWriter, req *safehttp.IncomingRequest) safehttp.R
 	x.Uptime = time.Now().Sub(start)
 
 	// Easter egg handling.
-	q, err := req.URL.Query()
+	q, err := req.URL().Query()
 	if err != nil {
 		return w.WriteError(safehttp.StatusBadRequest)
 	}

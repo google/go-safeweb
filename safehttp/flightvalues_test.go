@@ -63,7 +63,7 @@ func SetHeaderSafely(ctx context.Context, level int) {
 }
 
 func handlerInteractingWithTheInterceptor(w safehttp.ResponseWriter, req *safehttp.IncomingRequest) safehttp.Result {
-	f, err := req.URL.Query()
+	f, err := req.URL().Query()
 	if err != nil {
 		panic(err)
 	}

@@ -58,7 +58,7 @@ func TestCustomErrors(t *testing.T) {
 	mux := mb.Mux()
 
 	mux.Handle("/compute", safehttp.MethodGet, safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-		qs, err := r.URL.Query()
+		qs, err := r.URL().Query()
 		if err != nil {
 			return w.WriteError(safehttp.StatusBadRequest)
 		}

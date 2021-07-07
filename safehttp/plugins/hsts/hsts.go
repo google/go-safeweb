@@ -95,7 +95,7 @@ func (it Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequ
 	}
 
 	if !it.BehindProxy && r.TLS == nil {
-		u, err := url.Parse(r.URL.String())
+		u, err := url.Parse(r.URL().String())
 		if err != nil {
 			return w.WriteError(safehttp.StatusInternalServerError)
 		}
