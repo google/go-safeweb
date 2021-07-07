@@ -107,7 +107,7 @@ func (fsrw *fileServerResponseWriter) WriteHeader(statusCode int) {
 	}
 
 	fsrw.result = fsrw.flight.Write(FileServerResponse{
-		Path:        fsrw.flight.req.URL.Path(),
+		Path:        fsrw.flight.req.URL().Path(),
 		contentType: ct,
 	})
 }

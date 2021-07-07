@@ -32,7 +32,7 @@ func TestDevMode(t *testing.T) {
 		mux := cfg.Mux()
 
 		mux.Handle("/test", "GET", safehttp.HandlerFunc(func(w safehttp.ResponseWriter, r *safehttp.IncomingRequest) safehttp.Result {
-			form, err := r.URL.Query()
+			form, err := r.URL().Query()
 			if err != nil {
 				t.Errorf("Cannot parse GET form: %v", err)
 			}
