@@ -145,5 +145,12 @@
 //
 // Restricting Risky APIs
 //
-// TODO
+// Some APIs are easy-to-misuse in a security sensitive context. We choose to
+// restrict these and require a security review for their usage in order to
+// prevent vulnerabilities.
+//
+// cmd/bancheck allows you to restrict APIs and check for their usage as part
+// of the CI/CD pipeline and prevent potentially vulnerable code from being
+// deployed. For detailed usage instructions, please see:
+// https://pkg.go.dev/github.com/google/go-safeweb/cmd/bancheck
 package safehttp
