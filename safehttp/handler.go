@@ -31,3 +31,23 @@ type HandlerFunc func(ResponseWriter, *IncomingRequest) Result
 func (f HandlerFunc) ServeHTTP(w ResponseWriter, r *IncomingRequest) Result {
 	return f(w, r)
 }
+
+// StripPrefix returns a handler that serves HTTP requests by removing the given
+// prefix from the request URL's Path (and RawPath if set) and invoking the
+// handler h.
+//
+// StripPrefix handles a request for a path that doesn't begin with prefix by
+// panicking, as this is a server configuration error. The prefix must match
+// exactly (e.g. escaped and unescaped characters are considered different).
+func StripPrefix(prefix string, h Handler) Handler {
+	if prefix == "" {
+		return h
+	}
+	return HandlerFunc(func(rw ResponseWriter, ir *IncomingRequest) Result {
+		ir2, err := ir.WithStrippedURLPrefix(prefix)
+		if err != nil {
+			panic(err)
+		}
+		return h.ServeHTTP(rw, ir2)
+	})
+}

@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync"
 )
@@ -178,6 +179,32 @@ func (r *IncomingRequest) WithContext(ctx context.Context) *IncomingRequest {
 // only URL.Path() will return a non-empty result. (See RFC 7230, Section 5.3)
 func (r *IncomingRequest) URL() *URL {
 	return &URL{url: r.req.URL}
+}
+
+// WithStrippedURLPrefix returns a shallow copy of the request with its URL
+// stripped of a prefix. The prefix has to match exactly (e.g. escaped and
+// unescaped characters are considered different).
+func (r *IncomingRequest) WithStrippedURLPrefix(prefix string) (*IncomingRequest, error) {
+	req := rawRequest(r)
+	if !strings.HasPrefix(req.URL.Path, prefix) {
+		return nil, fmt.Errorf("Path %q doesn't have prefix %q", req.URL.Path, prefix)
+	}
+	if req.URL.RawPath != "" && !strings.HasPrefix(req.URL.RawPath, prefix) {
+		return nil, fmt.Errorf("RawPath %q doesn't have prefix %q", req.URL.RawPath, prefix)
+	}
+
+	req2 := new(http.Request)
+	*req2 = *req
+	req2.URL = new(url.URL)
+	*req2.URL = *req.URL
+	req2.URL.Path = strings.TrimPrefix(req.URL.Path, prefix)
+	req2.URL.RawPath = strings.TrimPrefix(req.URL.RawPath, prefix)
+
+	r2 := new(IncomingRequest)
+	*r2 = *r
+	r2.req = req2
+
+	return r2, nil
 }
 
 func rawRequest(r *IncomingRequest) *http.Request {
