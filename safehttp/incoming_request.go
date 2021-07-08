@@ -179,3 +179,7 @@ func (r *IncomingRequest) WithContext(ctx context.Context) *IncomingRequest {
 func (r *IncomingRequest) URL() *URL {
 	return &URL{url: r.req.URL}
 }
+
+func rawRequest(r *IncomingRequest) *http.Request {
+	return r.req
+}
