@@ -43,6 +43,14 @@ func WriteJSON(w ResponseWriter, data interface{}) Result {
 	return w.Write(JSONResponse{data})
 }
 
+type StringResponse struct {
+	Data string
+}
+
+func WriteString(w ResponseWriter, data string) Result {
+	return w.Write(StringResponse{data})
+}
+
 // Template implements a template.
 type Template interface {
 	// Execute applies data to the template and then writes the result to

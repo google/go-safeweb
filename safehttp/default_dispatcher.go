@@ -46,6 +46,10 @@ func (DefaultDispatcher) Write(rw http.ResponseWriter, resp Response) error {
 		rw.Header().Set("Content-Type", "application/json; charset=utf-8")
 		io.WriteString(rw, ")]}',\n") // Break parsing of JavaScript in order to prevent XSSI.
 		return json.NewEncoder(rw).Encode(x.Data)
+	case StringResponse:
+		rw.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		_, err := rw.Write([]byte(x.Data))
+		return err
 	case *TemplateResponse:
 		t, ok := (x.Template).(*template.Template)
 		if !ok {
