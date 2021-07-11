@@ -364,7 +364,7 @@ func TestHeaderIsClaimedCanonicalization(t *testing.T) {
 func TestHeaderIsClaimedNotClaimed(t *testing.T) {
 	h := NewHeader(http.Header{})
 	if got := h.IsClaimed("Foo-Key"); got != false {
-		t.Errorf(`h.IsClaimed("Foo-Key") got: %v want: true`, got)
+		t.Errorf(`h.IsClaimed("Foo-Key") got: %v want: false`, got)
 	}
 }
 
