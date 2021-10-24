@@ -1,5 +1,7 @@
 # go-safeweb
 
+[![Go](https://github.com/google/go-safeweb/actions/workflows/main.yaml/badge.svg)](https://github.com/google/go-safeweb/actions/workflows/main.yaml)
+
 **DISCLAIMER**: This is not an officially supported Google product.
 
 `go-safeweb` is a collection of libraries for writing secure-by-default HTTP
