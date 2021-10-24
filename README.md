@@ -12,7 +12,8 @@ servers in Go.
 
 ## Contributing
 
-Check the [Contributing file](./CONTRIBUTING.md) for instructions on how to open issues and pull requests.
+This project is in an early stage. We are currently **not accepting** any
+contributions.
 
 ## Overview
 
