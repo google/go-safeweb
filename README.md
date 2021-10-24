@@ -1,6 +1,9 @@
 # go-safeweb
 
 [![Go](https://github.com/google/go-safeweb/actions/workflows/main.yaml/badge.svg)](https://github.com/google/go-safeweb/actions/workflows/main.yaml)
+[![GoDoc](https://pkg.go.dev/badge/github.com/google/go-safeweb?status.svg)](https://pkg.go.dev/github.com/google/go-safeweb?tab=doc)
+[![Go Report Card](https://goreportcard.com/badge/github.com/google/go-safeweb)](https://goreportcard.com/report/github.com/google/go-safeweb)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 **DISCLAIMER**: This is not an officially supported Google product.
 
