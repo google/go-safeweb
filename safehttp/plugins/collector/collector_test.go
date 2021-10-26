@@ -44,7 +44,7 @@ func TestValidReport(t *testing.T) {
 				}
 			}]`,
 			want: []collector.Report{
-				collector.Report{
+				{
 					Type:      "custom",
 					Age:       10,
 					URL:       "https://example.com/vulnerable-page/",
@@ -82,7 +82,7 @@ func TestValidReport(t *testing.T) {
 				}
 			}]`,
 			want: []collector.Report{
-				collector.Report{
+				{
 					Type:      "custom",
 					Age:       10,
 					URL:       "https://example.com/vulnerable-page/",
@@ -93,7 +93,7 @@ func TestValidReport(t *testing.T) {
 						"roundness": float64(3.14),
 					},
 				},
-				collector.Report{
+				{
 					Type:      "custom",
 					Age:       15,
 					URL:       "https://example.com/",
@@ -128,7 +128,7 @@ func TestValidReport(t *testing.T) {
 				}
 			}]`,
 			want: []collector.Report{
-				collector.Report{
+				{
 					Type:      "csp-violation",
 					Age:       10,
 					URL:       "https://example.com/vulnerable-page/",

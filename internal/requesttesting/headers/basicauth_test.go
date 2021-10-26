@@ -50,7 +50,7 @@ func TestBasicAuth(t *testing.T) {
 				ok:       true,
 			},
 			// Same Base64 as above.
-			wantHeaders: map[string][]string{"Authorization": []string{"Basic UGl6emE6UGFzc3dvcmQ="}},
+			wantHeaders: map[string][]string{"Authorization": {"Basic UGl6emE6UGFzc3dvcmQ="}},
 		},
 		{
 			name: "NoTrailingEquals",
@@ -65,7 +65,7 @@ func TestBasicAuth(t *testing.T) {
 				ok:       false,
 			},
 			// Same Base64 as above.
-			wantHeaders: map[string][]string{"Authorization": []string{"Basic UGl6emE6UGFzc3dvcmQ"}},
+			wantHeaders: map[string][]string{"Authorization": {"Basic UGl6emE6UGFzc3dvcmQ"}},
 		},
 		{
 			name: "DoubleColon",
@@ -80,7 +80,7 @@ func TestBasicAuth(t *testing.T) {
 				ok:       true,
 			},
 			// Same Base64 as above.
-			wantHeaders: map[string][]string{"Authorization": []string{"Basic UGl6emE6UGFzc3dvcmQ6UGFzc3dvcmQ="}},
+			wantHeaders: map[string][]string{"Authorization": {"Basic UGl6emE6UGFzc3dvcmQ6UGFzc3dvcmQ="}},
 		},
 		{
 			name: "NotBasic",
@@ -95,7 +95,7 @@ func TestBasicAuth(t *testing.T) {
 				ok:       false,
 			},
 			// Same Base64 as above.
-			wantHeaders: map[string][]string{"Authorization": []string{"xasic UGl6emE6UGFzc3dvcmQ6UGFzc3dvcmQ="}},
+			wantHeaders: map[string][]string{"Authorization": {"xasic UGl6emE6UGFzc3dvcmQ6UGFzc3dvcmQ="}},
 		},
 		{
 			name: "CasingOrdering1",
@@ -112,7 +112,7 @@ func TestBasicAuth(t *testing.T) {
 				ok:       true,
 			},
 			// Base64 encoding of "AAA:aaa" and then of "BBB:bbb" in that order.
-			wantHeaders: map[string][]string{"Authorization": []string{"basic QUFBOmFhYQ==", "basic QkJCOmJiYg=="}},
+			wantHeaders: map[string][]string{"Authorization": {"basic QUFBOmFhYQ==", "basic QkJCOmJiYg=="}},
 		},
 		{
 			name: "CasingOrdering2",
@@ -129,7 +129,7 @@ func TestBasicAuth(t *testing.T) {
 				ok:       true,
 			},
 			// Base64 encoding of "AAA:aaa" and then of "BBB:bbb" in that order.
-			wantHeaders: map[string][]string{"Authorization": []string{"basic QUFBOmFhYQ==", "basic QkJCOmJiYg=="}},
+			wantHeaders: map[string][]string{"Authorization": {"basic QUFBOmFhYQ==", "basic QkJCOmJiYg=="}},
 		},
 	}
 
@@ -184,7 +184,7 @@ func TestBasicAuthOrdering(t *testing.T) {
 	t.Run("Current behavior", func(t *testing.T) {
 		resp, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
 			// Base64 encoding of "AAA:aaa" and then of "BBB:bbb" in that order.
-			wantHeaders := map[string][]string{"Authorization": []string{"basic QUFBOmFhYQ==", "basic QkJCOmJiYg=="}}
+			wantHeaders := map[string][]string{"Authorization": {"basic QUFBOmFhYQ==", "basic QkJCOmJiYg=="}}
 			if diff := cmp.Diff(wantHeaders, map[string][]string(r.Header)); diff != "" {
 				t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
 			}

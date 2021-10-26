@@ -42,7 +42,7 @@ func TestReferer(t *testing.T) {
 				"Referer: http://example.com\r\n" +
 				"\r\n"),
 			want: testWant{
-				headers: map[string][]string{"Referer": []string{"http://example.com"}},
+				headers: map[string][]string{"Referer": {"http://example.com"}},
 				referer: "http://example.com",
 			},
 		},
@@ -54,7 +54,7 @@ func TestReferer(t *testing.T) {
 				"Referer: http://evil.com\r\n" +
 				"\r\n"),
 			want: testWant{
-				headers: map[string][]string{"Referer": []string{"http://example.com", "http://evil.com"}},
+				headers: map[string][]string{"Referer": {"http://example.com", "http://evil.com"}},
 				referer: "http://example.com",
 			},
 		},
@@ -66,7 +66,7 @@ func TestReferer(t *testing.T) {
 				"referer: http://evil.com\r\n" +
 				"\r\n"),
 			want: testWant{
-				headers: map[string][]string{"Referer": []string{"http://example.com", "http://evil.com"}},
+				headers: map[string][]string{"Referer": {"http://example.com", "http://evil.com"}},
 				referer: "http://example.com",
 			},
 		},
@@ -111,7 +111,7 @@ func TestRefererOrdering(t *testing.T) {
 
 	t.Run("Current behavior", func(t *testing.T) {
 		resp, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
-			wantHeaders := map[string][]string{"Referer": []string{"http://example.com", "http://evil.com"}}
+			wantHeaders := map[string][]string{"Referer": {"http://example.com", "http://evil.com"}}
 			if diff := cmp.Diff(wantHeaders, map[string][]string(r.Header)); diff != "" {
 				t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
 			}

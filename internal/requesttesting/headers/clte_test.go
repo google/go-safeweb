@@ -47,7 +47,7 @@ func TestContentLengthTransferEncoding(t *testing.T) {
 				"ABCDE\r\n" +
 				"\r\n"),
 			want: testWant{
-				headers:          map[string][]string{"Content-Length": []string{"5"}},
+				headers:          map[string][]string{"Content-Length": {"5"}},
 				contentLength:    5,
 				transferEncoding: nil,
 				body:             "ABCDE",

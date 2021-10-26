@@ -41,7 +41,7 @@ func TestUserAgent(t *testing.T) {
 				"User-Agent: BlahBlah\r\n" +
 				"\r\n"),
 			want: testWant{
-				headers:   map[string][]string{"User-Agent": []string{"BlahBlah"}},
+				headers:   map[string][]string{"User-Agent": {"BlahBlah"}},
 				useragent: "BlahBlah",
 			},
 		},
@@ -53,7 +53,7 @@ func TestUserAgent(t *testing.T) {
 				"User-Agent: FooFoo\r\n" +
 				"\r\n"),
 			want: testWant{
-				headers:   map[string][]string{"User-Agent": []string{"BlahBlah", "FooFoo"}},
+				headers:   map[string][]string{"User-Agent": {"BlahBlah", "FooFoo"}},
 				useragent: "BlahBlah",
 			},
 		},
@@ -65,7 +65,7 @@ func TestUserAgent(t *testing.T) {
 				"user-Agent: FooFoo\r\n" +
 				"\r\n"),
 			want: testWant{
-				headers:   map[string][]string{"User-Agent": []string{"BlahBlah", "FooFoo"}},
+				headers:   map[string][]string{"User-Agent": {"BlahBlah", "FooFoo"}},
 				useragent: "BlahBlah",
 			},
 		},
@@ -110,7 +110,7 @@ func TestUserAgentOrdering(t *testing.T) {
 
 	t.Run("Current behavior", func(t *testing.T) {
 		resp, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
-			wantHeaders := map[string][]string{"User-Agent": []string{"BlahBlah", "FooFoo"}}
+			wantHeaders := map[string][]string{"User-Agent": {"BlahBlah", "FooFoo"}}
 			if diff := cmp.Diff(wantHeaders, map[string][]string(r.Header)); diff != "" {
 				t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
 			}

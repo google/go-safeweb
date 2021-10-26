@@ -36,7 +36,7 @@ func TestHeaderParsing(t *testing.T) {
 				"Host: localhost:8080\r\n" +
 				"A: B\r\n" +
 				"\r\n"),
-			want: map[string][]string{"A": []string{"B"}},
+			want: map[string][]string{"A": {"B"}},
 		},
 		{
 			name: "Ordering",
@@ -45,7 +45,7 @@ func TestHeaderParsing(t *testing.T) {
 				"A: X\r\n" +
 				"A: Y\r\n" +
 				"\r\n"),
-			want: map[string][]string{"A": []string{"X", "Y"}},
+			want: map[string][]string{"A": {"X", "Y"}},
 		},
 		{
 			name: "Casing",
@@ -55,8 +55,8 @@ func TestHeaderParsing(t *testing.T) {
 				"cDcDcDcD-cDcDcDcD-cDcDcD: YyYyYyYy\r\n" +
 				"\r\n"),
 			want: map[string][]string{
-				"Babababa-Babababa-Bababa": []string{"xXxXxXxX"},
-				"Cdcdcdcd-Cdcdcdcd-Cdcdcd": []string{"YyYyYyYy"},
+				"Babababa-Babababa-Bababa": {"xXxXxXxX"},
+				"Cdcdcdcd-Cdcdcdcd-Cdcdcd": {"YyYyYyYy"},
 			},
 		},
 		{
@@ -68,7 +68,7 @@ func TestHeaderParsing(t *testing.T) {
 				"a: Z\r\n" +
 				"A: W\r\n" +
 				"\r\n"),
-			want: map[string][]string{"A": []string{"X", "Y", "Z", "W"}},
+			want: map[string][]string{"A": {"X", "Y", "Z", "W"}},
 		},
 		{
 			name: "MultiLineHeaderTab",
@@ -77,7 +77,7 @@ func TestHeaderParsing(t *testing.T) {
 				"AAAA: aaaa aaa\r\n" +
 				"\taaa aaa\r\n" +
 				"\r\n"),
-			want: map[string][]string{"Aaaa": []string{"aaaa aaa aaa aaa"}},
+			want: map[string][]string{"Aaaa": {"aaaa aaa aaa aaa"}},
 		},
 		{
 			name: "MultiLineHeaderManyLines",
@@ -87,7 +87,7 @@ func TestHeaderParsing(t *testing.T) {
 				" aaa\r\n" +
 				" aaa\r\n" +
 				"\r\n"),
-			want: map[string][]string{"Aaaa": []string{"aaaa aaa aaa aaa"}},
+			want: map[string][]string{"Aaaa": {"aaaa aaa aaa aaa"}},
 		},
 		{
 			name: "UnicodeValue",
@@ -95,7 +95,7 @@ func TestHeaderParsing(t *testing.T) {
 				"Host: localhost:8080\r\n" +
 				"A: \xf0\x9f\xa5\xb3\r\n" +
 				"\r\n"),
-			want: map[string][]string{"A": []string{"\xf0\x9f\xa5\xb3"}},
+			want: map[string][]string{"A": {"\xf0\x9f\xa5\xb3"}},
 		},
 	}
 
@@ -272,7 +272,7 @@ func TestMultiLineHeader(t *testing.T) {
 
 	t.Run("Current behavior", func(t *testing.T) {
 		resp, err := requesttesting.MakeRequest(context.Background(), request, func(r *http.Request) {
-			want := map[string][]string{"Aaaa": []string{"aaaa aaa aaa aaa"}}
+			want := map[string][]string{"Aaaa": {"aaaa aaa aaa aaa"}}
 			if diff := cmp.Diff(want, map[string][]string(r.Header)); diff != "" {
 				t.Errorf("r.Header mismatch (-want +got):\n%s", diff)
 			}
