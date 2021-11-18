@@ -169,10 +169,12 @@ func (s *ServeMuxConfig) Intercept(is ...Interceptor) {
 
 // Mux returns the ServeMux with a copy of the current configuration.
 func (s *ServeMuxConfig) Mux() *ServeMux {
+	devMu.Lock()
 	freezeLocalDev = true
-	if IsLocalDev() {
+	if isLocalDev {
 		log.Println("Warning: creating safehttp.Mux in dev mode. This configuration is not valid for production use")
 	}
+	devMu.Unlock()
 
 	if s.dispatcher == nil {
 		panic("Use NewServeMuxConfig instead of creating ServeMuxConfig using a composite literal.")

@@ -34,6 +34,8 @@ type Cookie struct {
 // For more info about all the options, see:
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie
 func NewCookie(name, value string) *Cookie {
+	devMu.RLock()
+	defer devMu.RUnlock()
 	return &Cookie{
 		&http.Cookie{
 			Name:     name,

@@ -14,7 +14,10 @@
 
 package safehttp
 
+import "sync"
+
 var (
+	devMu      sync.RWMutex
 	isLocalDev bool
 	// freezeLocalDev is set on Mux construction.
 	freezeLocalDev bool
@@ -28,6 +31,8 @@ var (
 // flag parsing.
 // This configuration is not valid for production use.
 func UseLocalDev() {
+	devMu.Lock()
+	defer devMu.Unlock()
 	if freezeLocalDev {
 		panic("UseLocalDev can only be called before any other part of the framework")
 	}
@@ -37,5 +42,7 @@ func UseLocalDev() {
 // IsLocalDev returns whether the framework is set up to use local development
 // rules. Please see the doc on UseLocalDev.
 func IsLocalDev() bool {
+	devMu.RLock()
+	defer devMu.RUnlock()
 	return isLocalDev
 }
