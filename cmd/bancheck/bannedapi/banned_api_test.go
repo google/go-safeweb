@@ -23,7 +23,8 @@ import (
 )
 
 func TestBannedAPIAnalyzer(t *testing.T) {
-	for _, test := range []struct {
+	t.Parallel()
+	tests := []struct {
 		desc  string
 		files map[string]string
 	}{
@@ -260,8 +261,12 @@ func TestBannedAPIAnalyzer(t *testing.T) {
 				`,
 			},
 		},
-	} {
+	}
+
+	for _, test := range tests {
+		test := test
 		t.Run(test.desc, func(t *testing.T) {
+			t.Parallel()
 			dir, cleanup, err := analysistest.WriteFiles(test.files)
 			if err != nil {
 				t.Fatalf("WriteFiles() returned err: %v", err)
