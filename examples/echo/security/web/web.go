@@ -29,6 +29,7 @@ import (
 	"github.com/google/go-safeweb/safehttp/plugins/hostcheck"
 	"github.com/google/go-safeweb/safehttp/plugins/hsts"
 	"github.com/google/go-safeweb/safehttp/plugins/staticheaders"
+	"github.com/google/safehtml"
 
 	"github.com/google/go-safeweb/safehttp"
 )
@@ -87,4 +88,23 @@ func NewMuxConfigDev(port int) *safehttp.ServeMuxConfig {
 	// No HSTS, no CORS
 
 	return c
+}
+
+type ResponseWriter struct {
+	safehttp.ResponseWriter
+}
+
+func (rw ResponseWriter) WriteHTML(html safehtml.HTML) safehttp.Result {
+	return rw.Write(html)
+}
+
+
+
+func HandlerFunc(f func(ResponseWriter, *safehttp.IncomingRequest) safehttp.Result) safehttp.HandlerFunc {
+	ha := safehttp.HandlerAdapter[ResponseWriter]{
+		CustomResponseWriterFactory: func(w safehttp.ResponseWriter) ResponseWriter {
+			return ResponseWriter{w}
+		},
+	}
+	return ha.AdaptFunc(f)
 }
