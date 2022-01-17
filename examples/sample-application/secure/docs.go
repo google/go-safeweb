@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build go1.16
 // +build go1.16
 
 // Package secure TODO(clap|kele): describe the assumptions we are under, e.g.
