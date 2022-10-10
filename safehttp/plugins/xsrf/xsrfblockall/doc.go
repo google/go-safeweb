@@ -13,5 +13,5 @@
 // limitations under the License.
 
 // Package xsrfblockall provides a safehttp.Interceptor that ensures Cross-Site
-// Request Forgery by rejecting every state changing request
+// Request Forgery by rejecting every state-changing request.
 package xsrfblockall

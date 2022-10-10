@@ -24,7 +24,7 @@ type Interceptor struct{}
 
 var _ safehttp.Interceptor = &Interceptor{}
 
-// Before rejects every state changing request (all except GET, HEAD and OPTIONS).
+// Before rejects every state-changing request (all except GET, HEAD, and OPTIONS).
 func (it *Interceptor) Before(
 	w safehttp.ResponseWriter,
 	r *safehttp.IncomingRequest,
