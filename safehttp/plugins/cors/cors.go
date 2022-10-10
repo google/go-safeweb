@@ -16,6 +16,7 @@
 package cors
 
 import (
+	"log"
 	"net/textproto"
 	"strconv"
 	"strings"
@@ -35,10 +36,10 @@ var disallowedContentTypes = map[string]bool{
 //
 // For more info about CORS, see: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
 //
-// Constraints
+// # Constraints
 //
 // The content types "application/x-www-form-urlencoded", "multipart/form-data"
-// and "text/plain" are banned and will result in a  415 Unsupported Media Type
+// and "text/plain" are banned and will result in a 415 Unsupported Media Type
 // response.
 //
 // Each CORS request must contain the header "X-Cors: 1".
@@ -73,10 +74,10 @@ var _ safehttp.Interceptor = &Interceptor{}
 
 // Default creates a CORS Interceptor with default settings.
 // Those defaults are:
-//  - No Exposed Headers
-//  - No Allowed Headers
-//  - AllowCredentials: false
-//  - MaxAge: 5 seconds
+//   - No Exposed Headers
+//   - No Allowed Headers
+//   - AllowCredentials: false
+//   - MaxAge: 5 seconds
 func Default(allowedOrigins ...string) *Interceptor {
 	ao := map[string]bool{}
 	for _, o := range allowedOrigins {
@@ -104,21 +105,27 @@ func (it *Interceptor) SetAllowedHeaders(headers ...string) {
 // Before handles the IncomingRequest according to the settings specified in the
 // Interceptor and sets the appropriate subset of the following headers:
 //
-//  - Access-Control-Allow-Credentials
-//  - Access-Control-Allow-Headers
-//  - Access-Control-Allow-Methods
-//  - Access-Control-Allow-Origin
-//  - Access-Control-Expose-Headers
-//  - Access-Control-Max-Age
-//  - Vary
+//   - Access-Control-Allow-Credentials
+//   - Access-Control-Allow-Headers
+//   - Access-Control-Allow-Methods
+//   - Access-Control-Allow-Origin
+//   - Access-Control-Expose-Headers
+//   - Access-Control-Max-Age
+//   - Vary
 func (it *Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
 	origin := r.Header.Get("Origin")
 	if origin != "" && !it.AllowedOrigins[origin] {
+		if safehttp.IsLocalDev() {
+			log.Println("cors plugin blocked a request due to a mismatching Origin header.")
+		}
 		return w.WriteError(safehttp.StatusForbidden)
 	}
 	h := w.Header()
 	allowOrigin := h.Claim("Access-Control-Allow-Origin")
 	if h.IsClaimed("Vary") {
+		if safehttp.IsLocalDev() {
+			log.Println("cors plugin failed to claim the Vary header")
+		}
 		return w.WriteError(safehttp.StatusInternalServerError)
 	}
 
@@ -135,6 +142,9 @@ func (it *Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingReq
 	}
 
 	if status != 0 && status != safehttp.StatusNoContent {
+		if safehttp.IsLocalDev() {
+			log.Println("cors plugin blocked a potentially malicious request")
+		}
 		return w.WriteError(status)
 	}
 

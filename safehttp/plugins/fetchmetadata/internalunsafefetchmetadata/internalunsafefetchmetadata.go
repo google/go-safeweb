@@ -1,4 +1,4 @@
-// Copyright YEAR Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,3 +11,12 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
+// Package internalunsafefetchmetadata is used internally to override FM policies.
+package internalunsafefetchmetadata
+
+// DisableResourceIsolationPolicy switches RIP to report-only.
+type DisableResourceIsolationPolicy struct {
+	// SkipReports can be used to completely disable RIP.
+	SkipReports bool
+}

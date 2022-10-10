@@ -26,8 +26,9 @@ import (
 
 func TestServeMuxInstallCSP(t *testing.T) {
 	mb := safehttp.NewServeMuxConfig(nil)
-	it := csp.Default("")
-	mb.Intercept(&it)
+	for _, i := range csp.Default("") {
+		mb.Intercept(i)
+	}
 
 	var nonce string
 	var err error
@@ -69,7 +70,6 @@ func TestServeMuxInstallCSP(t *testing.T) {
 		"Content-Type": {"text/html; charset=utf-8"},
 		"Content-Security-Policy": {
 			"object-src 'none'; script-src 'unsafe-inline' 'nonce-" + nonce + "' 'strict-dynamic' https: http:; base-uri 'none'",
-			"frame-ancestors 'self';",
 			"require-trusted-types-for 'script'"},
 	}
 	if diff := cmp.Diff(wantHeaders, map[string][]string(rr.Header())); diff != "" {

@@ -15,27 +15,23 @@
 package csp
 
 import (
-	"errors"
 	"os"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/go-safeweb/safehttp"
+	"github.com/google/go-safeweb/safehttp/plugins/csp/internalunsafecsp"
+	"github.com/google/go-safeweb/safehttp/plugins/csp/internalunsafecsp/unsafecspfortests"
+	"github.com/google/go-safeweb/safehttp/plugins/csp/internalunsafecsp/unsafestrictcsp"
+	"github.com/google/go-safeweb/safehttp/plugins/csp/internalunsafecsp/unsafetrustedtypes"
+	"github.com/google/go-safeweb/safehttp/plugins/framing/internalunsafeframing"
+	"github.com/google/go-safeweb/safehttp/plugins/framing/internalunsafeframing/unsafeframing"
 	"github.com/google/go-safeweb/safehttp/safehttptest"
 )
 
-type endlessAReader struct{}
-
-func (endlessAReader) Read(b []byte) (int, error) {
-	for i := range b {
-		b[i] = 41
-	}
-	return len(b), nil
-}
-
 func TestMain(m *testing.M) {
-	randReader = endlessAReader{}
+	unsafecspfortests.UseStaticRandom()
 	os.Exit(m.Run())
 }
 
@@ -96,21 +92,6 @@ func TestSerialize(t *testing.T) {
 			wantString: "frame-ancestors 'self'; report-uri httsp://example.com/collector;",
 		},
 		{
-			name: "FramingCSP with one source",
-			policy: FramingPolicy{Sources: []string{
-				"https://www.example.org",
-			}},
-			wantString: "frame-ancestors 'self' https://www.example.org;",
-		},
-		{
-			name: "FramingCSP with multiple sources",
-			policy: FramingPolicy{Sources: []string{
-				"https://a.example.org",
-				"https://b.example.org",
-			}},
-			wantString: "frame-ancestors 'self' https://a.example.org https://b.example.org;",
-		},
-		{
 			name:       "TrustedTypesCSP",
 			policy:     TrustedTypesPolicy{},
 			wantString: "require-trusted-types-for 'script'",
@@ -124,7 +105,7 @@ func TestSerialize(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := tt.policy.Serialize("super-secret")
+			s := tt.policy.Serialize("super-secret", nil)
 
 			if s != tt.wantString {
 				t.Errorf("tt.policy.Serialize() got: %q want: %q", s, tt.wantString)
@@ -136,43 +117,47 @@ func TestSerialize(t *testing.T) {
 func TestBefore(t *testing.T) {
 	tests := []struct {
 		name                 string
-		interceptor          Interceptor
+		interceptors         []Interceptor
 		wantEnforcePolicy    []string
 		wantReportOnlyPolicy []string
 		wantNonce            string
 	}{
 		{
-			name:        "No policies",
-			interceptor: Interceptor{},
-			wantNonce:   "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
-		},
-		{
-			name:        "Default policies",
-			interceptor: Default(""),
+			name:         "Default policies",
+			interceptors: Default(""),
 			wantEnforcePolicy: []string{
 				"object-src 'none'; script-src 'unsafe-inline' 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk=' 'strict-dynamic' https: http:; base-uri 'none'",
-				"frame-ancestors 'self';",
 				"require-trusted-types-for 'script'",
 			},
 			wantNonce: "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
 		{
-			name:        "Default policies with reporting URI",
-			interceptor: Default("https://example.com/collector"),
+			name:         "All policies",
+			interceptors: append(Default(""), Interceptor{Policy: FramingPolicy{}}),
+			wantEnforcePolicy: []string{
+				"object-src 'none'; script-src 'unsafe-inline' 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk=' 'strict-dynamic' https: http:; base-uri 'none'",
+				"require-trusted-types-for 'script'",
+				"frame-ancestors 'self';",
+			},
+			wantNonce: "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
+		},
+		{
+			name: "All policies with reporting URI",
+			interceptors: append(Default("https://example.com/collector"),
+				Interceptor{Policy: FramingPolicy{ReportURI: "https://example.com/collector"}}),
 			wantEnforcePolicy: []string{
 				"object-src 'none'; script-src 'unsafe-inline' 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk=' 'strict-dynamic' https: http:; base-uri 'none'; report-uri https://example.com/collector",
-				"frame-ancestors 'self'; report-uri https://example.com/collector;",
 				"require-trusted-types-for 'script'; report-uri https://example.com/collector",
+				"frame-ancestors 'self'; report-uri https://example.com/collector;",
 			},
 			wantNonce: "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
 		{
 			name: "StrictCSP Report Only",
-			interceptor: Interceptor{
-				ReportOnly: []Policy{
-					StrictPolicy{ReportURI: "https://example.com/collector"},
-				},
-			},
+			interceptors: []Interceptor{{
+				Policy:     StrictPolicy{ReportURI: "https://example.com/collector"},
+				ReportOnly: true,
+			}},
 			wantReportOnlyPolicy: []string{
 				"object-src 'none'; script-src 'unsafe-inline' 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk=' 'strict-dynamic' https: http:; base-uri 'none'; report-uri https://example.com/collector",
 			},
@@ -180,11 +165,10 @@ func TestBefore(t *testing.T) {
 		},
 		{
 			name: "FramingCSP Report Only",
-			interceptor: Interceptor{
-				ReportOnly: []Policy{
-					FramingPolicy{ReportURI: "https://example.com/collector"},
-				},
-			},
+			interceptors: []Interceptor{{
+				Policy:     FramingPolicy{ReportURI: "https://example.com/collector"},
+				ReportOnly: true,
+			}},
 			wantReportOnlyPolicy: []string{"frame-ancestors 'self'; report-uri https://example.com/collector;"},
 			wantNonce:            "KSkpKSkpKSkpKSkpKSkpKSkpKSk=",
 		},
@@ -195,7 +179,9 @@ func TestBefore(t *testing.T) {
 			fakeRW, rr := safehttptest.NewFakeResponseWriter()
 			req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
 
-			tt.interceptor.Before(fakeRW, req, nil)
+			for _, i := range tt.interceptors {
+				i.Before(fakeRW, req, nil)
+			}
 
 			h := rr.Header()
 			if diff := cmp.Diff(tt.wantEnforcePolicy, h.Values("Content-Security-Policy"), cmpopts.EquateEmpty()); diff != "" {
@@ -206,9 +192,9 @@ func TestBefore(t *testing.T) {
 				t.Errorf("h.Values(\"Content-Security-Policy-Report-Only\") mismatch (-want +got):\n%s", diff)
 			}
 
-			v := safehttp.FlightValues(req.Context()).Get(nonceKey{})
+			v := safehttp.FlightValues(req.Context()).Get(nonceKey)
 			if v == nil {
-				t.Fatalf("FlightValues(...).Get(nonceKey{}) got: nil want: %q", tt.wantNonce)
+				t.Fatalf("safehttp.FlightValues(req.Context()).Get(nonceCtxKey) got: nil want: %q", tt.wantNonce)
 			}
 			if got := v.(string); got != tt.wantNonce {
 				t.Errorf("v.(string) got: %q want: %q", got, tt.wantNonce)
@@ -217,43 +203,24 @@ func TestBefore(t *testing.T) {
 	}
 }
 
-type errorReader struct{}
-
-func (errorReader) Read(b []byte) (int, error) {
-	return 0, errors.New("bad")
-}
-
-func TestPanicWhileGeneratingNonce(t *testing.T) {
-	randReader = errorReader{}
-	defer func() {
-		// TODO: avoid replacing the randReader per individual test cases
-		randReader = endlessAReader{}
-	}()
-	defer func() {
-		if r := recover(); r != nil {
-			return
-		}
-		t.Error("generateNonce() expected panic")
-	}()
-	generateNonce()
-}
-
 func TestValidNonce(t *testing.T) {
 	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
-	safehttp.FlightValues(req.Context()).Put(nonceKey{}, "nonce")
+	_ = nonce(req)
+
 	n, err := Nonce(req.Context())
 	if err != nil {
 		t.Errorf("Nonce(ctx) got err: %v want: nil", err)
 	}
 
-	if want := "nonce"; n != want {
+	if want := "KSkpKSkpKSkpKSkpKSkpKSkpKSk="; n != want {
 		t.Errorf("Nonce(ctx) got nonce: %v want: %v", n, want)
 	}
 }
 
 func TestNonceEmptyContext(t *testing.T) {
 	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
-	safehttp.FlightValues(req.Context()) // not putting nonce
+	// Not using nonce() to insert the nonce in context.
+
 	n, err := Nonce(req.Context())
 	if err == nil {
 		t.Error("Nonce(ctx) got err: nil want: error")
@@ -267,7 +234,7 @@ func TestNonceEmptyContext(t *testing.T) {
 func TestCommitNonce(t *testing.T) {
 	fakeRW, rr := safehttptest.NewFakeResponseWriter()
 	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
-	safehttp.FlightValues(req.Context()).Put(nonceKey{}, "pizza")
+	safehttp.FlightValues(req.Context()).Put(nonceKey, "pizza")
 
 	it := Interceptor{}
 	tr := &safehttp.TemplateResponse{}
@@ -302,7 +269,7 @@ func TestCommitNonce(t *testing.T) {
 func TestCommitMissingNonce(t *testing.T) {
 	fakeRW, _ := safehttptest.NewFakeResponseWriter()
 	req := safehttptest.NewRequest(safehttp.MethodGet, "https://foo.com/pizza", nil)
-	safehttp.FlightValues(req.Context()).Put(nonceKey{}, nil /* missing nonce */)
+	// Not adding safehttp.FlightValues here.
 
 	it := Interceptor{}
 	tr := &safehttp.TemplateResponse{}
@@ -334,4 +301,95 @@ func TestCommitNotTemplateResponse(t *testing.T) {
 		t.Errorf("rr.Body.String(): got %q want %q", got, want)
 	}
 
+}
+
+func TestOverride(t *testing.T) {
+	tests := []struct {
+		name                 string
+		interceptors         []Interceptor
+		overrides            []safehttp.InterceptorConfig
+		wantEnforcePolicy    []string
+		wantReportOnlyPolicy []string
+	}{
+		{
+			name:         "All policies, completely disabled",
+			interceptors: append(Default(""), Interceptor{Policy: FramingPolicy{}}),
+			overrides: []safehttp.InterceptorConfig{
+				internalunsafecsp.DisableStrict{SkipReports: true},
+				internalunsafecsp.DisableTrustedTypes{SkipReports: true},
+				internalunsafeframing.Disable{SkipReports: true},
+			},
+		},
+		{
+			name:         "All policies, disabled via unsafe packages",
+			interceptors: append(Default(""), Interceptor{Policy: FramingPolicy{}}),
+			overrides: []safehttp.InterceptorConfig{
+				unsafestrictcsp.Disable("testing", true),
+				unsafetrustedtypes.Disable("testing", true),
+				unsafeframing.Disable("testing", true),
+			},
+		},
+		{
+			name:         "All policies, report-only override",
+			interceptors: append(Default(""), Interceptor{Policy: FramingPolicy{}}),
+			overrides: []safehttp.InterceptorConfig{
+				internalunsafecsp.DisableStrict{},
+				internalunsafecsp.DisableTrustedTypes{},
+				internalunsafeframing.Disable{},
+			},
+			wantReportOnlyPolicy: []string{
+				"object-src 'none'; script-src 'unsafe-inline' 'nonce-KSkpKSkpKSkpKSkpKSkpKSkpKSk=' 'strict-dynamic' https: http:; base-uri 'none'",
+				"require-trusted-types-for 'script'",
+				"frame-ancestors 'self';",
+			},
+		},
+		{
+			name: "FramingCSP allowlist",
+			interceptors: []Interceptor{Interceptor{
+				Policy: FramingPolicy{}}},
+			overrides: []safehttp.InterceptorConfig{
+				unsafeframing.Allow("testing", true, "https://www.example.org"),
+			},
+			wantReportOnlyPolicy: []string{"frame-ancestors 'self' https://www.example.org;"},
+		},
+		{
+			name: "FramingCSP allowlist",
+			interceptors: []Interceptor{Interceptor{
+				Policy: FramingPolicy{}}},
+			overrides: []safehttp.InterceptorConfig{
+				unsafeframing.Allow("testing", false, "https://a.example.org", "https://b.example.org"),
+			},
+			wantEnforcePolicy: []string{
+				"frame-ancestors 'self' https://a.example.org https://b.example.org;"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeRW, rr := safehttptest.NewFakeResponseWriter()
+			req := safehttptest.NewRequest(safehttp.MethodGet, "/", nil)
+
+			for _, i := range tt.interceptors {
+				var cfg safehttp.InterceptorConfig
+				for _, c := range tt.overrides {
+					if i.Match(c) {
+						if cfg != nil {
+							t.Fatalf("Multiple overrides match: %v and %v", cfg, c)
+						}
+						cfg = c
+					}
+				}
+				i.Before(fakeRW, req, cfg)
+			}
+
+			h := rr.Header()
+			if diff := cmp.Diff(tt.wantEnforcePolicy, h.Values("Content-Security-Policy"), cmpopts.EquateEmpty()); diff != "" {
+				t.Errorf("h.Values(\"Content-Security-Policy\") mismatch (-want +got):\n%s", diff)
+			}
+
+			if diff := cmp.Diff(tt.wantReportOnlyPolicy, h.Values("Content-Security-Policy-Report-Only"), cmpopts.EquateEmpty()); diff != "" {
+				t.Errorf("h.Values(\"Content-Security-Policy-Report-Only\") mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
 }

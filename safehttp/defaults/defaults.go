@@ -22,6 +22,7 @@ import (
 	"github.com/google/go-safeweb/safehttp/plugins/coop"
 	"github.com/google/go-safeweb/safehttp/plugins/csp"
 	"github.com/google/go-safeweb/safehttp/plugins/fetchmetadata"
+	"github.com/google/go-safeweb/safehttp/plugins/framing"
 	"github.com/google/go-safeweb/safehttp/plugins/hostcheck"
 	"github.com/google/go-safeweb/safehttp/plugins/hsts"
 	"github.com/google/go-safeweb/safehttp/plugins/staticheaders"
@@ -42,15 +43,24 @@ func ServeMuxConfig(hosts []string, xsrfKey string) (*safehttp.ServeMuxConfig, e
 	}
 
 	c := safehttp.NewServeMuxConfig(nil)
-	// TODO(clap): add a report group once we support reporting.
-	c.Intercept(coop.Default(""))
-	// TODO(clap): add a report-uri once we support reporting.
-	// TODO(clap): find a way to make the FramingPolicy here work together with the Framing plugin once we have it.
-	c.Intercept(csp.Default(""))
-	c.Intercept(&fetchmetadata.Interceptor{})
-	c.Intercept(hostcheck.New(hosts...))
-	c.Intercept(hsts.Default())
+
+	// Non-blocking:
 	c.Intercept(staticheaders.Interceptor{})
+	c.Intercept(hsts.Default())
+	// TODO(empijei): add a report group once we support reporting.
+	c.Intercept(coop.Default(""))
+	// TODO(empijei): add a report-uri once we support reporting.
+	for _, i := range csp.Default("") {
+		c.Intercept(i)
+	}
+
+	// Blocking:
+	c.Intercept(hostcheck.New(hosts...))
+	c.Intercept(fetchmetadata.ResourceIsolationPolicy())
 	c.Intercept(&xsrfhtml.Interceptor{SecretAppKey: xsrfKey})
+	for _, i := range framing.Interceptors("") {
+		c.Intercept(i)
+	}
+
 	return c, nil
 }

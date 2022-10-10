@@ -15,8 +15,8 @@
 // Implements a simple server presenting DOM XSS protection with Trusted Types.
 //
 // Endpoints:
-//  - /safe#<script>alert(1)</script>
-//  - /unsafe#<script>alert(1)</script>
+//   - /safe#<script>alert(1)</script>
+//   - /unsafe#<script>alert(1)</script>
 package main
 
 import (
@@ -36,7 +36,9 @@ func main() {
 	port := "8080"
 	addr := net.JoinHostPort(host, port)
 	var mc safehttp.ServeMuxConfig
-	mc.Intercept(csp.Default(""))
+	for _, i := range csp.Default("") {
+		mc.Intercept(i)
+	}
 	mux := mc.Mux()
 
 	safeTmplSrc, _ := template.TrustedSourceFromConstantDir("", template.TrustedSource{}, "safe.html")

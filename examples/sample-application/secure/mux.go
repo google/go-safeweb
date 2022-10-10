@@ -22,6 +22,7 @@ import (
 	"github.com/google/go-safeweb/safehttp/plugins/coop"
 	"github.com/google/go-safeweb/safehttp/plugins/csp"
 	"github.com/google/go-safeweb/safehttp/plugins/fetchmetadata"
+	"github.com/google/go-safeweb/safehttp/plugins/framing"
 	"github.com/google/go-safeweb/safehttp/plugins/hostcheck"
 	"github.com/google/go-safeweb/safehttp/plugins/hsts"
 	"github.com/google/go-safeweb/safehttp/plugins/staticheaders"
@@ -34,13 +35,20 @@ import (
 // NewMuxConfig creates a safe ServeMuxConfig.
 func NewMuxConfig(db *storage.DB, addr string) *safehttp.ServeMuxConfig {
 	c := safehttp.NewServeMuxConfig(dispatcher{})
+
 	c.Intercept(coop.Default(""))
-	c.Intercept(csp.Default(""))
-	c.Intercept(&fetchmetadata.Interceptor{})
-	c.Intercept(hostcheck.New(addr))
-	c.Intercept(hsts.Default())
 	c.Intercept(staticheaders.Interceptor{})
+	for _, i := range csp.Default("") {
+		c.Intercept(i)
+	}
+	c.Intercept(hsts.Default())
+
+	for _, i := range framing.Interceptors("") {
+		c.Intercept(i)
+	}
+	c.Intercept(fetchmetadata.ResourceIsolationPolicy())
 	c.Intercept(&xsrfhtml.Interceptor{SecretAppKey: "secret-key-that-should-not-be-in-sources"})
 	c.Intercept(auth.Interceptor{DB: db})
+	c.Intercept(hostcheck.New(addr))
 	return c
 }
