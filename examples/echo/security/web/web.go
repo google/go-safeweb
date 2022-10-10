@@ -26,6 +26,7 @@ import (
 	"github.com/google/go-safeweb/safehttp/plugins/cors"
 	"github.com/google/go-safeweb/safehttp/plugins/csp"
 	"github.com/google/go-safeweb/safehttp/plugins/fetchmetadata"
+	"github.com/google/go-safeweb/safehttp/plugins/framing"
 	"github.com/google/go-safeweb/safehttp/plugins/hostcheck"
 	"github.com/google/go-safeweb/safehttp/plugins/hsts"
 	"github.com/google/go-safeweb/safehttp/plugins/staticheaders"
@@ -37,12 +38,12 @@ import (
 // installed for security reasons.
 // These include:
 //
-//  - Cross-Origin-Opener-Policy
-//  - Content-Security-Policy
-//  - Fetch Metadata
-//  - HSTS
-//  - CORS
-//  - Host checking (against DNS rebinding and request smuggling)
+//   - Cross-Origin-Opener-Policy
+//   - Content-Security-Policy
+//   - Fetch Metadata
+//   - HSTS
+//   - CORS
+//   - Host checking (against DNS rebinding and request smuggling)
 //
 // Warning: XSRF protection is currently missing due to
 // https://github.com/google/go-safeweb/issues/171.
@@ -50,11 +51,16 @@ func NewMuxConfig(addr string) *safehttp.ServeMuxConfig {
 	c := &safehttp.ServeMuxConfig{}
 
 	c.Intercept(coop.Default(""))
-	c.Intercept(csp.Default(""))
-	c.Intercept(&fetchmetadata.Interceptor{})
 	c.Intercept(staticheaders.Interceptor{})
-
+	for _, i := range csp.Default("") {
+		c.Intercept(i)
+	}
 	c.Intercept(hsts.Default())
+
+	for _, i := range framing.Interceptors("") {
+		c.Intercept(i)
+	}
+	c.Intercept(fetchmetadata.ResourceIsolationPolicy())
 	c.Intercept(cors.Default())
 	c.Intercept(hostcheck.New(addr))
 	return c
@@ -64,10 +70,10 @@ func NewMuxConfig(addr string) *safehttp.ServeMuxConfig {
 // installed for security reasons.
 // These include:
 //
-//  - Cross-Origin-Opener-Policy
-//  - Content-Security-Policy
-//  - Fetch Metadata
-//  - Host checking (against DNS rebinding and request smuggling)
+//   - Cross-Origin-Opener-Policy
+//   - Content-Security-Policy
+//   - Fetch Metadata
+//   - Host checking (against DNS rebinding and request smuggling)
 //
 // It DOES NOT include HSTS or CORS, as these are difficult to setup in a
 // development environment.
@@ -78,8 +84,10 @@ func NewMuxConfigDev(port int) *safehttp.ServeMuxConfig {
 	c := &safehttp.ServeMuxConfig{}
 
 	c.Intercept(coop.Default(""))
-	c.Intercept(csp.Default(""))
-	c.Intercept(&fetchmetadata.Interceptor{})
+	for _, i := range csp.Default("") {
+		c.Intercept(i)
+	}
+	c.Intercept(fetchmetadata.ResourceIsolationPolicy())
 	c.Intercept(staticheaders.Interceptor{})
 
 	addr := fmt.Sprintf("localhost:%d", port)

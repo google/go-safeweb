@@ -4,7 +4,7 @@ lines=$(cat $1 | wc -l)
 extension=$2
 for f in $(find . -name "*.$extension")
 do
-    diff=$(head $f -n $lines | diff $1 -)
+    diff=$(head $f -n $lines | sed 's/20[0-9][0-9]/YEAR/g' | diff $1 -)
     if [ ! -z "$diff" ]
     then
         echo $f
