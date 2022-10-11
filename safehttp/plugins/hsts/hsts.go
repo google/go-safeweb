@@ -21,11 +21,11 @@
 // only applies if the framework is not run in dev mode.
 //
 // More info:
-//  - MDN: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
-//  - Wikipedia: https://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security
-//  - RFC 6797: https://tools.ietf.org/html/rfc6797
+//   - MDN: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Strict-Transport-Security
+//   - Wikipedia: https://en.wikipedia.org/wiki/HTTP_Strict_Transport_Security
+//   - RFC 6797: https://tools.ietf.org/html/rfc6797
 //
-// Usage
+// # Usage
 //
 // To construct the plugin with safe default settings, use Default. Otherwise,
 // create the Interceptor yourself.
@@ -74,9 +74,9 @@ var _ safehttp.Interceptor = Interceptor{}
 
 // Default creates a new HSTS interceptor with safe defaults.
 // These safe defaults are:
-//  - max-age set to 2 years,
-//  - includeSubDomains is enabled,
-//  - preload is disabled.
+//   - max-age set to 2 years,
+//   - includeSubDomains is enabled,
+//   - preload is disabled.
 func Default() Interceptor {
 	return Interceptor{MaxAge: 63072000 * time.Second} // two years in seconds
 }

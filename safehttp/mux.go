@@ -79,21 +79,21 @@ type ServeMux struct {
 // ServeHTTP dispatches the request to the handler whose method matches the
 // incoming request and whose pattern most closely matches the request URL.
 //
-//  For each incoming request:
-//  - [Before Phase] Interceptor.Before methods are called for every installed
-//    interceptor, until an interceptor writes to a ResponseWriter (including
-//    errors) or panics,
-//  - the handler is called after a [Before Phase] if no writes or panics occured,
-//  - the handler triggers the [Commit Phase] by writing to the ResponseWriter,
-//  - [Commit Phase] Interceptor.Commit methods run for every interceptor whose
-//    Before method was called,
-//  - [Dispatcher Phase] after the [Commit Phase], the Dispatcher's appropriate
-//    write method is called; the Dispatcher is responsible for determining whether
-//    the response is indeed safe and writing it,
-//  - if the handler attempts to write more than once, it is treated as an
-//    unrecoverable error; the request processing ends abrubptly with a panic and
-//    nothing else happens (note: this will change as soon as [After Phase] is
-//    introduced)
+//	For each incoming request:
+//	- [Before Phase] Interceptor.Before methods are called for every installed
+//	  interceptor, until an interceptor writes to a ResponseWriter (including
+//	  errors) or panics,
+//	- the handler is called after a [Before Phase] if no writes or panics occured,
+//	- the handler triggers the [Commit Phase] by writing to the ResponseWriter,
+//	- [Commit Phase] Interceptor.Commit methods run for every interceptor whose
+//	  Before method was called,
+//	- [Dispatcher Phase] after the [Commit Phase], the Dispatcher's appropriate
+//	  write method is called; the Dispatcher is responsible for determining whether
+//	  the response is indeed safe and writing it,
+//	- if the handler attempts to write more than once, it is treated as an
+//	  unrecoverable error; the request processing ends abrubptly with a panic and
+//	  nothing else happens (note: this will change as soon as [After Phase] is
+//	  introduced)
 //
 // Interceptors should NOT rely on the order they're run.
 func (m *ServeMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {

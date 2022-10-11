@@ -23,7 +23,7 @@
 // are available and can introduce cross-site leaks vulnerabilities
 // (https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-XSS-Protection).
 //
-// Usage
+// # Usage
 //
 // Install an instance of Interceptor using safehttp.ServerMux.Install.
 package staticheaders
@@ -39,8 +39,8 @@ type Interceptor struct{}
 var _ safehttp.Interceptor = Interceptor{}
 
 // Before claims and sets the following headers:
-//  - X-Content-Type-Options: nosniff
-//  - X-XSS-Protection: 0
+//   - X-Content-Type-Options: nosniff
+//   - X-XSS-Protection: 0
 func (Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
 	h := w.Header()
 	setXCTO := h.Claim("X-Content-Type-Options")

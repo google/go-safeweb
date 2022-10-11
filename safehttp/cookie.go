@@ -28,9 +28,10 @@ type Cookie struct {
 
 // NewCookie creates a new Cookie with safe default settings.
 // Those safe defaults are:
-//  - Secure: true (if the framework is not in dev mode)
-//  - HttpOnly: true
-//  - SameSite: Lax
+//   - Secure: true (if the framework is not in dev mode)
+//   - HttpOnly: true
+//   - SameSite: Lax
+//
 // For more info about all the options, see:
 // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Set-Cookie
 func NewCookie(name, value string) *Cookie {
@@ -80,9 +81,9 @@ func (c *Cookie) SameSite(s SameSite) {
 
 // SetMaxAge sets the MaxAge attribute.
 //
-//  MaxAge = 0 means no 'Max-Age' attribute specified.
-//  MaxAge < 0 means delete cookie now, equivalently 'Max-Age: 0'
-//  MaxAge > 0 means Max-Age attribute present and given in seconds
+// - MaxAge = 0 means no 'Max-Age' attribute specified.
+// - MaxAge < 0 means delete cookie now, equivalently 'Max-Age: 0'
+// - MaxAge > 0 means Max-Age attribute present and given in seconds
 func (c *Cookie) SetMaxAge(maxAge int) {
 	c.wrapped.MaxAge = maxAge
 }

@@ -16,7 +16,7 @@
 // applications. See https://github.com/google/go-safeweb#readme to learn about
 // the goals and features.
 //
-// Safe Responses
+// # Safe Responses
 //
 // HTTP responses need to be crafted carefully in order to prevent common web
 // vulnerabilities like Cross-site Scripting (XSS). To help with this, we use
@@ -36,7 +36,7 @@
 // safe, we offer a way of configuring this in the framework. Whether a response
 // is considered safe or not is determined by the Dispatcher.
 //
-// Dispatcher
+// # Dispatcher
 //
 // An implementation of a Dispatcher should be provided by security experts in
 // your project. The Dispatcher is called for every write method of the
@@ -50,7 +50,7 @@
 // Warning: the security of the web application depends on a sound Dispatcher
 // implementation. Make sure it is security-reviewed and keep it simple.
 //
-// Interceptors
+// # Interceptors
 //
 // Not all security features can be implemented using the Dispatcher alone. For
 // instance, some requests should be rejected before they reach the handler in
@@ -61,7 +61,7 @@
 // the handler, and after the handler has committed a response. These are,
 // respectively, Before and Commit.
 //
-// Life of a Request
+// # Life of a Request
 //
 // To tie it all together, we will explain how a single request goes through the
 // framework.
@@ -99,51 +99,50 @@
 // It is safe to use defer statements for cleanup tasks (e.g. closing a file
 // that was used in a safehtml/template.Template response).
 //
-//  Stack trace of the flow:
+// Stack trace of the flow:
 //
-//  Mux.ServeHTTP()
-//  --+ Mux routes the request and checks the method.
-//  --+ InterceptorFoo.Before()
-//  --+ InterceptorBar.Before()
-//  --+ InterceptorBaz.Before()
-//  --+ Handler()
-//  ----+ ResponseWriter.Write
-//  ------+ InterceptorBaz.Commit()  // notice the inverted order
-//  ------+ InterceptorBar.Commit()
-//  ------+ InterceptorFoo.Commit()
-//  ------+ Dispatcher.Write()
-//  ----+ The result of the Response.Write() call is returned.
+//	Mux.ServeHTTP()
+//	--+ Mux routes the request and checks the method.
+//	--+ InterceptorFoo.Before()
+//	--+ InterceptorBar.Before()
+//	--+ InterceptorBaz.Before()
+//	--+ Handler()
+//	----+ ResponseWriter.Write
+//	------+ InterceptorBaz.Commit()  // notice the inverted order
+//	------+ InterceptorBar.Commit()
+//	------+ InterceptorFoo.Commit()
+//	------+ Dispatcher.Write()
+//	----+ The result of the Response.Write() call is returned.
 //
-// Error Responses
+// # Error Responses
 //
 // Error responses are written using ResponseWriter.WriteError. They go through
 // the usual Commit and Dispatcher phases.
 //
-// Configuring the Mux
+// # Configuring the Mux
 //
-// TODO
+// # TODO
 //
-// Incremental Adoption
+// # Incremental Adoption
 //
 // In order to migrate your service using http.Handlers to the safehttp package,
 // we recommend you start doing that one endpoint at a time. Use
 // RegisteredHandler to do this.
 //
-//  safeMuxConfig := /* configured ServeMuxConfig, including interceptors */
-//  safeMuxConfig.Handle("/bar", safehttp.MethodGET, barGETSafeHandler)
-//  safeMuxConfig.Handle("/bar", safehttp.MethodPOST, barPOSTSafeHandler)
-//  safeMuxConfig.Handle("/xyz", safehttp.MethodPOST, xyzSafeHandler)
-//  safeMux := safeMuxConfig.Mux()
+//	safeMuxConfig := /* configured ServeMuxConfig, including interceptors */
+//	safeMuxConfig.Handle("/bar", safehttp.MethodGET, barGETSafeHandler)
+//	safeMuxConfig.Handle("/bar", safehttp.MethodPOST, barPOSTSafeHandler)
+//	safeMuxConfig.Handle("/xyz", safehttp.MethodPOST, xyzSafeHandler)
+//	safeMux := safeMuxConfig.Mux()
 //
-//  // old, not yet migrated
-//  http.Handle("/foo", fooHandler)
+//	// old, not yet migrated
+//	http.Handle("/foo", fooHandler)
 //
-//  // new, migrated
-//  http.Handle("/bar", safehttp.RegisteredHandler(safeMux, "/bar"))
-//  http.Handle("/xyz", safehttp.RegisteredHandler(safeMux, "/xyz"))
+//	// new, migrated
+//	http.Handle("/bar", safehttp.RegisteredHandler(safeMux, "/bar"))
+//	http.Handle("/xyz", safehttp.RegisteredHandler(safeMux, "/xyz"))
 //
-//
-// Restricting Risky APIs
+// # Restricting Risky APIs
 //
 // Some APIs are easy-to-misuse in a security sensitive context. We choose to
 // restrict these and require a security review for their usage in order to

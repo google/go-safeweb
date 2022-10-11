@@ -25,7 +25,7 @@ import (
 // This method is helpful for migrating services incrementally, endpoint by
 // endpoint. The handler runs all the installed interceptors and the dispatcher.
 //
-// Important
+// # Important
 //
 // This function does not attempt to do any kind of path matching. If the
 // handler was registered using the ServeMuxConfig for a pattern "/foo/", this
