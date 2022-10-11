@@ -15,8 +15,8 @@
 // echo implements a simple echo server which listents on localhost:8080.
 //
 // Endpoints:
-//  - /echo?message=YourMessage
-//  - /uptime
+//   - /echo?message=YourMessage
+//   - /uptime
 package main
 
 import (

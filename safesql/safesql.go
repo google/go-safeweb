@@ -19,12 +19,16 @@
 // If uncheckedconversions and legacyconversions are not used and the sql package is forbidden this package guarantees that only compile-time constants will be
 // interpreted as SQL, thus preventing attacker-controlled strings to be accidentally executed.
 //
-// Migration Examples
+// # Migration Examples
 //
 // Code like the following is trivial to migrate from sql to safesql:
-// 	db.Query("SELECT ...", args...)
+//
+//	db.Query("SELECT ...", args...)
+//
 // The only change required would be to promote the string literal to a trusted string:
-// 	db.Query(safesql.New("SELECT ..."), args...)
+//
+//	db.Query(safesql.New("SELECT ..."), args...)
+//
 // For more complicated cases it might be needed to use the helper functions like Join and Concat.
 // If the queries for the service are stored in a trusted runtime-only source that cannot be controlled by a user
 // the uncheckedconversions package can be used to assert that those strings are under the programmer control.
@@ -37,7 +41,7 @@
 // The only relevant difference is that functions accept TrustedSQLString instances instead of plain "strings" and that some
 // dangerous methods have been removed.
 //
-// Explainer
+// # Explainer
 //
 // This package wraps the sql package and all methods that would normally take a string take a TrustedSQLString instead.
 // The constructor for TrustedSQLString takes a stringConstant as an argument, which is an unexported type constituted by a named string.

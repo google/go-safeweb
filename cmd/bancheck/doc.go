@@ -16,7 +16,7 @@
 // See https://pkg.go.dev/github.com/google/go-safeweb/safehttp#hdr-Restricting_Risky_APIs
 // for a high level overview.
 //
-// Overview
+// # Overview
 //
 // Bancheck is a program that allows you to define risky APIs and check for their usage.
 // It can be used as part of the CI/CD pipeline to avoid common pitfalls and prevent
@@ -25,13 +25,13 @@
 // are needed for static code analysis. The tool resolves fully qualified function
 // and import names and checks them against a config file that defines risky APIs.
 //
-// Usage
+// # Usage
 //
 // Apart from the standard https://pkg.go.dev/golang.org/x/tools/go/analysis#Analyzer flags
 // the command requires a config flag where a list of config files should be provided.
 // You can find a sample usage below.
 //
-// Config
+// # Config
 //
 // Config lets you specify which APIs should be banned, explain why they are risky to use
 // and allow a list of packages for which the check should be skipped.
@@ -42,59 +42,63 @@
 // i.e. one warning will still be returned.
 //
 // Example config:
-//  {
-// 		"functions": [
-// 			{
-// 				"name": "fmt.Printf",
-// 				"msg": "Banned by team A"
-// 			}
-// 		],
-// 		"imports": [
-// 			{
-// 				"name": "fmt",
-// 				"msg": "Banned by team A",
-//				"exemptions": [
-//					{
-//						"justification": "#yolo",
-//						"allowedPkg": "main"
-//					}
-//				]
-// 			}
-// 		]
-//  }
 //
-// Example
+//	 {
+//			"functions": [
+//				{
+//					"name": "fmt.Printf",
+//					"msg": "Banned by team A"
+//				}
+//			],
+//			"imports": [
+//				{
+//					"name": "fmt",
+//					"msg": "Banned by team A",
+//					"exemptions": [
+//						{
+//							"justification": "#yolo",
+//							"allowedPkg": "main"
+//						}
+//					]
+//				}
+//			]
+//	 }
+//
+// # Example
 //
 // The example below shows a simple use case where "fmt" package and "fmt.Printf" function were banned
 // by two separate teams.
 //
 // main.go
-//  package main
 //
-//  import "fmt"
+//	package main
 //
-//  func main() {
-//  	fmt.Printf("Hello")
-//  }
+//	import "fmt"
+//
+//	func main() {
+//		fmt.Printf("Hello")
+//	}
 //
 // config.json
-//  {
-//  	"functions": [
-// 			{
-// 				"name": "fmt.Printf",
-// 	   			"msg": "Banned by team A"
-// 	  		}
-// 	 	],
-//   	"imports": [
-// 	  		{
-// 	   			"name": "fmt",
-// 	   			"msg": "Banned by team B"
-// 	  		}
-// 	 	],
-//  }
+//
+//	 {
+//	 	"functions": [
+//				{
+//					"name": "fmt.Printf",
+//		   			"msg": "Banned by team A"
+//		  		}
+//		 	],
+//	  	"imports": [
+//		  		{
+//		   			"name": "fmt",
+//		   			"msg": "Banned by team B"
+//		  		}
+//		 	],
+//	 }
 //
 // CLI usage
-//  $ ./bancheck -configs config.json main.go
-//  /go-safeweb/cmd/bancheck/test/main.go:3:8: Banned API found "fmt". Additional info: Banned by team B
-//  /go-safeweb/cmd/bancheck/test/main.go:6:6: Banned API found "fmt.Printf". Additional info: Banned by team A
+//
+//	$ ./bancheck -configs config.json main.go
+//	/go-safeweb/cmd/bancheck/test/main.go:3:8: Banned API found "fmt". Additional info: Banned by team B
+//	/go-safeweb/cmd/bancheck/test/main.go:6:6: Banned API found "fmt.Printf". Additional info: Banned by team A
 package main
