@@ -20,7 +20,8 @@ import (
 	"log"
 )
 
-// Interceptor implements XSRF protection.
+// Interceptor provides protection against Cross-Site Request Forgery attacks
+// by rejecting all state-changing request.
 type Interceptor struct{}
 
 var _ safehttp.Interceptor = &Interceptor{}
