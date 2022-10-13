@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package xsrfblockall
 import (
 	"github.com/google/go-safeweb/safehttp"
 	"github.com/google/go-safeweb/safehttp/plugins/xsrf"
+	"log"
 )
 
 // Interceptor implements XSRF protection.
@@ -25,25 +26,20 @@ type Interceptor struct{}
 var _ safehttp.Interceptor = &Interceptor{}
 
 // Before rejects every state-changing request (all except GET, HEAD, and OPTIONS).
-func (it *Interceptor) Before(
-	w safehttp.ResponseWriter,
-	r *safehttp.IncomingRequest,
-	_ safehttp.InterceptorConfig,
-) safehttp.Result {
+func (it *Interceptor) Before(w safehttp.ResponseWriter, r *safehttp.IncomingRequest, _ safehttp.InterceptorConfig) safehttp.Result {
 	if xsrf.StatePreserving(r) {
 		return safehttp.NotWritten()
+	}
+
+	if safehttp.IsLocalDev() {
+		log.Println("xsrfblockall plugin blocked a state changing request")
 	}
 
 	return w.WriteError(safehttp.StatusForbidden)
 }
 
 // Commit does nothing.
-func (it *Interceptor) Commit(
-	w safehttp.ResponseHeadersWriter,
-	r *safehttp.IncomingRequest,
-	resp safehttp.Response,
-	_ safehttp.InterceptorConfig,
-) {
+func (it *Interceptor) Commit(w safehttp.ResponseHeadersWriter, r *safehttp.IncomingRequest, resp safehttp.Response, _ safehttp.InterceptorConfig) {
 }
 
 // Match returns false since there are no supported configurations.
