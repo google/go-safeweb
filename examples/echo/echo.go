@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ func uptime(w safehttp.ResponseWriter, req *safehttp.IncomingRequest) safehttp.R
 		Uptime    time.Duration
 		EasterEgg string
 	}
-	x.Uptime = time.Now().Sub(start)
+	x.Uptime = time.Since(start)
 
 	// Easter egg handling.
 	q, err := req.URL().Query()
