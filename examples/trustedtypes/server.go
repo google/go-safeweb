@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -32,26 +32,39 @@ import (
 )
 
 func main() {
-	host := "localhost"
-	port := "8080"
-	addr := net.JoinHostPort(host, port)
-	var mc safehttp.ServeMuxConfig
-	for _, i := range csp.Default("") {
-		mc.Intercept(i)
-	}
-	mux := mc.Mux()
+	mb, addr := newServeMuxConfig()
+	mux := mb.Mux()
 
-	safeTmplSrc, _ := template.TrustedSourceFromConstantDir("", template.TrustedSource{}, "safe.html")
-	safeTmpl := template.Must(htmlinject.LoadFiles(nil, htmlinject.LoadConfig{}, safeTmplSrc))
+	safeTmpl, _ := loadTemplate("safe.html")
 	mux.Handle("/safe", safehttp.MethodGet, safehttp.HandlerFunc(handleTemplate(safeTmpl)))
 
-	unsafeTmplSrc, _ := template.TrustedSourceFromConstantDir("", template.TrustedSource{}, "unsafe.html")
-	unsafeTmpl := template.Must(htmlinject.LoadFiles(nil, htmlinject.LoadConfig{}, unsafeTmplSrc))
+	unsafeTmpl, _ := loadTemplate("unsafe.html")
 	mux.Handle("/unsafe", safehttp.MethodGet, safehttp.HandlerFunc(handleTemplate(unsafeTmpl)))
 
 	log.Printf("Visit http://%s\n", addr)
 	log.Printf("Listening on %s...\n", addr)
 	log.Fatal(http.ListenAndServe(addr, mux))
+}
+
+func newServeMuxConfig() (*safehttp.ServeMuxConfig, string) {
+	host := "localhost"
+	port := "8080"
+	addr := net.JoinHostPort(host, port)
+	mc := safehttp.NewServeMuxConfig(nil)
+	for _, i := range csp.Default("") {
+		mc.Intercept(i)
+	}
+	return mc, addr
+}
+
+func loadTemplate(src string) (*template.Template, error) {
+	tmplSrc, err := template.TrustedSourceFromConstantDir("", template.TrustedSource{}, src)
+	if err != nil {
+		return nil, err
+	}
+
+	tmpl := template.Must(htmlinject.LoadFiles(nil, htmlinject.LoadConfig{}, tmplSrc))
+	return tmpl, nil
 }
 
 func handleTemplate(tmpl safehttp.Template) func(w safehttp.ResponseWriter, req *safehttp.IncomingRequest) safehttp.Result {
