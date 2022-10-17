@@ -34,8 +34,7 @@ import (
 
 // NewMuxConfig creates a safe ServeMuxConfig.
 func NewMuxConfig(db *storage.DB, addr string) *safehttp.ServeMuxConfig {
-	c := safehttp.NewServeMuxConfig(dispatcher{})
-
+	c := safehttp.NewServeMuxConfig(nil)
 	c.Intercept(coop.Default(""))
 	c.Intercept(staticheaders.Interceptor{})
 	for _, i := range csp.Default("") {

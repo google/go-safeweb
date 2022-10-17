@@ -1,4 +1,4 @@
-// Copyright 2020 Google LLC
+// Copyright 2022 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ import (
 // Warning: XSRF protection is currently missing due to
 // https://github.com/google/go-safeweb/issues/171.
 func NewMuxConfig(addr string) *safehttp.ServeMuxConfig {
-	c := &safehttp.ServeMuxConfig{}
+	c := safehttp.NewServeMuxConfig(nil)
 
 	c.Intercept(coop.Default(""))
 	c.Intercept(staticheaders.Interceptor{})
@@ -81,7 +81,7 @@ func NewMuxConfig(addr string) *safehttp.ServeMuxConfig {
 // Important: the host checking plugin will accept only requests coming to
 // localhost:port, not e.g. 127.0.0.1:port.
 func NewMuxConfigDev(port int) *safehttp.ServeMuxConfig {
-	c := &safehttp.ServeMuxConfig{}
+	c := safehttp.NewServeMuxConfig(nil)
 
 	c.Intercept(coop.Default(""))
 	for _, i := range csp.Default("") {
