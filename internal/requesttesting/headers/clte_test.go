@@ -131,7 +131,7 @@ func TestContentLengthTransferEncoding(t *testing.T) {
 				t.Fatalf("MakeRequest() got err: %v", err)
 			}
 
-			if got, want := extractStatus(resp), statusOK; got != want {
+			if got, want := extractStatus(resp), statusOK; !matchStatus(got, want) {
 				t.Errorf("status code got: %q want: %q", got, want)
 			}
 		})
@@ -155,7 +155,7 @@ func TestContentLengthTransferEncodingStatusMessages(t *testing.T) {
 				"\r\n" +
 				"ABCDE\r\n" +
 				"\r\n"),
-			want: statusBadRequest,
+			want: statusBadRequestPrefix,
 		},
 		{
 			name: "MultipleTransferEncodingChunkedFirst",
@@ -259,7 +259,7 @@ func TestContentLengthTransferEncodingStatusMessages(t *testing.T) {
 				t.Fatalf("MakeRequest() got err: %v", err)
 			}
 
-			if got := extractStatus(resp); got != tt.want {
+			if got := extractStatus(resp); !matchStatus(got, tt.want) {
 				t.Errorf("status code got: %q want: %q", got, tt.want)
 			}
 		})

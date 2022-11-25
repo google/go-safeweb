@@ -17,7 +17,6 @@ package headers
 import (
 	"context"
 	"net/http"
-	"strings"
 	"testing"
 
 	"github.com/google/go-safeweb/internal/requesttesting"
@@ -83,7 +82,7 @@ func TestHostHeader(t *testing.T) {
 				t.Fatalf("MakeRequest() got err: %v", err)
 			}
 
-			if got, want := extractStatus(resp), statusOK; got != want {
+			if got, want := extractStatus(resp), statusOK; !matchStatus(got, want) {
 				t.Errorf("status code got: %q want: %q", got, want)
 			}
 		})
@@ -101,7 +100,7 @@ func TestHostHeaderMultiple(t *testing.T) {
 		t.Fatalf("MakeRequest() got err: %v", err)
 	}
 
-	if got, want := extractStatus(resp), statusBadRequest; !strings.HasPrefix(got, want) {
+	if got, want := extractStatus(resp), statusBadRequestPrefix; !matchStatus(got, want) {
 		t.Errorf("status code got: %q want: %q", got, want)
 	}
 }
@@ -134,7 +133,7 @@ func TestAbsoluteFormURLInvalidSchema(t *testing.T) {
 			t.Fatalf("MakeRequest() got err: %v want: nil", err)
 		}
 
-		if got, want := extractStatus(resp), statusOK; got != want {
+		if got, want := extractStatus(resp), statusOK; !matchStatus(got, want) {
 			t.Errorf("status code got: %q want: %q", got, want)
 		}
 	})
@@ -148,7 +147,7 @@ func TestAbsoluteFormURLInvalidSchema(t *testing.T) {
 			t.Fatalf("MakeRequest() got err: %v want: nil", err)
 		}
 
-		if got, want := extractStatus(resp), statusBadRequest; got != want {
+		if got, want := extractStatus(resp), statusBadRequestPrefix; !matchStatus(got, want) {
 			t.Errorf("status code got: %q want: %q", got, want)
 		}
 	})

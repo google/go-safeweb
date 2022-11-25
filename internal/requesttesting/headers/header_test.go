@@ -110,7 +110,7 @@ func TestHeaderParsing(t *testing.T) {
 				t.Fatalf("MakeRequest() got err: %v", err)
 			}
 
-			if got, want := extractStatus(resp), statusOK; got != want {
+			if got, want := extractStatus(resp), statusOK; !matchStatus(got, want) {
 				t.Errorf("status code got: %q want: %q", got, want)
 			}
 		})
@@ -129,7 +129,7 @@ func TestStatusCode(t *testing.T) {
 				" A: a\r\n" +
 				"Host: localhost:8080\r\n" +
 				"\r\n"),
-			want: statusBadRequest,
+			want: statusBadRequestPrefix,
 		},
 		{
 			name: "MultilineHeaderName",
@@ -138,7 +138,7 @@ func TestStatusCode(t *testing.T) {
 				"AA\r\n" +
 				" AA: aaaa\r\n" +
 				"\r\n"),
-			want: statusBadRequest,
+			want: statusBadRequestPrefix,
 		},
 		{
 			name: "MultilineHeaderBeforeColon",
@@ -147,7 +147,7 @@ func TestStatusCode(t *testing.T) {
 				"A\r\n" +
 				" : a\r\n" +
 				"\r\n"),
-			want: statusBadRequest,
+			want: statusBadRequestPrefix,
 		},
 		{
 			name: "UnicodeHeaderName",
@@ -155,7 +155,7 @@ func TestStatusCode(t *testing.T) {
 				"Host: localhost:8080\r\n" +
 				"\xf0\x9f\xa5\xb3: a\r\n" +
 				"\r\n"),
-			want: statusInvalidHeaderName,
+			want: statusBadRequestPrefix,
 		},
 		{
 			name: "SpecialCharactersHeaderName",
@@ -163,7 +163,7 @@ func TestStatusCode(t *testing.T) {
 				"Host: localhost:8080\r\n" +
 				"&%*(#@%()): a\r\n" +
 				"\r\n"),
-			want: statusInvalidHeaderName,
+			want: statusBadRequestPrefix,
 		},
 		{
 			name: "NullByteInHeaderName",
@@ -171,7 +171,7 @@ func TestStatusCode(t *testing.T) {
 				"Host: localhost:8080\r\n" +
 				"A\x00A: a\r\n" +
 				"\r\n"),
-			want: statusInvalidHeaderName,
+			want: statusBadRequestPrefix,
 		},
 		{
 			name: "NullByteInHeaderValue",
@@ -179,7 +179,7 @@ func TestStatusCode(t *testing.T) {
 				"Host: localhost:8080\r\n" +
 				"AA: a\x00a\r\n" +
 				"\r\n"),
-			want: statusInvalidHeaderValue,
+			want: statusBadRequestPrefix,
 		},
 	}
 
@@ -190,7 +190,7 @@ func TestStatusCode(t *testing.T) {
 				t.Fatalf("MakeRequest() got err: %v", err)
 			}
 
-			if got := extractStatus(resp); got != tt.want {
+			if got := extractStatus(resp); !matchStatus(got, tt.want) {
 				t.Errorf("status code got: %q want: %q", got, tt.want)
 			}
 		})
@@ -237,7 +237,7 @@ func TestValues(t *testing.T) {
 				t.Fatalf("MakeRequest() got err: %v want: nil", err)
 			}
 
-			if got, want := extractStatus(resp), statusOK; got != want {
+			if got, want := extractStatus(resp), statusOK; !matchStatus(got, want) {
 				t.Errorf("status code got: %q want: %q", got, want)
 			}
 		})
@@ -281,7 +281,7 @@ func TestMultiLineHeader(t *testing.T) {
 			t.Fatalf("MakeRequest() got err: %v want: nil", err)
 		}
 
-		if got, want := extractStatus(resp), statusOK; got != want {
+		if got, want := extractStatus(resp), statusOK; !matchStatus(got, want) {
 			t.Errorf("status code got: %q want: %q", got, want)
 		}
 	})
@@ -295,7 +295,7 @@ func TestMultiLineHeader(t *testing.T) {
 			t.Fatalf("MakeRequest() got err: %v want: nil", err)
 		}
 
-		if got, want := extractStatus(resp), statusBadRequest; got != want {
+		if got, want := extractStatus(resp), statusBadRequestPrefix; !matchStatus(got, want) {
 			t.Errorf("status code got: %q want: %q", got, want)
 		}
 	})

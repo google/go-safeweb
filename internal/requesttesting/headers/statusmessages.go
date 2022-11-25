@@ -14,14 +14,15 @@
 
 package headers
 
-import "bytes"
+import (
+	"bytes"
+	"strings"
+)
 
 const (
-	statusOK                 = "HTTP/1.1 200 OK"
-	statusNotImplemented     = "HTTP/1.1 501 Not Implemented"
-	statusBadRequest         = "HTTP/1.1 400 Bad Request"
-	statusInvalidHeaderName  = "HTTP/1.1 400 Bad Request: invalid header name"
-	statusInvalidHeaderValue = "HTTP/1.1 400 Bad Request: invalid header value"
+	statusOK               = "HTTP/1.1 200 OK"
+	statusNotImplemented   = "HTTP/1.1 501 Not Implemented"
+	statusBadRequestPrefix = "HTTP/1.1 400 Bad Request"
 )
 
 func extractStatus(response []byte) string {
@@ -30,4 +31,8 @@ func extractStatus(response []byte) string {
 		return ""
 	}
 	return string(response[:position])
+}
+
+func matchStatus(got, want string) bool {
+	return strings.HasPrefix(got, want)
 }
