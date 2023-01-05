@@ -39,8 +39,8 @@ func main() {
 	addr := fmt.Sprintf("localhost:%d", port)
 	m := web.NewMuxConfigDev(port).Mux()
 
-	m.Handle("/echo", safehttp.MethodGet, safehttp.HandlerFunc(echo))
-	m.Handle("/uptime", safehttp.MethodGet, safehttp.HandlerFunc(uptime))
+	m.Handle("/echo", safehttp.MethodGet, web.HandlerFunc(echo))
+	m.Handle("/uptime", safehttp.MethodGet, web.HandlerFunc(uptime))
 
 	start = time.Now()
 	log.Printf("Visit http://%s\n", addr)
@@ -48,7 +48,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(addr, m))
 }
 
-func echo(w safehttp.ResponseWriter, req *safehttp.IncomingRequest) safehttp.Result {
+func echo(w web.ResponseWriter, req *safehttp.IncomingRequest) safehttp.Result {
 	q, err := req.URL().Query()
 	if err != nil {
 		return w.WriteError(safehttp.StatusBadRequest)
@@ -64,7 +64,7 @@ var uptimeTmpl *template.Template = template.Must(template.New("uptime").Parse(
 	`<h1>Uptime: {{ .Uptime }}</h1>
 {{- if .EasterEgg }}<h1>You've found an easter egg using "{{ .EasterEgg }}". Congrats!</h1>{{ end -}}`))
 
-func uptime(w safehttp.ResponseWriter, req *safehttp.IncomingRequest) safehttp.Result {
+func uptime(w web.ResponseWriter, req *safehttp.IncomingRequest) safehttp.Result {
 	var x struct {
 		Uptime    time.Duration
 		EasterEgg string
