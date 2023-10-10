@@ -53,7 +53,7 @@ func TestDevMode(t *testing.T) {
 		if err != nil {
 			t.Errorf("Read body: got %v", err)
 		}
-		if bytes.Compare(got, []byte(resp)) != 0 {
+		if !bytes.Equal(got, []byte(resp)) {
 			t.Errorf("body: got %q, want %q", got, resp)
 		}
 		cs := w.Result().Cookies()
