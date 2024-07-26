@@ -72,7 +72,7 @@ type Server struct {
 	// ALPN protocol upgrade or that have been hijacked.
 	// These functions should start protocol-specific graceful shutdown, but
 	// should not wait for shutdown to complete.
-	OnShudown []func()
+	OnShutdown []func()
 
 	// DisableKeepAlives controls whether HTTP keep-alives should be disabled.
 	DisableKeepAlives bool
@@ -119,7 +119,7 @@ func (s *Server) buildStd() error {
 		cfg.PreferServerCipherSuites = true
 		srv.TLSConfig = cfg
 	}
-	for _, f := range s.OnShudown {
+	for _, f := range s.OnShutdown {
 		srv.RegisterOnShutdown(f)
 	}
 	if s.DisableKeepAlives {
