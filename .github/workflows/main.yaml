@@ -65,23 +65,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-    - name: Set up Go 1.x
-      uses: actions/setup-go@v3
-      with:
-        go-version: '1.20'
-      id: go
+      - uses: actions/checkout@v4
 
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v3
-
-    - name: Copyright linter - Go
-      run: |
-        ./.github/workflows/copyright_linter.sh ./.github/workflows/go-copyright-header.txt go
-
-    - name: Copyright linter - HTML
-      run: |
-        ./.github/workflows/copyright_linter.sh ./.github/workflows/html-copyright-header.txt html
-
-    - name: Copyright linter - JavaScript
-      run: |
-        ./.github/workflows/copyright_linter.sh ./.github/workflows/js-copyright-header.txt js
+      - name: golic # see: https://github.com/absaoSS/golic
+        run: |
+          export PATH=${PATH}:`go env GOPATH`/bin
+          go install github.com/AbsaOSS/golic@v0.7.2
+          golic inject --dry -x -t apache2

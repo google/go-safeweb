@@ -1,0 +1,8 @@
+# Ignore everything
+*
+
+# But inject license into these files...
+!*.go
+!*.html
+!*.js
+!*.css
