@@ -7,8 +7,7 @@ servers in Go.
 
 ## Contributing
 
-This project is in an early stage. We are currently **not accepting** any
-contributions.
+Check the [Contributing file](./CONTRIBUTING.md) for instructions on how to open issues and pull requests.
 
 ## Overview
 
