@@ -32,6 +32,9 @@ var embedTestdata embed.FS
 
 func TestLoadGlobEmbed(t *testing.T) {
 	tpl, err := LoadGlobEmbed(nil, LoadConfig{}, safetemplate.TrustedSourceFromConstant("testdata/*.tpl"), embedTestdata)
+	if err != nil {
+		t.Fatalf("Load templates: got err %q", err)
+	}
 
 	// Test that whatever we provide is clonable or injection won't be possible.
 	tpl, err = tpl.Clone()
