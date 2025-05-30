@@ -294,6 +294,9 @@ func TestLoadTrustedTemplateWithDefaultConfig(t *testing.T) {
 
 func TestLoadGlob(t *testing.T) {
 	tpl, err := LoadGlob(nil, LoadConfig{}, safetemplate.TrustedSourceFromConstant("testdata/*.tpl"))
+	if err != nil {
+		t.Fatalf("Load templates: got err %q", err)
+	}
 
 	// Test that whatever we provide is clonable or injection won't be possible.
 	tpl, err = tpl.Clone()
