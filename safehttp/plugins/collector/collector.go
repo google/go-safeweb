@@ -94,7 +94,7 @@ func Handler(handler func(Report), cspHandler func(CSPReport)) safehttp.Handler 
 			return w.WriteError(safehttp.StatusMethodNotAllowed)
 		}
 
-		b, err := ioutil.ReadAll(r.Body())
+		b, err := ioutil.ReadAll(io.LimitReader(r.Body(), 1<<20))
 		if err != nil {
 			return w.WriteError(safehttp.StatusBadRequest)
 		}
