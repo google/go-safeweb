@@ -20,6 +20,7 @@ package collector
 
 import (
 	"encoding/json"
+	"io"
 	"io/ioutil"
 
 	"github.com/google/go-safeweb/safehttp"
@@ -94,7 +95,7 @@ func Handler(handler func(Report), cspHandler func(CSPReport)) safehttp.Handler 
 			return w.WriteError(safehttp.StatusMethodNotAllowed)
 		}
 
-		b, err := ioutil.ReadAll(r.Body())
+		b, err := ioutil.ReadAll(io.LimitReader(r.Body(), 1<<20))
 		if err != nil {
 			return w.WriteError(safehttp.StatusBadRequest)
 		}
@@ -200,6 +201,7 @@ func handleReport(h func(Report), w safehttp.ResponseWriter, b []byte) safehttp.
 	}
 
 	badReport := false
+	var reportsToSend []Report
 	for _, r := range rList {
 		reportToSend := Report{
 			Type:      r.Type,
@@ -224,11 +226,15 @@ func handleReport(h func(Report), w safehttp.ResponseWriter, b []byte) safehttp.
 			reportToSend.Body = b
 		}
 
-		h(reportToSend)
+		reportsToSend = append(reportsToSend, reportToSend)
 	}
 
 	if badReport {
 		return w.WriteError(safehttp.StatusBadRequest)
+	}
+
+	for _, report := range reportsToSend {
+		h(report)
 	}
 
 	return w.Write(safehttp.NoContentResponse{})
