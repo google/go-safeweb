@@ -20,10 +20,18 @@ package collector
 
 import (
 	"encoding/json"
+	"io"
 	"io/ioutil"
 
 	"github.com/google/go-safeweb/safehttp"
 )
+
+// maxReportBodyBytes is the maximum number of bytes read from a violation
+// report request body. CSP and generic reports are small JSON objects; a
+// legitimate browser-generated report is well under 64 KiB. Capping the read
+// prevents a single unauthenticated POST from exhausting server memory via a
+// streaming chunked-encoded body.
+const maxReportBodyBytes = 64 * 1024 // 64 KiB
 
 // Report represents a generic report as specified by https://w3c.github.io/reporting/#serialize-reports
 type Report struct {
@@ -94,7 +102,7 @@ func Handler(handler func(Report), cspHandler func(CSPReport)) safehttp.Handler 
 			return w.WriteError(safehttp.StatusMethodNotAllowed)
 		}
 
-		b, err := ioutil.ReadAll(r.Body())
+		b, err := ioutil.ReadAll(io.LimitReader(r.Body(), maxReportBodyBytes))
 		if err != nil {
 			return w.WriteError(safehttp.StatusBadRequest)
 		}
