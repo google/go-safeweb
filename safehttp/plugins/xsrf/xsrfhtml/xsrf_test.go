@@ -25,25 +25,27 @@ import (
 
 var (
 	formTokenTests = []struct {
-		name, cookieVal, host string
+		name, cookieVal, path string
 		wantStatus            safehttp.StatusCode
 	}{
 		{
 			name:       "Valid token",
 			cookieVal:  "abcdef",
-			host:       "go.dev",
+			path:       "/",
 			wantStatus: safehttp.StatusOK,
 		},
 		{
-			name:       "Invalid host in token generation",
+			// Token generated for a different path must be rejected, ensuring
+			// that a token obtained from one endpoint cannot be replayed on another.
+			name:       "Invalid path in token generation",
 			cookieVal:  "abcdef",
-			host:       "google.com",
+			path:       "/other-page",
 			wantStatus: safehttp.StatusForbidden,
 		},
 		{
 			name:       "Invalid cookie value in token generation",
 			cookieVal:  "evilvalue",
-			host:       "go.dev",
+			path:       "/",
 			wantStatus: safehttp.StatusForbidden,
 		},
 	}
@@ -53,7 +55,7 @@ func TestTokenPost(t *testing.T) {
 	for _, test := range formTokenTests {
 		t.Run(test.name, func(t *testing.T) {
 			fakeRW, rr := safehttptest.NewFakeResponseWriter()
-			tok := xsrftoken.Generate("testSecretAppKey", test.cookieVal, test.host)
+			tok := xsrftoken.Generate("testSecretAppKey", test.cookieVal, test.path)
 			req := safehttptest.NewRequest(safehttp.MethodPost, "https://go.dev/", strings.NewReader(TokenKey+"="+tok))
 			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 			req.Header.Set("Cookie", cookieIDKey+"=abcdef")
@@ -72,7 +74,7 @@ func TestTokenMultipart(t *testing.T) {
 	for _, test := range formTokenTests {
 		t.Run(test.name, func(t *testing.T) {
 			fakeRW, rr := safehttptest.NewFakeResponseWriter()
-			tok := xsrftoken.Generate("testSecretAppKey", test.cookieVal, test.host)
+			tok := xsrftoken.Generate("testSecretAppKey", test.cookieVal, test.path)
 			b := "--123\r\n" +
 				"Content-Disposition: form-data; name=\"xsrf-token\"\r\n" +
 				"\r\n" +
