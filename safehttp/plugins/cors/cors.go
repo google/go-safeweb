@@ -193,6 +193,14 @@ func (it *Interceptor) preflight(w safehttp.ResponseWriter, r *safehttp.Incoming
 	if method == "" || method == safehttp.MethodHead {
 		return safehttp.StatusForbidden
 	}
+	// Reject method values that contain commas, spaces, or other characters
+	// that are not valid in a single HTTP method token (RFC 7230 §3.2.6).
+	// Without this check, a value like "GET, DELETE" is reflected verbatim
+	// into Access-Control-Allow-Methods, which browsers parse as two methods,
+	// granting cross-origin access to methods the server never intended.
+	if strings.ContainsAny(method, ", \t") {
+		return safehttp.StatusForbidden
+	}
 
 	headers := rh.Get("Access-Control-Request-Headers")
 	if headers != "" {
